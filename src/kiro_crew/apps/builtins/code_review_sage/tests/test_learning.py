@@ -122,3 +122,57 @@ class TestSeed(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestClearCandidateRespectsMultiplicity(unittest.TestCase):
+    """Ids are a content hash of title|scope and staging appends without deduping,
+    so the same id can appear twice. A set-membership clear deleted EVERY
+    occurrence, including one staged after the consolidation snapshot that the
+    merge never saw — the exact loss the only_ids path exists to prevent.
+    """
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+
+    def _stage(self, title, guidance):
+        # title + guidance are the whole persisted rule; `body` is not rendered.
+        return L.stage_learning(
+            {"title": title, "scope": "common", "guidance": guidance},
+            "fix_introduce", self.root)
+
+    def test_a_duplicate_staged_after_the_snapshot_survives(self):
+        self._stage("Guard the write path", "first")
+        # What consolidation snapshots at dispatch: one element per staged entry.
+        snapshot = [p["id"] for p in L.list_candidate(self.root)]
+        self.assertEqual(len(snapshot), 1)
+        # A later review re-learns the same lesson for the same scope: same id.
+        self._stage("Guard the write path", "second, staged behind the merge")
+        self.assertEqual(len(L.list_candidate(self.root)), 2)
+
+        L.clear_candidate(self.root, only_ids=snapshot)
+
+        left = L.list_candidate(self.root)
+        self.assertEqual(len(left), 1, "the unseen duplicate must survive the clear")
+        self.assertIn("behind the merge", left[0].get("guidance", ""))
+
+    def test_every_snapshotted_occurrence_is_cleared(self):
+        self._stage("Same lesson", "one")
+        self._stage("Same lesson", "two")
+        snapshot = [p["id"] for p in L.list_candidate(self.root)]
+        self.assertEqual(len(snapshot), 2, "both occurrences are in the snapshot")
+
+        L.clear_candidate(self.root, only_ids=snapshot)
+
+        self.assertEqual(L.list_candidate(self.root), [],
+                         "nothing staged after dispatch, so the file clears out")
+
+    def test_an_unrelated_candidate_is_still_kept(self):
+        self._stage("Consolidated lesson", "merged")
+        snapshot = [p["id"] for p in L.list_candidate(self.root)]
+        self._stage("A different lesson", "untouched")
+
+        L.clear_candidate(self.root, only_ids=snapshot)
+
+        left = L.list_candidate(self.root)
+        self.assertEqual([p["title"] for p in left], ["A different lesson"])

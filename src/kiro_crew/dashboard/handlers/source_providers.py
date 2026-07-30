@@ -2653,6 +2653,40 @@ _GITHUB_RESOLVE_MUTATION = (
     "{thread{isResolved}}}"
 )
 
+_GITHUB_UNRESOLVE_MUTATION = (
+    "mutation($threadId:ID!){unresolveReviewThread(input:{threadId:$threadId})"
+    "{thread{isResolved}}}"
+)
+
+_GITHUB_THREAD_REPLY_MUTATION = (
+    "mutation($threadId:ID!,$body:String!)"
+    "{addPullRequestReviewThreadReply"
+    "(input:{pullRequestReviewThreadId:$threadId,body:$body})"
+    "{comment{id}}}"
+)
+
+# Comment bodies are user text passed as a single CLI argument (argv, never a
+# shell string), so the only real risk is size. GitHub rejects bodies past 65536
+# characters anyway, so refusing here turns a provider error into a clear local
+# one and bounds the argument.
+_MAX_COMMENT_CHARS = 65536
+
+
+def _validated_comment_body(body: str) -> str:
+    """Return a comment body that is safe and worth sending.
+
+    Empty bodies are refused rather than posted: an accidental empty comment is
+    visible to everyone on the pull request and cannot be removed from here.
+    """
+    text = (body or "").strip()
+    if not text:
+        raise ValueError("A comment body is required.")
+    if len(text) > _MAX_COMMENT_CHARS:
+        raise ValueError(
+            f"A comment body must be at most {_MAX_COMMENT_CHARS} characters.")
+    return text
+
+
 # Node ids are provider-issued, but they are interpolated into a CLI argument,
 # so they get the same shape check as review-thread ids before dispatch.
 _GITHUB_NODE_ID_RE = re.compile(r"^[A-Za-z0-9_=+-]{1,128}$")
@@ -2772,6 +2806,86 @@ async def _invalidate_pull_request_cache(url: str) -> None:
     """Supersede cached and in-flight data before a provider mutation."""
     await _invalidate_full_payload_cache(url)
     _invalidate_check_status(url)
+
+
+async def _github_thread_ref(raw_url: str, thread_id: str) -> SourceRef:
+    """Validate a thread id AND prove it belongs to the pull request in the url.
+
+    The ownership check is the security control: the thread id arrives from the
+    browser, and without it an owner-authenticated mutation could be steered at a
+    thread on an unrelated pull request. Shared by reply/resolve/unresolve so no
+    future call site can skip it.
+    """
+    await ensure_gitlab_hosts_loaded()
+    # The docstring above promises this is the one place reply/resolve/unresolve
+    # cannot skip, so the kind check belongs here too — not only in the callers
+    # that happen to repeat it.
+    ref = _require_change_ref(parse_source_url(raw_url))
+    if ref.provider != "github":
+        raise ValueError(
+            "Replying to review threads is only supported on GitHub so far.")
+    if not _GITHUB_THREAD_ID_RE.fullmatch(thread_id or ""):
+        raise ValueError("A valid thread id is required.")
+    threads = await _run_json(
+        "gh", "api", "graphql",
+        "-f", f"query={_GITHUB_REVIEW_THREADS_QUERY}",
+        "-f", f"owner={ref.owner}",
+        "-f", f"repo={ref.repo}",
+        "-F", f"number={ref.number}",
+    )
+    if thread_id not in _github_thread_ids(threads):
+        raise ValueError("Review thread does not belong to this pull request.")
+    return ref
+
+
+async def reply_to_review_thread(raw_url: str, thread_id: str, body: str) -> None:
+    """Post a reply into an existing review thread."""
+    text = _validated_comment_body(body)
+    ref = await _github_thread_ref(raw_url, thread_id)
+    # Invalidate before dispatch, matching resolve: once the provider call
+    # starts its remote result is uncertain under cancellation, so a stale
+    # generation must already be unable to satisfy the post-write refresh.
+    await _invalidate_pull_request_cache(ref.url)
+    payload = await _run_json(
+        "gh", "api", "graphql",
+        "-f", f"query={_GITHUB_THREAD_REPLY_MUTATION}",
+        "-f", f"threadId={thread_id}",
+        "-f", f"body={text}",
+    )
+    _raise_on_graphql_errors(payload, "could not post the reply")
+
+
+async def unresolve_pull_request_thread(raw_url: str, thread_id: str) -> None:
+    """Reopen a resolved review thread."""
+    ref = await _github_thread_ref(raw_url, thread_id)
+    await _invalidate_pull_request_cache(ref.url)
+    payload = await _run_json(
+        "gh", "api", "graphql",
+        "-f", f"query={_GITHUB_UNRESOLVE_MUTATION}",
+        "-f", f"threadId={thread_id}",
+    )
+    _raise_on_graphql_errors(payload, "could not reopen the thread")
+
+
+async def comment_on_pull_request(raw_url: str, body: str) -> None:
+    """Post a top-level comment on the pull request itself (not a thread)."""
+    text = _validated_comment_body(body)
+    await ensure_gitlab_hosts_loaded()
+    # Issue refs are refused here for the same reason the thread mutations refuse
+    # them: this posts to /issues/{number}/comments, and on GitHub issues and pull
+    # requests share one number counter, so an issue URL would publish a comment
+    # on an unrelated issue that happens to carry the PR's number.
+    ref = _require_change_ref(parse_source_url(raw_url))
+    if ref.provider != "github":
+        raise ValueError("Commenting is only supported on GitHub so far.")
+    await _invalidate_pull_request_cache(ref.url)
+    # Issue comments, because a pull request's conversation timeline IS its issue
+    # timeline; the review-comment endpoints require a diff position.
+    await _run_json(
+        "gh", "api", "-X", "POST",
+        f"repos/{ref.owner}/{ref.repo}/issues/{ref.number}/comments",
+        "-f", f"body={text}",
+    )
 
 
 async def resolve_pull_request_thread(raw_url: str, thread_id: str) -> None:
@@ -3092,6 +3206,61 @@ async def api_pull_request_resolve(request: web.Request) -> web.Response:
         return {"resolved": True}
 
     return await _owner_mutation_response(request, "source.pull_request.resolve", action)
+
+
+async def api_pull_request_unresolve(request: web.Request) -> web.Response:
+    """Owner-only POST ``/api/source/pull-request/unresolve`` mutation.
+
+    The counterpart to resolve: a thread closed by mistake, or reopened because
+    the fix did not hold, has to be recoverable from the same surface.
+    """
+
+    async def action(body: dict[str, Any]) -> dict[str, Any]:
+        await unresolve_pull_request_thread(
+            str(body.get("url") or ""), str(body.get("threadId") or "")
+        )
+        return {"resolved": False}
+
+    return await _owner_mutation_response(
+        request, "source.pull_request.unresolve", action)
+
+
+async def api_pull_request_reply(request: web.Request) -> web.Response:
+    """Owner-only POST ``/api/source/pull-request/reply`` mutation.
+
+    Posts a reply into an existing review thread under the dashboard owner's
+    provider identity. Same auth, audit, and cache-invalidation contract as
+    resolve, plus the thread-ownership proof that keeps a browser-supplied thread
+    id from reaching an unrelated pull request.
+    """
+
+    async def action(body: dict[str, Any]) -> dict[str, Any]:
+        await reply_to_review_thread(
+            str(body.get("url") or ""),
+            str(body.get("threadId") or ""),
+            str(body.get("body") or ""),
+        )
+        return {"posted": True}
+
+    return await _owner_mutation_response(
+        request, "source.pull_request.reply", action)
+
+
+async def api_pull_request_comment(request: web.Request) -> web.Response:
+    """Owner-only POST ``/api/source/pull-request/comment`` mutation.
+
+    A top-level comment on the pull request conversation, for the case that is
+    not a reply to anyone's line.
+    """
+
+    async def action(body: dict[str, Any]) -> dict[str, Any]:
+        await comment_on_pull_request(
+            str(body.get("url") or ""), str(body.get("body") or "")
+        )
+        return {"posted": True}
+
+    return await _owner_mutation_response(
+        request, "source.pull_request.comment", action)
 
 
 async def _owner_mutation_response(

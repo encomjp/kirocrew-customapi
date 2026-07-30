@@ -4189,6 +4189,11 @@ def _app(
     app.router.add_post("/api/source/pull-request/checks", source.api_pull_request_checks)
     app.router.add_post("/api/source/pull-request/status", source.api_pull_request_status)
     app.router.add_post("/api/source/pull-request/resolve", source.api_pull_request_resolve)
+    app.router.add_post(
+        "/api/source/pull-request/unresolve", source.api_pull_request_unresolve)
+    app.router.add_post("/api/source/pull-request/reply", source.api_pull_request_reply)
+    app.router.add_post(
+        "/api/source/pull-request/comment", source.api_pull_request_comment)
     app.router.add_post("/api/source/pull-request/auto-merge", source.api_pull_request_auto_merge)
     app.router.add_post("/api/source/pull-request/ready", source.api_pull_request_ready)
     app.router.add_post("/api/source/issue", source.api_issue_source)
@@ -5274,6 +5279,61 @@ async def test_fetch_pull_request_refuses_an_issue_url(monkeypatch) -> None:
     monkeypatch.setattr(source, "_run_json", run)
     with pytest.raises(ValueError, match="points at an issue"):
         await source.fetch_pull_request(_ISSUE_URL)
+# --- Review-thread replies, top-level comments, unresolve -------------------
+# Writes to someone else's pull request under the owner's provider identity, so
+# each one repeats resolve's contract: validated url, thread-ownership proof,
+# cache invalidated BEFORE dispatch.
+
+_THREAD_MEMBERSHIP = {
+    "data": {
+        "repository": {"pullRequest": {"reviewThreads": {"nodes": [{"id": "PRRT_1"}]}}}
+    }
+}
+
+
+@pytest.mark.asyncio
+async def test_reply_posts_into_the_thread(monkeypatch) -> None:
+    calls: list[tuple] = []
+
+    async def run(*argv, **kwargs):
+        calls.append(argv)
+        if any("reviewThreads" in a for a in argv):
+            return _THREAD_MEMBERSHIP
+        return {"data": {"addPullRequestReviewThreadReply": {"comment": {"id": "1"}}}}
+
+    monkeypatch.setattr(source, "_run_json", run)
+    await source.reply_to_review_thread(
+        "https://github.com/acme/repo/pull/12", "PRRT_1", "Agreed")
+
+    mutation = calls[-1]
+    assert any("addPullRequestReviewThreadReply" in a for a in mutation)
+    assert "threadId=PRRT_1" in mutation
+    assert "body=Agreed" in mutation
+
+
+@pytest.mark.asyncio
+async def test_reply_rejects_a_thread_from_another_pull_request(monkeypatch) -> None:
+    # The thread id comes from the browser: without this an owner-authenticated
+    # reply could be steered at an unrelated pull request.
+    run = AsyncMock(return_value={
+        "data": {
+            "repository": {"pullRequest": {"reviewThreads": {"nodes": [{"id": "PRRT_x"}]}}}
+        }
+    })
+    monkeypatch.setattr(source, "_run_json", run)
+    with pytest.raises(ValueError, match="does not belong"):
+        await source.reply_to_review_thread(
+            "https://github.com/acme/repo/pull/12", "PRRT_1", "Agreed")
+    run.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_reply_rejects_a_path_shaped_thread_id(monkeypatch) -> None:
+    run = AsyncMock()
+    monkeypatch.setattr(source, "_run_json", run)
+    with pytest.raises(ValueError, match="valid thread id"):
+        await source.reply_to_review_thread(
+            "https://github.com/acme/repo/pull/12", "../../etc/passwd", "hi")
     run.assert_not_awaited()
 
 
@@ -5283,6 +5343,17 @@ async def test_fetch_pull_request_checks_refuses_an_issue_url(monkeypatch) -> No
     monkeypatch.setattr(source, "_run_json", run)
     with pytest.raises(ValueError, match="points at an issue"):
         await source.fetch_pull_request_checks(_ISSUE_URL)
+
+
+@pytest.mark.asyncio
+async def test_reply_refuses_an_empty_body(monkeypatch) -> None:
+    # An accidental empty comment is visible to everyone and is not removable
+    # from this surface, so it never reaches the provider.
+    run = AsyncMock()
+    monkeypatch.setattr(source, "_run_json", run)
+    with pytest.raises(ValueError, match="comment body is required"):
+        await source.reply_to_review_thread(
+            "https://github.com/acme/repo/pull/12", "PRRT_1", "   \n ")
     run.assert_not_awaited()
 
 
@@ -5292,6 +5363,16 @@ async def test_resolve_pull_request_thread_refuses_an_issue_url(monkeypatch) -> 
     monkeypatch.setattr(source, "_run_json", run)
     with pytest.raises(ValueError, match="points at an issue"):
         await source.resolve_pull_request_thread(_ISSUE_URL, "PRRT_thread1")
+
+
+@pytest.mark.asyncio
+async def test_reply_refuses_an_oversized_body(monkeypatch) -> None:
+    run = AsyncMock()
+    monkeypatch.setattr(source, "_run_json", run)
+    with pytest.raises(ValueError, match="at most"):
+        await source.reply_to_review_thread(
+            "https://github.com/acme/repo/pull/12", "PRRT_1",
+            "x" * (source._MAX_COMMENT_CHARS + 1))
     run.assert_not_awaited()
 
 
@@ -5301,6 +5382,31 @@ async def test_enable_auto_merge_refuses_an_issue_url(monkeypatch) -> None:
     monkeypatch.setattr(source, "_run_json", run)
     with pytest.raises(ValueError, match="points at an issue"):
         await source.enable_pull_request_auto_merge(_ISSUE_URL)
+
+
+@pytest.mark.asyncio
+async def test_reply_raises_on_a_graphql_refusal(monkeypatch) -> None:
+    # GraphQL reports refusals with HTTP 200, so a transport-only check would
+    # report a rejected reply as posted.
+    async def run(*argv, **kwargs):
+        if any("reviewThreads" in a for a in argv):
+            return _THREAD_MEMBERSHIP
+        return {"errors": [{"message": "not authorized"}]}
+
+    monkeypatch.setattr(source, "_run_json", run)
+    with pytest.raises(source.SourceProviderError, match="could not post the reply"):
+        await source.reply_to_review_thread(
+            "https://github.com/acme/repo/pull/12", "PRRT_1", "Agreed")
+
+
+@pytest.mark.asyncio
+async def test_reply_is_refused_on_gitlab(monkeypatch) -> None:
+    run = AsyncMock()
+    monkeypatch.setattr(source, "_run_json", run)
+    monkeypatch.setattr(source, "_allowed_gitlab_hosts", lambda: {"gitlab.com"})
+    with pytest.raises(ValueError, match="only supported on GitHub"):
+        await source.reply_to_review_thread(
+            "https://gitlab.com/acme/repo/-/merge_requests/12", "abc123", "hi")
     run.assert_not_awaited()
 
 
@@ -5310,6 +5416,68 @@ async def test_mark_ready_refuses_an_issue_url(monkeypatch) -> None:
     monkeypatch.setattr(source, "_run_json", run)
     with pytest.raises(ValueError, match="points at an issue"):
         await source.mark_pull_request_ready(_ISSUE_URL)
+
+
+@pytest.mark.asyncio
+async def test_reply_invalidates_the_cache_before_dispatch(monkeypatch) -> None:
+    order: list[str] = []
+
+    async def invalidate(url):
+        order.append("invalidate")
+
+    async def run(*argv, **kwargs):
+        if any("reviewThreads" in a for a in argv):
+            return _THREAD_MEMBERSHIP
+        order.append("dispatch")
+        return {"data": {"addPullRequestReviewThreadReply": {"comment": {"id": "1"}}}}
+
+    monkeypatch.setattr(source, "_invalidate_pull_request_cache", invalidate)
+    monkeypatch.setattr(source, "_run_json", run)
+    await source.reply_to_review_thread(
+        "https://github.com/acme/repo/pull/12", "PRRT_1", "Agreed")
+    assert order == ["invalidate", "dispatch"]
+
+
+@pytest.mark.asyncio
+async def test_unresolve_reopens_the_thread(monkeypatch) -> None:
+    calls: list[tuple] = []
+
+    async def run(*argv, **kwargs):
+        calls.append(argv)
+        if any("reviewThreads" in a for a in argv):
+            return _THREAD_MEMBERSHIP
+        return {"data": {"unresolveReviewThread": {"thread": {"isResolved": False}}}}
+
+    monkeypatch.setattr(source, "_run_json", run)
+    await source.unresolve_pull_request_thread(
+        "https://github.com/acme/repo/pull/12", "PRRT_1")
+    assert any("unresolveReviewThread" in a for a in calls[-1])
+
+
+@pytest.mark.asyncio
+async def test_comment_posts_to_the_issue_timeline(monkeypatch) -> None:
+    calls: list[tuple] = []
+
+    async def run(*argv, **kwargs):
+        calls.append(argv)
+        return {"id": 1}
+
+    monkeypatch.setattr(source, "_run_json", run)
+    await source.comment_on_pull_request(
+        "https://github.com/acme/repo/pull/12", "Looks good")
+    argv = calls[-1]
+    assert "repos/acme/repo/issues/12/comments" in argv
+    assert "body=Looks good" in argv
+    assert "-X" in argv and "POST" in argv
+
+
+@pytest.mark.asyncio
+async def test_comment_refuses_an_empty_body(monkeypatch) -> None:
+    run = AsyncMock()
+    monkeypatch.setattr(source, "_run_json", run)
+    with pytest.raises(ValueError, match="comment body is required"):
+        await source.comment_on_pull_request(
+            "https://github.com/acme/repo/pull/12", "")
     run.assert_not_awaited()
 
 
@@ -5870,3 +6038,54 @@ async def test_issue_endpoint_warms_allowlist_before_parsing_self_hosted_urls(
         response = await client.post("/api/source/issue", json={"url": url})
         assert response.status == 200
         assert (await response.json())["url"] == url
+
+
+@pytest.mark.asyncio
+async def test_reply_and_comment_endpoints_require_the_owner(monkeypatch) -> None:
+    # These write to a third-party pull request under the owner's provider
+    # identity, so they inherit resolve's owner gate rather than defining their
+    # own. An app-scoped caller must not reach them.
+    reply = AsyncMock()
+    comment = AsyncMock()
+    unresolve = AsyncMock()
+    monkeypatch.setattr(source, "reply_to_review_thread", reply)
+    monkeypatch.setattr(source, "comment_on_pull_request", comment)
+    monkeypatch.setattr(source, "unresolve_pull_request_thread", unresolve)
+
+    url = "https://github.com/acme/repo/pull/12"
+    app = _app(app_name="some-app")
+    async with TestClient(TestServer(app)) as client:
+        replied = await client.post(
+            "/api/source/pull-request/reply",
+            json={"url": url, "threadId": "PRRT_1", "body": "hi"},
+        )
+        commented = await client.post(
+            "/api/source/pull-request/comment", json={"url": url, "body": "hi"}
+        )
+        unresolved = await client.post(
+            "/api/source/pull-request/unresolve",
+            json={"url": url, "threadId": "PRRT_1"},
+        )
+
+    assert replied.status == 403
+    assert commented.status == 403
+    assert unresolved.status == 403
+    reply.assert_not_awaited()
+    comment.assert_not_awaited()
+    unresolve.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_reply_endpoint_passes_the_body_through(monkeypatch) -> None:
+    reply = AsyncMock()
+    monkeypatch.setattr(source, "reply_to_review_thread", reply)
+    url = "https://github.com/acme/repo/pull/12"
+    app = _app()
+    async with TestClient(TestServer(app)) as client:
+        response = await client.post(
+            "/api/source/pull-request/reply",
+            json={"url": url, "threadId": "PRRT_1", "body": "Agreed"},
+        )
+        assert response.status == 200
+        assert await response.json() == {"posted": True}
+    reply.assert_awaited_once_with(url, "PRRT_1", "Agreed")

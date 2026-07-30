@@ -34,7 +34,7 @@ _APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _APP_ROOT not in sys.path:  # allow `python3 sage_lib/pipeline.py` (run as script)
     sys.path.insert(0, _APP_ROOT)
 
-from sage_lib import adapters, blast_radius, results, store  # noqa: E402
+from sage_lib import adapters, blast_radius, discovery, results, store  # noqa: E402
 
 
 def _redact(text: str) -> str:
@@ -82,14 +82,23 @@ def list_open_prs(owner: str, repo: str, *, timeout: float = 60.0) -> list[dict]
     ``adapters.parse_repo_url`` before this is called and are interpolated only
     into the ``gh api`` PATH argument (which `gh` treats as an API path, not a
     shell command), so there is no shell-injection surface. Returns
-    ``[{url, number, head_sha, title}]`` in GitHub's order. Raises
-    ``RuntimeError`` (with the stderr tail) if `gh` is missing, unauthenticated,
-    times out, or the repo can't be read."""
+    ``[{url, number, head_sha, title, author, updated_at, draft}]`` in GitHub's
+    order. Raises ``RuntimeError`` (with the stderr tail) if `gh` is missing,
+    unauthenticated, times out, or the repo can't be read.
+
+    The ``gh`` binary is resolved through ``discovery.gh_bin()`` — the same
+    validated resolution the dashboard's PR panel uses — rather than trusting a
+    bare ``gh`` off ``PATH``."""
     path = f"repos/{owner}/{repo}/pulls?state=open&per_page=100"
+    try:
+        gh = discovery.gh_bin()
+    except discovery.GhError as e:
+        raise RuntimeError(str(e)) from e
     argv = [
-        "gh", "api", path, "--paginate",
+        gh, "api", path, "--paginate",
         "--jq", ".[] | {url: .html_url, number: .number, "
-                "head_sha: .head.sha, title: .title}",
+                "head_sha: .head.sha, title: .title, author: .user.login, "
+                "updated_at: .updated_at, draft: .draft}",
     ]
     try:
         proc = subprocess.run(argv, capture_output=True, text=True,
@@ -117,6 +126,9 @@ def list_open_prs(owner: str, repo: str, *, timeout: float = 60.0) -> list[dict]
             "number": obj.get("number"),
             "head_sha": obj.get("head_sha") or "",
             "title": obj.get("title") or "",
+            "author": obj.get("author") or "",
+            "updated_at": obj.get("updated_at") or "",
+            "draft": bool(obj.get("draft")),
         })
     # Non-silent: gh returned 0 but produced non-empty, unparseable output (e.g. a
     # gh build that pretty-prints jq). Don't masquerade that as "no open PRs".
@@ -311,15 +323,39 @@ def build_pending_comments(record: dict) -> list[dict]:
     ship / no-ship call with the reason. It keeps kind ``design`` for the top-level
     anchor + posting accounting."""
     out: list[dict] = []
-    for f in record.get("findings", []) or []:
+    for i, f in enumerate(record.get("findings", []) or []):
         out.append({
             "kind": "finding",
+            # Stable identity for selective posting: the record is frozen once the
+            # review has run, and the report rows are generated from the same list
+            # in the same order, so the index is a durable handle the UI can name
+            # one comment by. Callers filter on this; nothing else keys off it.
+            "key": f"finding:{i}",
             "file": str(f.get("file", "")),
             "line": int(f.get("line", 0) or 0),
             "body": _comment_body(f),   # _comment_body already applies _redact
         })
-    out.append({"kind": "design", "body": build_ship_comment(record)})
+    out.append({"kind": "design", "key": "design",
+                "body": build_ship_comment(record)})
     return out
+
+
+def review_payload_units(payload: dict) -> int:
+    """How many deliverable units a GitHub review payload actually contains.
+
+    The poster is instructed to write ``posted_comments = len(comments) + 1 when
+    body is non-empty``, so delivery evidence is counted in PAYLOAD UNITS. Callers
+    used to compare that against the number of FINDINGS instead, which is a
+    different quantity: a finding with no usable ``{path, line}`` anchor is folded
+    into the review body rather than becoming its own inline comment (see
+    ``build_github_review_payload``). One unanchored finding therefore made a
+    complete delivery look short, and the caller then re-posted comments already on
+    the pull request.
+
+    This is the single place that number is derived, so the comparison in
+    ``post_recorded`` and the durable ``posting_expected`` cannot drift apart.
+    """
+    return len(payload.get("comments") or []) + (1 if payload.get("body") else 0)
 
 
 def build_github_review_payload(record: dict) -> dict:

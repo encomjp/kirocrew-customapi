@@ -171,6 +171,27 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # and only fill the API path (bounded to api.github.com). NOT sandboxed
         # because gh needs the host's own authenticated credentials.
         "apps/builtins/code_review_sage/sage_lib/pipeline.py::list_open_prs",
+        # Code Review Sage repo discovery — same rationale as list_open_prs above
+        # and as Issue Radar's _gh_run: fixed `gh api` list-argv (never
+        # shell=True), bounded to api.github.com, and NOT sandbox-routed because
+        # gh must reach the host's OWN authenticated credentials (~/.config/gh +
+        # the keychain), which the sandbox would hide.
+        #   • run_gh_json — the single `gh api` chokepoint. The only non-constant
+        #     input is the API path, and every caller in this module builds it
+        #     from a module constant plus a URL-encoded login (see below); the jq
+        #     filters are hardcoded module constants.
+        #   • current_login — a wholly FIXED argv (`gh api user --jq .login`) with
+        #     no interpolation at all. It is a separate spawn site only because
+        #     `--jq .login` emits a bare string, which the JSONL dict parser in
+        #     run_gh_json cannot represent.
+        # The login that reaches the events path is what gh itself reported for
+        # the authenticated user (not agent input) and is quoted with
+        # urllib.parse.quote(safe="") before interpolation. The `gh` binary is
+        # resolved through discovery.gh_bin(), which reuses source_providers'
+        # validated resolution, so a shim on the agent-writable front of PATH is
+        # refused rather than executed.
+        "apps/builtins/code_review_sage/sage_lib/discovery.py::current_login",
+        "apps/builtins/code_review_sage/sage_lib/discovery.py::run_gh_json",
         # Issue Radar GitHub access — same rationale as list_open_prs above.
         # ALL gh calls funnel through ONE chokepoint, _gh_run: a fixed `gh api`
         # list-argv (never shell=True). gh supplies the host's OWN authenticated

@@ -597,6 +597,7 @@ NON_EGRESS_REDACTION_MODULES: frozenset[str] = frozenset(
         "deploy/scan.py",
         # Bundled app backends: each app's own surface, not core egress.
         "apps/builtins/auto_research/handlers.py",
+        "apps/builtins/code_review_sage/sage_lib/learning.py",
         "apps/builtins/code_review_sage/sage_lib/pipeline.py",
         "apps/builtins/code_review_sage/sage_lib/report.py",
         "apps/builtins/code_review_sage/sage_lib/review_driver.py",

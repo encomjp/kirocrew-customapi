@@ -59,8 +59,59 @@ class TestLlmRedaction(unittest.TestCase):
         f = row["findings"][0]
         for k in ("observation", "consequence", "suggestion", "snippet"):
             self.assertTrue(f[k].startswith("[R]"), f"finding.{k} not redacted")
-        # Non-LLM metadata must NOT be mangled (the PR link especially).
+        # `url` goes through the redactors too. It lives in the worker-written
+        # record, so it is not trusted metadata: an injected reviewer could put an
+        # exfiltration link there and the report view renders it as a link. The
+        # structural fields the app keys on are the ones held back.
+        self.assertTrue(row["url"].startswith("[R]"), "url not redacted")
+        # `band` is the ONLY exemption: both sides index by its exact value.
+        self.assertFalse(str(row["band"]).startswith("[R]"),
+                         "band must stay verbatim — bands[] and BAND_DOT[] key on it")
+        # Everything else the worker writes goes through the redactors, including
+        # the fields an earlier version of this set wrongly exempted.
+        for k in ("change_id", "platform", "gate_verdict", "blast", "design_risk"):
+            self.assertTrue(str(row[k]).startswith("[R]"),
+                            f"{k} is worker-authored and must be redacted")
+
+    def test_a_credential_in_a_worker_written_metadata_field_is_scrubbed(self):
+        """`validate_result` enforces a vocabulary for `gate_verdict` only.
+
+        The other metadata fields are worker-authored free strings, so exempting
+        them from redaction let an injected value carry a secret into report.json
+        and the dashboard.
+        """
+        secret = "AKIA" + "IOSFODNN7EXAMPLE"
+        rec = self._rec_with_llm()
+        rec["platform"] = f"github {secret}"
+        rec["change_id"] = f"GH-o-r-1 {secret}"
+        row = RP.build_report([rec])["rows"][0]
+        self.assertNotIn(secret, row["platform"])
+        self.assertNotIn(secret, row["change_id"])
+
+    def test_legitimate_metadata_values_are_unchanged_by_redaction(self):
+        """Redaction is shape-based, so scrubbing these costs nothing."""
+        rec = self._rec_with_llm()
+        rec["platform"] = "github"
+        rec["change_id"] = "GH-acme-widgets-7"
+        row = RP.build_report([rec])["rows"][0]
+        self.assertEqual(row["platform"], "github")
+        self.assertEqual(row["change_id"], "GH-acme-widgets-7")
+        self.assertEqual(row["gate_verdict"], "PASS")
+
+    def test_a_real_pr_link_survives_redaction_but_an_exfil_link_does_not(self):
+        """The redactors are shape-based, so the UI link keeps working.
+
+        Guards the reason `url` can be redacted at all: ordinary provider links are
+        untouched, and only credential/exfiltration-shaped URLs are rewritten.
+        """
+        rec = self._rec_with_llm()
+        rec["url"] = "https://github.com/o/r/pull/42"
+        row = RP.build_report([rec])["rows"][0]
         self.assertEqual(row["url"], "https://github.com/o/r/pull/42")
+
+        rec["url"] = "https://evil.example/collect?k=AKIA" + "IOSFODNN7EXAMPLE"
+        row = RP.build_report([rec])["rows"][0]
+        self.assertNotIn("AKIA", row["url"])
 
 
 class TestClassify(unittest.TestCase):
@@ -257,3 +308,58 @@ class TestPersistence(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestOverrideReasonRedaction(unittest.TestCase):
+    """``why`` is our own text plus ONE model-written field.
+
+    Every other row field goes through ``_redact`` in ``build_report``; the
+    override reason did not, so a credential the reviewer echoed into it reached
+    report.json and the in-app report view verbatim.
+    """
+
+    def _rec(self, reason: str) -> dict:
+        return {
+            "schema": "sage.result", "version": 1, "change_id": "CR-1",
+            "platform": "github", "repo_identity": "o/r", "url": "",
+            "title": "t", "counts": {"red": 0, "yellow": 0},
+            "blast_radius": {"rating": "SMALL"},
+            "phase1": {
+                "gate_verdict": "PASS", "design_risk": "low",
+                "criticality": "low",
+                "band_override": "red", "band_override_reason": reason,
+            },
+        }
+
+    def test_a_credential_in_the_override_reason_is_scrubbed(self):
+        secret = "AKIA" + "IOSFODNN7EXAMPLE"
+        row = RP.classify(self._rec("leaks " + secret + " here"))
+        self.assertIn("AI override", row["why"])
+        self.assertNotIn(secret, row["why"])
+
+    def test_an_ordinary_reason_survives(self):
+        row = RP.classify(self._rec("touches the auth boundary"))
+        self.assertIn("touches the auth boundary", row["why"])
+
+
+class TestFindingRedactionCoversEveryString(unittest.TestCase):
+    """`file` is model-written too, and it was not in the redacted set.
+
+    The finding fields were enumerated by name, so a credential in `file` reached
+    report.json and the dashboard. Redaction now covers every string value.
+    """
+
+    def test_a_credential_in_the_file_field_is_scrubbed(self):
+        secret = "AKIA" + "IOSFODNN7EXAMPLE"
+        out = RP._redact_finding({
+            "dimension": "Security", "severity": "red",
+            "file": f"src/{secret}.py", "line": 5,
+            "observation": "o", "consequence": "c", "suggestion": "s",
+        })
+        self.assertNotIn(secret, out["file"])
+        # The numeric line is left as-is.
+        self.assertEqual(out["line"], 5)
+
+    def test_an_ordinary_path_survives(self):
+        out = RP._redact_finding({"file": "src/app/main.py", "line": 1})
+        self.assertEqual(out["file"], "src/app/main.py")

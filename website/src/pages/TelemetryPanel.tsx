@@ -663,7 +663,7 @@ export default function TelemetryPanel() {
                   <div key={p.name}>
                     <div className="text-[10px] text-muted font-mono">{p.name}</div>
                     <div className="text-[15px] font-bold">{fmtMs(p.p50_ms)}</div>
-                    <div className="text-[10px] text-muted">p90 {fmtMs(p.p90_ms)}</div>
+                    <div className="text-[10px] text-muted">{i18nT('pages.telemetryPanel.p90')} {fmtMs(p.p90_ms)}</div>
                   </div>
                 ))}
               </div>

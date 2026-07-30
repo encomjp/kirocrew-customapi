@@ -26,6 +26,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import shutil
 from pathlib import Path
 
 # Canonical KiroCrew data-root accessor. Imported at module top but kept guarded
@@ -90,6 +92,12 @@ DEFAULT_CONFIG: dict[str, object] = {
         "active_namespaces": ["default"],  # which namespaces to load during review
         "max_concurrent": 5,     # max reviews running at once on the shared runtime
                                  # (clamped to [1, 30]); "review all" can raise it.
+        # Publish findings as a PENDING (draft) review on the PR itself.
+        # OFF by default: a review is READ here, in the app, and writing to
+        # someone else's pull request is a side effect the user has to ask for.
+        # Turning it on restores the old behaviour (one pending review per PR,
+        # bodies composed deterministically in Python and posted verbatim).
+        "auto_post": False,
     },
     "sensitive_globs": DEFAULT_SENSITIVE_GLOBS,
     "rule_packs": DEFAULT_RULE_PACKS,
@@ -111,6 +119,93 @@ def data_dir(root: Path | None = None) -> Path:
     return (root or app_root()) / "data"
 
 
+# --- Per-run scratch ---------------------------------------------------------
+# Every review run owns a private subtree, ``data/runs/<run-id>/``, holding its
+# result records and its report. Runs used to share one ``data/results`` dir and
+# one ``data/reports`` index, which forced the backend to serialize whole runs
+# (an overlapping run would clear the records the other was still writing) and
+# left only the newest report readable. Per-run isolation is what lets several
+# reviews run at once AND keeps each finished report retrievable by run id.
+#
+# What stays GLOBAL (deliberately, do not move under a run): ``config.json``,
+# ``reviewed.json`` (durable cross-run dedup index), and ``learnings/`` (the
+# whole point of the learning store is that it outlives any single run).
+
+_UNSAFE_RUN_ID = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def safe_run_id(run_id: str) -> str:
+    """Sanitize a run id into a single filesystem-safe path segment.
+
+    Run ids are minted server-side (``uuid4().hex[:12]``), but this is the
+    boundary where an id becomes a filesystem path, and ids also arrive from URL
+    path params on the read endpoints — so sanitize unconditionally rather than
+    trusting the caller.
+
+    Two rules, both required:
+
+    * Anything outside ``[A-Za-z0-9._-]`` collapses to ``_``, which makes
+      separators (and therefore ``a/b``, ``../../etc``) unrepresentable.
+    * A segment made ENTIRELY of dots is rejected outright. ``.`` and ``..`` are
+      built from otherwise-safe characters, so the character filter alone lets
+      them through untouched — and ``run_dir("..")`` would then resolve to the
+      shared ``data/`` tree one level ABOVE ``runs/``. The dot rule is what
+      actually closes containment.
+    """
+    stem = _UNSAFE_RUN_ID.sub("_", str(run_id)).strip("_")
+    if not stem or set(stem) == {"."}:
+        return "unknown"
+    return stem
+
+
+def runs_root(root: Path | None = None) -> Path:
+    return data_dir(root) / "runs"
+
+
+def run_dir(run_id: str, root: Path | None = None) -> Path:
+    """The private subtree for one run. Always inside ``data/runs/``."""
+    return runs_root(root) / safe_run_id(run_id)
+
+
+def ensure_run_layout(run_id: str, root: Path | None = None) -> dict[str, str]:
+    """Create one run's private ``results/`` + ``report/`` dirs. Idempotent."""
+    rd = run_dir(run_id, root)
+    results = rd / "results"
+    reports = rd / "report"
+    for d in (rd, results, reports):
+        d.mkdir(parents=True, exist_ok=True)
+    return {"runDir": str(rd), "resultsDir": str(results), "reportDir": str(reports)}
+
+
+def remove_run_dir(run_id: str, root: Path | None = None) -> bool:
+    """Delete one run's private subtree (called when a run is dismissed or ages
+    out of the registry). Returns True when something was removed. Never raises
+    — a run dir that is already gone, or unremovable, must not fail the caller."""
+    rd = run_dir(run_id, root)
+    # Containment assertion: rd is built from safe_run_id so it cannot escape,
+    # but this is a recursive delete — verify the parent before removing.
+    try:
+        if rd.resolve().parent != runs_root(root).resolve():
+            return False
+    except OSError:  # pragma: no cover - defensive
+        return False
+    if not rd.exists():
+        return False
+    try:
+        shutil.rmtree(rd)
+        return True
+    except OSError:  # pragma: no cover - defensive
+        return False
+
+
+def list_run_ids(root: Path | None = None) -> list[str]:
+    """Run ids that currently have an on-disk subtree (used to reap orphans)."""
+    rr = runs_root(root)
+    if not rr.is_dir():
+        return []
+    return sorted(p.name for p in rr.iterdir() if p.is_dir())
+
+
 def ensure_layout(root: Path | None = None) -> dict[str, str]:
     """Create the full data layout if missing. Idempotent — never clobbers.
 
@@ -123,8 +218,9 @@ def ensure_layout(root: Path | None = None) -> dict[str, str]:
     namespaces = learnings / "namespaces"  # user-created namespaces
     results = data / "results"
     reports = data / "reports"
+    runs = data / "runs"          # per-run scratch: runs/<run-id>/{results,report}
 
-    for d in (data, learnings, common, repos, namespaces, results, reports):
+    for d in (data, learnings, common, repos, namespaces, results, reports, runs):
         d.mkdir(parents=True, exist_ok=True)
 
     # Warm-start common layer (empty but present so brand-new repos inherit it).
