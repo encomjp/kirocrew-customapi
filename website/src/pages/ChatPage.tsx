@@ -79,6 +79,7 @@ import SessionGridView from '../components/SessionGridView'
 import { anchorForSlot, loadLayout, sessionSlots } from '../hooks/splitLayoutStore'
 import { modelSupportsEffort } from '../lib/effort'
 import FollowUpCard from '../components/FollowUpCard'
+import DevcontainerTrustCard from '../components/DevcontainerTrustCard'
 import PendingQuestionCard from '../components/PendingQuestionCard'
 import type { FollowupItem } from '../store/chatSlice'
 
@@ -3572,6 +3573,43 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   const projectBranch = projectGitError
     ? ''
     : projectGit?.branch || (projectGit?.detached ? projectGit.head || '' : '')
+  // Dev Container state for the active project. Polled on the same slow cadence
+  // as the branch: the config can appear (a checkout brings one in) and the
+  // container can stop outside the dashboard, so neither is read once. Called
+  // through `?.` because test suites mock the api client partially.
+  const { data: devcontainer, refetch: refetchDevcontainer } = useQuery({
+    queryKey: ['devcontainer-status', _slotProject],
+    queryFn: () => Promise.resolve(api.devcontainerStatus?.(_slotProject)),
+    enabled: !!_slotProject,
+    staleTime: 15_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    retry: false,
+  })
+  // "Not now" is remembered per config FILE, not per render, so dismissing does
+  // not immediately re-prompt and switching projects back and forth does not
+  // either. Deliberately component state rather than storage: a dismissal is
+  // scoped to this page's lifetime, so a fresh load asks again — the decision it
+  // defers (build and run a container) is worth re-surfacing.
+  const [devcontainerDismissed, setDevcontainerDismissed] = useState<Record<string, boolean>>({})
+  const devcontainerPromptKey = devcontainer?.has_config
+    ? (devcontainer.config_path || devcontainer.project_dir)
+    : ''
+  // `enabled` is the feature switch (`agent.devcontainer: auto`), and it gates the
+  // prompt as hard as `has_config` does: a repo ships a `devcontainer.json`
+  // whether or not this instance would ever use one, so without this the card
+  // asks for a decision that changes nothing.
+  const showDevcontainerTrust = !!devcontainer?.enabled
+    && !!devcontainerPromptKey
+    && !devcontainer?.trusted
+    && !devcontainerDismissed[devcontainerPromptKey]
+  const trustDevcontainer = useCallback(async (reviewedDigest: string) => {
+    if (!_slotProject) return
+    // The card passes back the digest it showed; the backend refuses a grant
+    // whose digest no longer matches what is on disk.
+    await api.devcontainerTrust?.(_slotProject, reviewedDigest)
+    await refetchDevcontainer()
+  }, [_slotProject, refetchDevcontainer])
   const [sidebarPinned, setSidebarPinned] = useState(() => localStorage.getItem('mc-sidebar-pinned') !== 'false')
   const isMobile = useIsMobile()
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -4977,6 +5015,16 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
                   />
                 </div>
               )}
+              {showDevcontainerTrust && (
+                <div className="px-5 pb-2 mx-auto w-full" style={{ maxWidth: 'var(--mc-content-width, 900px)' }}>
+                  <DevcontainerTrustCard
+                    projectDir={_slotProject}
+                    configPath={devcontainer?.config_path}
+                    onTrust={trustDevcontainer}
+                    onDismiss={() => setDevcontainerDismissed(prev => ({ ...prev, [devcontainerPromptKey]: true }))}
+                  />
+                </div>
+              )}
               <ChatInput
               aboveComposer={
                 /* In-flow tip inside the composer's own width wrapper: shares
@@ -5020,6 +5068,10 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
               project={currentSlot?.project || ''}
               projectBranch={projectBranch}
               projectDetached={!projectGitError && !!projectGit?.detached}
+              devcontainerRunning={!!devcontainer?.enabled && !!devcontainer?.running}
+              devcontainerId={devcontainer?.container_id || undefined}
+              devcontainerProject={devcontainer?.project_dir || _slotProject}
+              onDevcontainerUntrust={refetchDevcontainer}
               isMac={isMac}
               onDrop={handleDrop}
               dragOver={dragOver}

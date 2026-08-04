@@ -3014,7 +3014,6 @@
       "retrying": "重试中…"
     },
     "chatInput": {
-      "message_placeholder": "给 {{bot}} 发消息… (/command · @file · $skill)",
       "add_files_options": "添加文件与选项",
       "allow_once": "允许一次",
       "apply_a_ready_made_set_of_instructions": "套用现成的指令集",
@@ -3026,6 +3025,7 @@
       "context_usage": "上下文用量",
       "context_window": "上下文窗口",
       "could_not_submit_that_decision_see_the_console_f": "无法提交此决定 — 详见控制台。",
+      "dev_container": "Dev Container",
       "drag_to_resize_double_click_to_reset": "拖动调整大小（双击重置）",
       "file": "文件",
       "force_kill_discards_in_progress_work_and_queued": "强制终止 — 丢弃进行中的工作和排队消息",
@@ -3039,6 +3039,7 @@
       "let_the_agent_read_one_of_your_files": "让代理读取你的某个文件",
       "let_the_agent_use_the_browser": "允许智能体使用浏览器",
       "message_input": "消息输入",
+      "message_placeholder": "给 {{bot}} 发消息… (/command · @file · $skill)",
       "model": "模型",
       "optimize_prompt": "优化提示词",
       "optimize_prompt_busy_optimizing_another_chat": "优化提示词 — 正在优化另一个聊天",
@@ -3046,6 +3047,8 @@
       "optimizing_prompt": "正在优化提示词…",
       "plan_pre_filled_add_context_then_send": "计划已预填 — 补充上下文后发送",
       "project": "项目",
+      "queue": "排队",
+      "queue_desc": "在当前轮次结束后运行",
       "queue_message": "排队消息",
       "queue_run_after_the_current_turn_finishes_enter": "排队 — 当前轮次结束后运行 (Enter)",
       "quick_actions_like_clearing_the_chat_or_checking": "清空聊天、查看用量等快捷操作",
@@ -3068,6 +3071,7 @@
       "skill": "技能",
       "slash_commands": "斜杠命令",
       "steer": "引导",
+      "steer_desc": "立即注入正在运行的轮次",
       "steer_inject_into_the_running_turn_enter": "引导 — 注入正在运行的轮次 (Enter)",
       "stop_generation": "停止生成",
       "stop_recording": "停止录音",
@@ -3078,6 +3082,8 @@
       "stopping_2": "正在停止",
       "taking_longer_than_expected": "耗时超出预期",
       "that_approval_expired_the_turn_it_belonged_to_is": "此审批已过期 — 它所属的轮次不再等待。",
+      "this_session_runs_in_a_dev_container": "此会话在 Dev Container 中运行",
+      "this_session_runs_in_a_dev_container_id": "此会话在 Dev Container 中运行 ({{id}})",
       "total": "总计",
       "transcribing": "转写中…",
       "transcribing_please_wait": "正在转写，请稍候…",
@@ -3086,9 +3092,7 @@
       "use_a_skill": "使用技能",
       "used": "已用",
       "voice_input": "语音输入",
-      "queue": "排队",
-      "queue_desc": "在当前轮次结束后运行",
-      "steer_desc": "立即注入正在运行的轮次"
+      "withdraw_trust": "撤销信任"
     },
     "chatPane": {
       "agent_list": "代理列表",
@@ -3259,6 +3263,26 @@
     "detailPanel": {
       "close_panel": "关闭面板",
       "resize_panel": "调整面板大小"
+    },
+    "devcontainerTrustCard": {
+      "configuration": "配置",
+      "could_not_grant_trust": "无法授予信任",
+      "dev_container": "Dev Container",
+      "dev_container_trust_prompt": "Dev Container 信任提示",
+      "fingerprint": "指纹",
+      "hide_details": "隐藏详情",
+      "image": "镜像",
+      "name": "名称",
+      "not_now": "暂不",
+      "nothing_is_built_or_changed": "不会构建或更改任何内容——你的会话将继续直接在本机上运行。",
+      "run_this_project_s_agent_inside_its_dev_container": "在此项目的 Dev Container 内运行其代理？",
+      "show_what_this_will_run": "查看将要运行的内容",
+      "this_project_ships_a_dev_container": "此项目附带一个 Dev Container，即 devcontainer.json 中描述的现成环境。若选择信任，Kiro Crew 会使用 Docker 构建它并在其中运行代理，因此命令和构建都使用项目自带的工具链。",
+      "trust": "信任",
+      "trust_applies_to_this_exact_configuration": "信任仅适用于当前这份配置——配置一旦变更，系统会再次询问你。你可以通过 Dev Container 标记撤销信任。",
+      "trusting": "正在授予信任…",
+      "trusting_runs_the_setup_commands_in_this_file": "信任会运行此文件中的安装命令，并授予容器它所请求的访问权限。请仅信任你认识的项目。",
+      "while_a_session_runs_in_the_container": "会话在容器中运行期间，定时任务、子代理和已保存的经验均不可用。"
     },
     "dialog": {
       "close": "关闭"

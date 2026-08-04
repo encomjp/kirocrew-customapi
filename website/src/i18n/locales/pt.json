@@ -3106,7 +3106,6 @@
       "retrying": "Tentando novamente..."
     },
     "chatInput": {
-      "message_placeholder": "Enviar mensagem para {{bot}}… (/command · @file · $skill)",
       "add_files_options": "Adicionar arquivos e opções",
       "allow_once": "Permitir uma vez",
       "apply_a_ready_made_set_of_instructions": "Aplicar um conjunto de instruções pronto",
@@ -3118,6 +3117,7 @@
       "context_usage": "Uso do contexto",
       "context_window": "Janela de contexto",
       "could_not_submit_that_decision_see_the_console_f": "Não foi possível enviar essa decisão — veja os detalhes no console.",
+      "dev_container": "Dev Container",
       "drag_to_resize_double_click_to_reset": "Arraste para redimensionar (clique duplo para redefinir)",
       "file": "Arquivo",
       "force_kill_discards_in_progress_work_and_queued": "Encerrar à força — descarta o trabalho em andamento e as mensagens na fila",
@@ -3131,6 +3131,7 @@
       "let_the_agent_read_one_of_your_files": "Permite que o agente leia um dos seus arquivos",
       "let_the_agent_use_the_browser": "Permitir que o agente use o navegador",
       "message_input": "Entrada de mensagem",
+      "message_placeholder": "Enviar mensagem para {{bot}}… (/command · @file · $skill)",
       "model": "Modelo",
       "optimize_prompt": "Otimizar prompt",
       "optimize_prompt_busy_optimizing_another_chat": "Otimizar prompt — ocupado otimizando outro chat",
@@ -3138,6 +3139,8 @@
       "optimizing_prompt": "Otimizando prompt…",
       "plan_pre_filled_add_context_then_send": "Plano pré-preenchido — adicione contexto e clique em Enviar",
       "project": "Projeto",
+      "queue": "Enfileirar",
+      "queue_desc": "Executar depois que o turno atual terminar",
       "queue_message": "Enfileirar mensagem",
       "queue_run_after_the_current_turn_finishes_enter": "Enfileirar — executar depois que o turno atual terminar (Enter)",
       "quick_actions_like_clearing_the_chat_or_checking": "Ações rápidas como limpar o chat ou verificar o uso",
@@ -3160,6 +3163,7 @@
       "skill": "Habilidade",
       "slash_commands": "Comandos de barra",
       "steer": "Direcionar",
+      "steer_desc": "Injetar imediatamente no turno em execução",
       "steer_inject_into_the_running_turn_enter": "Direcionar — injetar no turno em execução (Enter)",
       "stop_generation": "Parar geração",
       "stop_recording": "Parar gravação",
@@ -3170,6 +3174,8 @@
       "stopping_2": "Parando",
       "taking_longer_than_expected": "demorando mais que o esperado",
       "that_approval_expired_the_turn_it_belonged_to_is": "Essa aprovação expirou — o turno a que ela pertencia não está mais aguardando.",
+      "this_session_runs_in_a_dev_container": "Esta sessão é executada num Dev Container",
+      "this_session_runs_in_a_dev_container_id": "Esta sessão é executada num Dev Container ({{id}})",
       "total": "Total",
       "transcribing": "Transcrevendo…",
       "transcribing_please_wait": "Transcrevendo, aguarde…",
@@ -3178,9 +3184,7 @@
       "use_a_skill": "Usar uma habilidade",
       "used": "Usado",
       "voice_input": "Entrada de voz",
-      "queue": "Enfileirar",
-      "queue_desc": "Executar depois que o turno atual terminar",
-      "steer_desc": "Injetar imediatamente no turno em execução"
+      "withdraw_trust": "Retirar a confiança"
     },
     "chatPane": {
       "agent_list": "Lista de agentes",
@@ -3355,6 +3359,26 @@
     "detailPanel": {
       "close_panel": "Fechar painel",
       "resize_panel": "Redimensionar painel"
+    },
+    "devcontainerTrustCard": {
+      "configuration": "Configuração",
+      "could_not_grant_trust": "Não foi possível conceder confiança",
+      "dev_container": "Dev Container",
+      "dev_container_trust_prompt": "Solicitação de confiança do Dev Container",
+      "fingerprint": "Impressão digital",
+      "hide_details": "Ocultar os detalhes",
+      "image": "Imagem",
+      "name": "Nome",
+      "not_now": "Agora não",
+      "nothing_is_built_or_changed": "Nada é compilado nem alterado — seu chat continua sendo executado diretamente nesta máquina.",
+      "run_this_project_s_agent_inside_its_dev_container": "Executar o agente deste projeto dentro do seu Dev Container?",
+      "show_what_this_will_run": "Mostrar o que será executado",
+      "this_project_ships_a_dev_container": "Este projeto inclui um Dev Container — um ambiente pronto descrito em devcontainer.json. Se você confiar nele, o Kiro Crew o compila com o Docker e executa o agente lá dentro, de modo que os comandos e as compilações usem as ferramentas do próprio projeto.",
+      "trust": "Confiar",
+      "trust_applies_to_this_exact_configuration": "A confiança se aplica exatamente a esta configuração — se ela mudar, você será perguntado novamente. Você pode retirar a confiança pelo chip Dev Container.",
+      "trusting": "A conceder confiança…",
+      "trusting_runs_the_setup_commands_in_this_file": "Confiar executa os comandos de configuração deste arquivo e concede ao contêiner o acesso que ele pede. Confie apenas em projetos que você reconhece.",
+      "while_a_session_runs_in_the_container": "Enquanto uma sessão é executada no contêiner, as tarefas agendadas, os subagentes e as lições salvas ficam indisponíveis."
     },
     "dialog": {
       "close": "Fechar"

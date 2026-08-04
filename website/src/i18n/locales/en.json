@@ -2583,6 +2583,7 @@
       "command": "Command",
       "context_usage": "Context usage",
       "context_window": "Context window",
+      "dev_container": "Dev Container",
       "drag_to_resize_double_click_to_reset": "Drag to resize (double-click to reset)",
       "file": "File",
       "force_kill_discards_in_progress_work_and_queued": "Force kill — discards in-progress work and queued messages",
@@ -2618,11 +2619,14 @@
       "stopping": "Stopping…",
       "stopping_2": "Stopping",
       "taking_longer_than_expected": "taking longer than expected",
+      "this_session_runs_in_a_dev_container": "This session runs in a Dev Container",
+      "this_session_runs_in_a_dev_container_id": "This session runs in a Dev Container ({{id}})",
       "total": "Total",
       "trust_reads": "Trust reads",
       "upload_file": "Upload file",
       "use_a_skill": "Use a skill",
-      "used": "Used"
+      "used": "Used",
+      "withdraw_trust": "Withdraw trust"
     },
     "chatPane": {
       "agent_list": "Agent list",
@@ -2708,6 +2712,26 @@
     "detailPanel": {
       "close_panel": "Close panel",
       "resize_panel": "Resize panel"
+    },
+    "devcontainerTrustCard": {
+      "configuration": "Configuration",
+      "could_not_grant_trust": "Could not grant trust",
+      "dev_container": "Dev Container",
+      "dev_container_trust_prompt": "Dev Container trust prompt",
+      "fingerprint": "Fingerprint",
+      "hide_details": "Hide details",
+      "image": "Image",
+      "name": "Name",
+      "not_now": "Not now",
+      "nothing_is_built_or_changed": "Nothing is built or changed — your chat keeps running directly on this machine.",
+      "run_this_project_s_agent_inside_its_dev_container": "Run this project's agent inside its Dev Container?",
+      "show_what_this_will_run": "Show what this will run",
+      "this_project_ships_a_dev_container": "This project ships a Dev Container — a ready-made environment described in devcontainer.json. If you trust it, Kiro Crew builds it with Docker and runs the agent inside it, so commands and builds use the project's own tools.",
+      "trust": "Trust",
+      "trust_applies_to_this_exact_configuration": "Trust applies to this exact configuration — if it changes, you will be asked again. You can withdraw trust from the Dev Container chip.",
+      "trusting": "Trusting…",
+      "trusting_runs_the_setup_commands_in_this_file": "Trusting runs the setup commands in this file and gives the container the access it asks for. Only trust projects you recognize.",
+      "while_a_session_runs_in_the_container": "While a session runs in the container, scheduled jobs, subagents, and saved lessons are unavailable."
     },
     "dialog": {
       "close": "Close"

@@ -3152,7 +3152,6 @@
       "retrying": "Повтор..."
     },
     "chatInput": {
-      "message_placeholder": "Написать {{bot}}… (/command · @file · $skill)",
       "add_files_options": "Добавить файлы и параметры",
       "allow_once": "Разрешить один раз",
       "apply_a_ready_made_set_of_instructions": "Применить готовый набор инструкций",
@@ -3164,6 +3163,7 @@
       "context_usage": "Использование контекста",
       "context_window": "Контекстное окно",
       "could_not_submit_that_decision_see_the_console_f": "Не удалось отправить это решение — подробности в консоли.",
+      "dev_container": "Dev Container",
       "drag_to_resize_double_click_to_reset": "Потяните, чтобы изменить размер (двойной щелчок — сброс)",
       "file": "Файл",
       "force_kill_discards_in_progress_work_and_queued": "Принудительно завершить — текущая работа и очередь сообщений будут отброшены",
@@ -3177,6 +3177,7 @@
       "let_the_agent_read_one_of_your_files": "Разрешить агенту прочитать один из ваших файлов",
       "let_the_agent_use_the_browser": "Разрешить агенту использовать браузер",
       "message_input": "Поле ввода сообщения",
+      "message_placeholder": "Написать {{bot}}… (/command · @file · $skill)",
       "model": "Модель",
       "optimize_prompt": "Улучшить промпт",
       "optimize_prompt_busy_optimizing_another_chat": "Улучшить промпт — идёт улучшение в другом чате",
@@ -3184,6 +3185,8 @@
       "optimizing_prompt": "Оптимизация промпта…",
       "plan_pre_filled_add_context_then_send": "План подставлен — добавьте контекст и нажмите «Отправить»",
       "project": "Проект",
+      "queue": "В очередь",
+      "queue_desc": "Выполнить после текущего хода",
       "queue_message": "Добавить в очередь",
       "queue_run_after_the_current_turn_finishes_enter": "В очередь — выполнить после текущего хода (Enter)",
       "quick_actions_like_clearing_the_chat_or_checking": "Быстрые действия: очистить чат или посмотреть расход",
@@ -3206,6 +3209,7 @@
       "skill": "Навык",
       "slash_commands": "Слэш-команды",
       "steer": "Направить",
+      "steer_desc": "Сразу вставить в выполняющийся ход",
       "steer_inject_into_the_running_turn_enter": "Направить — вставить в выполняющийся ход (Enter)",
       "stop_generation": "Остановить генерацию",
       "stop_recording": "Остановить запись",
@@ -3216,6 +3220,8 @@
       "stopping_2": "Остановка",
       "taking_longer_than_expected": "выполняется дольше, чем ожидалось",
       "that_approval_expired_the_turn_it_belonged_to_is": "Это разрешение истекло — ход, к которому оно относилось, больше не ждёт.",
+      "this_session_runs_in_a_dev_container": "Этот сеанс выполняется в Dev Container",
+      "this_session_runs_in_a_dev_container_id": "Этот сеанс выполняется в Dev Container ({{id}})",
       "total": "Всего",
       "transcribing": "Расшифровка…",
       "transcribing_please_wait": "Расшифровка, подожди…",
@@ -3224,9 +3230,7 @@
       "use_a_skill": "Использовать навык",
       "used": "Использовано",
       "voice_input": "Голосовой ввод",
-      "queue": "В очередь",
-      "queue_desc": "Выполнить после текущего хода",
-      "steer_desc": "Сразу вставить в выполняющийся ход"
+      "withdraw_trust": "Отозвать доверие"
     },
     "chatPane": {
       "agent_list": "Список агентов",
@@ -3403,6 +3407,26 @@
     "detailPanel": {
       "close_panel": "Закрыть панель",
       "resize_panel": "Изменить размер панели"
+    },
+    "devcontainerTrustCard": {
+      "configuration": "Конфигурация",
+      "could_not_grant_trust": "Не удалось предоставить доверие",
+      "dev_container": "Dev Container",
+      "dev_container_trust_prompt": "Запрос доверия к Dev Container",
+      "fingerprint": "Отпечаток",
+      "hide_details": "Скрыть подробности",
+      "image": "Образ",
+      "name": "Имя",
+      "not_now": "Не сейчас",
+      "nothing_is_built_or_changed": "Ничего не собирается и не изменяется — ваш чат продолжает работать прямо на этой машине.",
+      "run_this_project_s_agent_inside_its_dev_container": "Запустить агента этого проекта внутри его Dev Container?",
+      "show_what_this_will_run": "Показать, что будет запущено",
+      "this_project_ships_a_dev_container": "В этом проекте есть Dev Container — готовое окружение, описанное в devcontainer.json. Если вы ему доверяете, Kiro Crew собирает его с помощью Docker и запускает агента внутри, поэтому команды и сборки используют собственные инструменты проекта.",
+      "trust": "Доверять",
+      "trust_applies_to_this_exact_configuration": "Доверие относится именно к этой конфигурации — если она изменится, вас спросят снова. Отозвать доверие можно через чип Dev Container.",
+      "trusting": "Предоставление доверия…",
+      "trusting_runs_the_setup_commands_in_this_file": "Доверие запускает команды настройки из этого файла и даёт контейнеру запрошенный им доступ. Доверяйте только тем проектам, которые вы знаете.",
+      "while_a_session_runs_in_the_container": "Пока сеанс выполняется в контейнере, запланированные задания, субагенты и сохранённые уроки недоступны."
     },
     "dialog": {
       "close": "Закрыть"

@@ -28,6 +28,7 @@ import stat
 import subprocess as subprocess_mod
 import sys
 import time
+import uuid
 from collections import deque
 from contextlib import aclosing
 from pathlib import Path
@@ -1307,6 +1308,11 @@ class AcpClient:
         )
         self._mcp_gateway_socket = str(mcp_gateway_socket) if mcp_gateway_socket else None
         self._sandbox_cleanup: str | None = None
+        # Dev Container state: set at _spawn when the work dir resolves to a
+        # trusted devcontainer (see _maybe_devcontainer_info). exec_id names
+        # the in-container pidfile that _kill_process signals through.
+        self._devcontainer_info: Any = None
+        self._devcontainer_exec_id: str | None = None
         self._process: asyncio.subprocess.Process | None = None
         self._pid: int | None = None
         self._start_time: int | None = None  # process start time for PID recycling detection
@@ -1736,20 +1742,60 @@ class AcpClient:
                 raise AcpError(f"{KIRO_CLI_BIN} not found in PATH")
             argv = [kiro_bin, KIRO_CLI_SUBCMD, "--agent", self._agent]
 
-        # OS-level sandbox: wrap the command to hide sensitive paths.
-        # strip_python_env keeps the host PYTHONPATH/PYTHONHOME out of kiro-cli's
-        # foreign MCP subprocesses (which bundle their own interpreter + deps).
-        argv, self._sandbox_cleanup = wrap_argv(
-            argv,
-            mode=self._sandbox_mode,
-            strip_python_env=True,
-            is_kiro_cli=not self._is_claude,
-        )
-        # cgroup v2 scope (OUTERMOST): bound this agent + all its MCP-server /
-        # tool descendants with pids.max (fork bomb) + memory.max (RSS balloon).
-        # No-op + loud warning where cgroup delegation is unavailable. --scope
-        # execs into the target, so self._pid below is still the real child.
-        argv = cgroup_scope_argv(argv)
+        # Dev Container path (VS Code parity): when enabled + trusted and the
+        # work dir carries a devcontainer config, the agent process runs INSIDE
+        # the project's container via docker exec. Mutually exclusive with the
+        # host sandbox/cgroup wrappers below — the container's own namespaces
+        # replace them (host-mechanism wrappers cannot cross the boundary).
+        # kiro-cli must be present in the container image or installed by a
+        # devcontainer feature/lifecycle hook; the docs cover both.
+        devc_info = None
+        if not self._is_claude:
+            devc_info = await self._maybe_devcontainer_info()
+        if devc_info is not None:
+            from kiro_crew.devcontainer import get_manager as _devc_manager
+
+            self._devcontainer_exec_id = uuid.uuid4().hex
+            devc_env: dict[str, str] = {}
+            if self._session_key:
+                devc_env["KIROCREW_SESSION_KEY"] = self._session_key
+            if self._channel_id:
+                devc_env["KIROCREW_CHANNEL_ID"] = self._channel_id
+            devc_env[KIROCREW_SPAWNED_ENV] = KIROCREW_SPAWNED_VALUE
+            # Inner argv relies on the container's own PATH: the host-resolved
+            # kiro_bin path is meaningless inside the image.
+            inner = [KIRO_CLI_BIN, KIRO_CLI_SUBCMD, "--agent", self._agent]
+            argv = _devc_manager().exec_argv(
+                devc_info,
+                inner,
+                env=devc_env,
+                exec_id=self._devcontainer_exec_id,
+            )
+            self._devcontainer_info = devc_info
+            self._sandbox_cleanup = None
+        else:
+            # Host path: clear any devcontainer state from a prior spawn —
+            # _spawn is re-entered on respawn, and a container that died (or
+            # a trust revocation) must not leave _acp_cwd returning a
+            # container-side path or teardown signaling a dead container.
+            self._devcontainer_info = None
+            self._devcontainer_exec_id = None
+            # OS-level sandbox: wrap the command to hide sensitive paths.
+            # strip_python_env keeps the host PYTHONPATH/PYTHONHOME out of
+            # kiro-cli's foreign MCP subprocesses (which bundle their own
+            # interpreter + deps).
+            argv, self._sandbox_cleanup = wrap_argv(
+                argv,
+                mode=self._sandbox_mode,
+                strip_python_env=True,
+                is_kiro_cli=not self._is_claude,
+            )
+            # cgroup v2 scope (OUTERMOST): bound this agent + all its
+            # MCP-server / tool descendants with pids.max (fork bomb) +
+            # memory.max (RSS balloon). No-op + loud warning where cgroup
+            # delegation is unavailable. --scope execs into the target, so
+            # self._pid below is still the real child.
+            argv = cgroup_scope_argv(argv)
 
         # Build the child environment (process-group isolation flags are set on
         # the spawn kwargs below, per-platform).
@@ -1927,6 +1973,76 @@ class AcpClient:
             _track_child_pids(self._child_pids, parent_pid=self._pid or 0)
             logger.info("Tracked %d descendant PIDs for PID %d", len(self._child_pids), self._pid)
 
+    def _acp_cwd(self) -> str:
+        """The cwd sent over ACP: container-side workspace path when the
+        session runs in a devcontainer, host work dir otherwise.
+
+        The devcontainer CLI bind-mounts the project at remoteWorkspaceFolder
+        (usually /workspaces/<name>); the agent's file tools must resolve
+        against that path, while the gateway keeps using the host path (same
+        bytes through the bind mount).
+        """
+        devc_info = getattr(self, "_devcontainer_info", None)
+        if devc_info is not None:
+            return str(devc_info.remote_workspace_folder)
+        return str(self._work_dir)
+
+    async def _maybe_devcontainer_info(self):
+        """Resolve the devcontainer for this client's work dir, or None.
+
+        None means "run on the host as before": config off, no devcontainer
+        config in the work dir, config present but untrusted (spawn must not
+        block on a human — the dashboard surfaces the trust prompt out of
+        band), Docker missing, or the up() failed. Untrusted/failed cases log
+        loudly; the host path is VS Code's behavior too (no trust, no
+        container).
+        """
+        from kiro_crew.config.loader import KiroCrewConfig
+        from kiro_crew.devcontainer import (
+            DevcontainerNotTrusted,
+            docker_available,
+            find_devcontainer_config,
+            get_manager,
+            is_trusted,
+        )
+
+        try:
+            cfg = KiroCrewConfig.load()
+            if getattr(cfg.agent, "devcontainer", "off") != "auto":
+                return None
+        except Exception:
+            return None
+        if sys.platform != "linux":
+            return None  # Docker Desktop is a VM; parity path is Linux-only in v1
+        work_dir = str(self._work_dir)
+        # Both of these touch the filesystem (walk + hash of the .devcontainer
+        # tree), so they stay off the event loop.
+        if await asyncio.to_thread(find_devcontainer_config, work_dir) is None:
+            return None
+        if not docker_available():
+            logger.warning(
+                "devcontainer requested for %s but docker is not on PATH; "
+                "running on the host",
+                work_dir,
+            )
+            return None
+        if not await asyncio.to_thread(is_trusted, work_dir):
+            logger.warning(
+                "devcontainer config for %s is not trusted; running on the "
+                "host until trust is granted in the dashboard",
+                work_dir,
+            )
+            return None
+        try:
+            return await get_manager().up(work_dir)
+        except DevcontainerNotTrusted:
+            return None  # raced a config edit between is_trusted and up
+        except Exception:
+            logger.exception(
+                "devcontainer up failed for %s; running on the host", work_dir
+            )
+            return None
+
     async def _kill_process(self, *, force: bool = False) -> None:
         """Kill the subprocess and wait for it to exit.
 
@@ -1941,6 +2057,19 @@ class AcpClient:
         pid = self._pid
         if pid is None:  # narrow for mypy — set at _spawn time under the process guard
             return
+        # Containerized session: killing the host-side docker exec client only
+        # detaches — signal the in-container tree first via its pidfile, then
+        # fall through to the normal host-side teardown (which reaps the
+        # docker exec client process itself).
+        devc_info = getattr(self, "_devcontainer_info", None)
+        devc_exec = getattr(self, "_devcontainer_exec_id", None)
+        if devc_info is not None and devc_exec:
+            from kiro_crew.devcontainer import get_manager as _devc_manager
+
+            try:
+                await _devc_manager().kill_exec(devc_info, devc_exec)
+            except Exception:
+                logger.warning("devcontainer kill_exec failed", exc_info=True)
         # Close pipes first to unblock any pending reads/writes
         for pipe in (self._process.stdin, self._process.stdout, self._process.stderr):
             if pipe:
@@ -2014,6 +2143,11 @@ class AcpClient:
             except OSError:
                 pass
             self._sandbox_cleanup = None
+        # Devcontainer state dies with the process: a respawn re-resolves it
+        # in _spawn, and a stale info object would misroute _acp_cwd and the
+        # kill path (M2 review finding).
+        self._devcontainer_info = None
+        self._devcontainer_exec_id = None
         # Remove settings.local.json so bypassPermissions doesn't persist after crash
         if self._is_claude:
             _stale = self._work_dir / ".claude" / "settings.local.json"
@@ -2113,7 +2247,7 @@ class AcpClient:
         the internal companion, not the public core.
         """
         new_params: dict = {
-            "cwd": str(self._work_dir),
+            "cwd": self._acp_cwd(),
             # kiro-cli loads servers from --agent; claude-agent-acp must be
             # told here -- it does not read kirocrew.mcp.json on its own. The
             # Default hook returns [] (kiro-cli path unchanged); an internal
@@ -2228,7 +2362,7 @@ class AcpClient:
                 try:
                     load_params: dict = {
                         "sessionId": resume_sid,
-                        "cwd": str(self._work_dir),
+                        "cwd": self._acp_cwd(),
                         # kiro-cli gets its servers via --agent; the claude
                         # backend must receive them here (it does not read
                         # kirocrew.mcp.json itself). Default [] leaves kiro-cli

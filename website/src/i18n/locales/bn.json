@@ -3060,7 +3060,6 @@
       "retrying": "আবার চেষ্টা করা হচ্ছে..."
     },
     "chatInput": {
-      "message_placeholder": "{{bot}}-কে মেসেজ করুন… (/command · @file · $skill)",
       "add_files_options": "ফাইল ও অপশন যোগ করুন",
       "allow_once": "একবারের জন্য অনুমতি দিন",
       "apply_a_ready_made_set_of_instructions": "আগে থেকে তৈরি নির্দেশের একটি সেট প্রয়োগ করুন",
@@ -3072,6 +3071,7 @@
       "context_usage": "কনটেক্সট ব্যবহার",
       "context_window": "কনটেক্সট উইন্ডো",
       "could_not_submit_that_decision_see_the_console_f": "সেই সিদ্ধান্ত জমা দেওয়া যায়নি — বিস্তারিত জানতে কনসোল দেখো।",
+      "dev_container": "Dev Container",
       "drag_to_resize_double_click_to_reset": "আকার বদলাতে টানুন (রিসেট করতে ডাবল-ক্লিক করুন)",
       "file": "ফাইল",
       "force_kill_discards_in_progress_work_and_queued": "জোর করে বন্ধ — চলমান কাজ ও সারিতে থাকা বার্তা বাতিল করে",
@@ -3085,6 +3085,7 @@
       "let_the_agent_read_one_of_your_files": "এজেন্টকে আপনার একটি ফাইল পড়তে দিন",
       "let_the_agent_use_the_browser": "এজেন্টকে ব্রাউজার ব্যবহার করতে দিন",
       "message_input": "বার্তা ইনপুট",
+      "message_placeholder": "{{bot}}-কে মেসেজ করুন… (/command · @file · $skill)",
       "model": "মডেল",
       "optimize_prompt": "প্রম্পট অপ্টিমাইজ করো",
       "optimize_prompt_busy_optimizing_another_chat": "প্রম্পট অপ্টিমাইজ করো — এখন অন্য একটি চ্যাট অপ্টিমাইজ হচ্ছে",
@@ -3092,6 +3093,8 @@
       "optimizing_prompt": "প্রম্পট অপ্টিমাইজ করা হচ্ছে…",
       "plan_pre_filled_add_context_then_send": "প্ল্যান আগেই পূরণ করা হয়েছে — কনটেক্সট যোগ করে তারপর পাঠান",
       "project": "প্রজেক্ট",
+      "queue": "কিউ",
+      "queue_desc": "বর্তমান টার্ন শেষ হলে চালাও",
       "queue_message": "বার্তা সারিতে রাখুন",
       "queue_run_after_the_current_turn_finishes_enter": "কিউ — বর্তমান টার্ন শেষ হলে চালাও (Enter)",
       "quick_actions_like_clearing_the_chat_or_checking": "চ্যাট পরিষ্কার করা বা ব্যবহার দেখার মতো দ্রুত অ্যাকশন",
@@ -3114,6 +3117,7 @@
       "skill": "স্কিল",
       "slash_commands": "স্ল্যাশ কমান্ড",
       "steer": "স্টিয়ার",
+      "steer_desc": "চলমান টার্নে সঙ্গে সঙ্গে ঢুকিয়ে দাও",
       "steer_inject_into_the_running_turn_enter": "স্টিয়ার — চলমান টার্নে ঢুকিয়ে দাও (Enter)",
       "stop_generation": "জেনারেশন বন্ধ করুন",
       "stop_recording": "রেকর্ডিং থামাও",
@@ -3124,6 +3128,8 @@
       "stopping_2": "থামানো হচ্ছে",
       "taking_longer_than_expected": "প্রত্যাশার চেয়ে বেশি সময় নিচ্ছে",
       "that_approval_expired_the_turn_it_belonged_to_is": "সেই অনুমোদনের সময় শেষ — যে টার্নের জন্য ছিল সেটি আর অপেক্ষা করছে না।",
+      "this_session_runs_in_a_dev_container": "এই সেশনটি একটি Dev Container-এ চলছে",
+      "this_session_runs_in_a_dev_container_id": "এই সেশনটি একটি Dev Container-এ চলছে ({{id}})",
       "total": "Total",
       "transcribing": "ট্রান্সক্রাইব হচ্ছে…",
       "transcribing_please_wait": "ট্রান্সক্রাইব হচ্ছে, অপেক্ষা করো…",
@@ -3132,9 +3138,7 @@
       "use_a_skill": "একটি স্কিল ব্যবহার করুন",
       "used": "ব্যবহৃত",
       "voice_input": "ভয়েস ইনপুট",
-      "queue": "কিউ",
-      "queue_desc": "বর্তমান টার্ন শেষ হলে চালাও",
-      "steer_desc": "চলমান টার্নে সঙ্গে সঙ্গে ঢুকিয়ে দাও"
+      "withdraw_trust": "আস্থা প্রত্যাহার করুন"
     },
     "chatPane": {
       "agent_list": "এজেন্ট তালিকা",
@@ -3307,6 +3311,26 @@
     "detailPanel": {
       "close_panel": "প্যানেল বন্ধ করুন",
       "resize_panel": "প্যানেলের আকার বদলান"
+    },
+    "devcontainerTrustCard": {
+      "configuration": "কনফিগারেশন",
+      "could_not_grant_trust": "আস্থা দেওয়া যায়নি",
+      "dev_container": "Dev Container",
+      "dev_container_trust_prompt": "Dev Container-এর জন্য আস্থার অনুরোধ",
+      "fingerprint": "ফিঙ্গারপ্রিন্ট",
+      "hide_details": "বিবরণ লুকান",
+      "image": "ইমেজ",
+      "name": "নাম",
+      "not_now": "এখন নয়",
+      "nothing_is_built_or_changed": "কিছুই তৈরি বা পরিবর্তন হবে না — আপনার চ্যাট সরাসরি এই মেশিনেই চলতে থাকবে।",
+      "run_this_project_s_agent_inside_its_dev_container": "এই প্রকল্পের এজেন্ট এর Dev Container-এর ভিতরে চালাবেন?",
+      "show_what_this_will_run": "কী চালানো হবে তা দেখান",
+      "this_project_ships_a_dev_container": "এই প্রকল্পে একটি Dev Container রয়েছে — devcontainer.json-এ বর্ণিত একটি প্রস্তুত পরিবেশ। আপনি আস্থা রাখলে Kiro Crew এটি Docker দিয়ে তৈরি করে এবং এজেন্টকে তার ভিতরে চালায়, তাই কমান্ড ও বিল্ড প্রকল্পের নিজস্ব সরঞ্জাম ব্যবহার করে।",
+      "trust": "আস্থা রাখুন",
+      "trust_applies_to_this_exact_configuration": "আস্থা ঠিক এই কনফিগারেশনের জন্যই প্রযোজ্য — এটি বদলালে আপনাকে আবার জিজ্ঞাসা করা হবে। Dev Container চিপ থেকে আপনি আস্থা প্রত্যাহার করতে পারেন।",
+      "trusting": "আস্থা দেওয়া হচ্ছে…",
+      "trusting_runs_the_setup_commands_in_this_file": "আস্থা দিলে এই ফাইলের সেটআপ কমান্ডগুলো চালানো হয় এবং কনটেইনার যে অ্যাক্সেস চায় তা দেওয়া হয়। কেবল সেই প্রকল্পগুলোতেই আস্থা রাখুন যেগুলো আপনি চেনেন।",
+      "while_a_session_runs_in_the_container": "কোনো সেশন কনটেইনারে চলার সময় নির্ধারিত কাজ, সাব-এজেন্ট এবং সংরক্ষিত শিক্ষা পাওয়া যাবে না।"
     },
     "dialog": {
       "close": "বন্ধ করুন"

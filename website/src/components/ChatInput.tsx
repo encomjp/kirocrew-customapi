@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, memo } from 'react'
-import { ArrowUpFromLine, ArrowUp, Loader2, Plus, Crop, Bot, Mic, Square, BookOpen, X, ClipboardList, CheckCircle, Ban, Sparkles, Target, Lock, Globe, FolderOpen, FileText, ChevronDown, Check } from 'lucide-react'
+import { ArrowUpFromLine, ArrowUp, Box, Loader2, Plus, Crop, Bot, Mic, Square, BookOpen, X, ClipboardList, CheckCircle, Ban, Sparkles, Target, Lock, Globe, FolderOpen, FileText, ChevronDown, Check } from 'lucide-react'
 import { Toggle } from './ui'
 import CopyBranchButton from './CopyBranchButton'
 import { usePointerDrag } from '../hooks/usePointerDrag'
@@ -84,6 +84,9 @@ const INPUT_DRAG_MIN_H = 93
 const FILE_PREVIEW_H = 81 // h-16 (64px) + py-2 (16px) + border-t (1px)
 const INPUT_DRAG_MAX_RATIO = 0.5
 const INPUT_HEIGHT_LS_KEY = 'mc-input-height'
+// Container ids are 64 hex chars; the leading 12 are what `docker ps` prints and
+// what the user pastes into a docker command, so the tooltip shows that prefix.
+const DEVCONTAINER_ID_CHARS = 12
 
 // Send behavior while a turn is RUNNING. 'steer' (default) injects the
 // composer into the running turn; 'queue' defers it to the next turn. The
@@ -302,6 +305,18 @@ interface ChatInputProps {
   projectBranch?: string
   /** True when the project's HEAD is detached, so the label is a commit. */
   projectDetached?: boolean
+  /** True while a Dev Container is up for the active project. */
+  devcontainerRunning?: boolean
+  /** Container id of that Dev Container, surfaced in the chip's tooltip. */
+  devcontainerId?: string
+  /**
+   * Trust key the chip's "Withdraw trust" acts on — the status response's
+   * `project_dir`, which is a realpath and can differ from the `project` label
+   * above. Passed explicitly so the revoke targets the same key the grant used.
+   */
+  devcontainerProject?: string
+  /** Refetch Dev Container status after trust was withdrawn. */
+  onDevcontainerUntrust?: () => void | Promise<unknown>
   memoryMode?: string
   cleanMode?: boolean
   /** User-sent messages for ↑/↓ history navigation (oldest → newest). */
@@ -490,6 +505,10 @@ function ChatInput({
   project,
   projectBranch,
   projectDetached,
+  devcontainerRunning,
+  devcontainerId,
+  devcontainerProject,
+  onDevcontainerUntrust,
   memoryMode,
   cleanMode,
   sentMessages,
@@ -703,6 +722,12 @@ function ChatInput({
   // "+" drop-up menu (upload file / image + browse toggle).
   const [plusOpen, setPlusOpen] = useState(false)
   const [ctxPopoverOpen, setCtxPopoverOpen] = useState(false)
+  // Dev Container chip menu. Its single item revokes trust, which is the only
+  // way back out of a container short of editing config, so it lives on the chip
+  // that reports the container rather than buried in Settings.
+  const devcMenuRef = useRef<HTMLDivElement>(null)
+  const [devcOpen, setDevcOpen] = useState(false)
+  const [devcBusy, setDevcBusy] = useState(false)
   // Shelf responsiveness: measure the shelf row width and collapse chips to
   // icon-only (agent/project) + drop the model effort label when space is tight.
   // Truncation handles the in-between cases.
@@ -791,6 +816,56 @@ function ChatInput({
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [ctxPopoverOpen])
+  const devcWrapRef = useRef<HTMLDivElement>(null)
+  const devcBtnRef = useRef<HTMLButtonElement>(null)
+  // Anchor rect for the portaled menu (see the render site): captured when the
+  // menu opens, refreshed on scroll/resize so the floating menu tracks the chip.
+  const [devcMenuRect, setDevcMenuRect] = useState<DOMRect | null>(null)
+  useEffect(() => {
+    if (!devcOpen) return
+    const sync = () => {
+      if (devcBtnRef.current) setDevcMenuRect(devcBtnRef.current.getBoundingClientRect())
+    }
+    sync()
+    window.addEventListener('scroll', sync, true)
+    window.addEventListener('resize', sync)
+    return () => {
+      window.removeEventListener('scroll', sync, true)
+      window.removeEventListener('resize', sync)
+    }
+  }, [devcOpen])
+  useEffect(() => {
+    if (!devcOpen) return
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node
+      // The menu is portaled to <body>, so it is NOT inside devcWrapRef —
+      // clicking it would otherwise register as an outside click and close the
+      // menu before the item's own onClick ran.
+      if (devcMenuRef.current && devcMenuRef.current.contains(target)) return
+      if (devcWrapRef.current && !devcWrapRef.current.contains(target)) setDevcOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [devcOpen])
+  // The chip is only mounted while a container runs, so an unmount mid-request
+  // would strand `devcBusy`; closing the menu on that transition is enough,
+  // because the request's own `finally` clears the flag either way.
+  const withdrawDevcontainerTrust = useCallback(async () => {
+    if (devcBusy || !devcontainerProject) return
+    setDevcBusy(true)
+    try {
+      // Optional call: several test suites mock `../api/client` partially, and a
+      // revoke that throws must not take the composer down with it.
+      await Promise.resolve(api.devcontainerUntrust?.(devcontainerProject))
+      await Promise.resolve(onDevcontainerUntrust?.())
+      setDevcOpen(false)
+    } catch {
+      // Trust is unchanged on failure and the chip still reports the running
+      // container, so the menu stays open rather than implying it worked.
+    } finally {
+      setDevcBusy(false)
+    }
+  }, [devcBusy, devcontainerProject, onDevcontainerUntrust])
   const plusWrapRef = useRef<HTMLDivElement>(null)
   const plusBtnRef = useRef<HTMLButtonElement>(null)
   const plusMenuRef = useRef<HTMLDivElement>(null)
@@ -2609,6 +2684,56 @@ function ChatInput({
             </>
           )}
           </div>
+          )}
+          {devcontainerRunning && (
+            /* A control, not a static badge: the chip reports WHERE the turn runs
+               AND owns the only exit from it, so trust can be withdrawn from the
+               same place the container is surfaced. The menu is portaled (see the
+               render site) because both the composer wrapper and this shelf clip
+               their overflow. */
+            <div ref={devcWrapRef} className="relative flex items-center shrink-0">
+              <button
+                type="button"
+                ref={devcBtnRef}
+                onClick={() => setDevcOpen(o => !o)}
+                aria-haspopup="menu"
+                aria-expanded={devcOpen}
+                className={`inline-flex items-center gap-1.5 h-7 shrink-0 text-[12px] text-muted px-2.5 rounded-md border-none cursor-pointer transition-colors ${devcOpen ? 'bg-[color-mix(in_srgb,var(--bg-elevated)_84%,var(--text))] text-text' : 'bg-transparent hover:bg-[color-mix(in_srgb,var(--bg-elevated)_84%,var(--text))] hover:text-text'}`}
+                title={devcontainerId
+                  ? i18nT('components.chatInput.this_session_runs_in_a_dev_container_id', { id: devcontainerId.slice(0, DEVCONTAINER_ID_CHARS) })
+                  : i18nT('components.chatInput.this_session_runs_in_a_dev_container')}
+              >
+                <Box size={13} className="shrink-0 opacity-70" aria-hidden="true" />
+                {!shelfCompact && <span className="truncate max-w-[120px]">{i18nT('components.chatInput.dev_container')}</span>}
+              </button>
+              {devcOpen && devcMenuRect && createPortal(
+                /* Portaled to <body> with fixed positioning, like the busy-send
+                   menu above: the composer wrapper is `overflow-hidden` and the
+                   shelf strip is `overflow-x-auto`, so an `absolute` menu is
+                   clipped by both instead of floating over the transcript. */
+                <div
+                  ref={devcMenuRef}
+                  role="menu"
+                  aria-label={i18nT('components.chatInput.dev_container')}
+                  className="fixed z-[60] min-w-[180px] rounded-xl border border-border bg-bg-elevated shadow-xl py-1 animate-slide-up"
+                  style={{
+                    left: Math.max(8, Math.min(devcMenuRect.left, window.innerWidth - 180 - 8)),
+                    bottom: window.innerHeight - devcMenuRect.top + 6,
+                  }}
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={devcBusy || !devcontainerProject}
+                    onClick={withdrawDevcontainerTrust}
+                    className="w-full text-left px-3 py-1.5 text-[12px] text-text bg-transparent border-none cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--bg-elevated)_84%,var(--text))] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {i18nT('components.chatInput.withdraw_trust')}
+                  </button>
+                </div>,
+                document.body,
+              )}
+            </div>
           )}
           </div>
           <div className="flex items-center shrink-0">
