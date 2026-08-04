@@ -313,32 +313,25 @@ def _get_rss_tree_mb(pid: int) -> float | None:
         return total if found else None
 
     if platform_compat.IS_WINDOWS:
-        # Walk the Toolhelp parent map (the same snapshot descendant tracking
-        # uses) to find the subtree rooted at pid, then sum each process's RSS
-        # via the shim. Windows spawns kiro-cli without a launcher fork, but the
-        # tree still covers any MCP-server / tool children it spawns.
-        try:
-            parent_map = platform_compat._windows_process_parent_map()
-        except Exception:
-            return _get_rss_mb(pid)
-        win_children: dict[int, list[int]] = {}
-        for cpid, ppid in parent_map.items():
-            win_children.setdefault(ppid, []).append(cpid)
-        total_mb = 0.0
-        found = False
-        win_visited: set[int] = set()
-        stack = [pid]
-        while stack:
-            p = stack.pop()
-            if p in win_visited:
-                continue
-            win_visited.add(p)
-            r = _get_rss_mb(p)
-            if r is not None:
-                total_mb += r
-                found = True
-            stack.extend(win_children.get(p, ()))
-        return total_mb if found else None
+        # Windows spawns kiro-cli WITHOUT a launcher fork, so self is the tree
+        # root that actually accumulates RSS — and unlike Linux there is no
+        # trustworthy cheap way to enumerate the rest:
+        #
+        #  * Toolhelp's th32ParentProcessID is never cleared when the parent dies
+        #    and Windows recycles PIDs aggressively, so a naive parent-map walk
+        #    sums unrelated subtrees rooted at a recycled PID.
+        #    descendant_termination_handles validates every edge against
+        #    exact-handle creation/exit times precisely for this; an unvalidated
+        #    walk must not feed a kill decision.
+        #  * GetProcessMemoryInfo needs more than PROCESS_QUERY_LIMITED_INFORMATION
+        #    for processes in another session or at higher integrity, so most
+        #    other-owner PIDs read back as None. Skipping those silently would
+        #    hand the ceiling an UNDER-count, which reads as "healthy" and never
+        #    fires — worse than reporting unknown.
+        #
+        # So measure only the process itself. A ceiling that is honest about one
+        # process beats one that is confidently wrong about a tree.
+        return _get_rss_mb(pid)
 
     # macOS / other: build a ppid map from a single ps snapshot, then sum the
     # descendant subtree rooted at pid (ps reports RSS in KiB).

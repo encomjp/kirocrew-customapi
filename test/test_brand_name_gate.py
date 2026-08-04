@@ -172,15 +172,44 @@ class TestUrlBoundary:
         # step that slices the line or rescans its prefix is quadratic here, and a
         # ratio assertion catches that where a wall-clock budget loose enough for a
         # loaded runner would not.
+        #
+        # Two things make this robust rather than flaky, and both were needed —
+        # a 2x step with a 3.0 limit measured 3.1x on a LINEAR implementation
+        # (false failure) AND 3.0x on a quadratic one (false pass):
+        #
+        # 1. A 4x SIZE STEP, not 2x. Linear then costs ~4x and quadratic ~16x,
+        #    which is a wide gap; a 2x step separates ~2x from ~4x, close enough
+        #    to measurement noise that no threshold cleanly divides them.
+        #    Measured here: linear 3.0x, per-match prefix rescan 12.1x.
+        # 2. Best-of-N over PAIRED attempts. One sample costs tens of
+        #    milliseconds, the same order as one scheduler preemption under this
+        #    suite's own 16 xdist workers. Timing each size best-of-N separately
+        #    is not enough — an unlucky `big` still divides a lucky `small`. This
+        #    cannot mask a regression: noise only ever makes a sample SLOWER, so
+        #    a quadratic scan cannot produce a low ratio however many attempts it
+        #    gets.
+        attempts = 5
+        max_ratio = 6.0  # linear ~4x, quadratic ~16x; 6 sits in the gap
+        small, big = 10_000, 40_000
+
         def timed(count: int) -> tuple[float, int]:
             began = time.monotonic()
             found = len(_hits("!KiroCrew" * count, path="big.md"))
             return time.monotonic() - began, found
 
-        base, base_found = timed(20_000)
-        doubled, doubled_found = timed(40_000)
-        assert (base_found, doubled_found) == (20_000, 40_000)
-        assert doubled / base < 3.0, f"doubling the input cost {doubled / base:.1f}x, want ~2x"
+        ratio = float("inf")
+        small_found = big_found = 0
+        for _ in range(attempts):
+            small_time, small_found = timed(small)
+            big_time, big_found = timed(big)
+            if small_time > 0:
+                ratio = min(ratio, big_time / small_time)
+        assert (small_found, big_found) == (small, big)
+        assert ratio < max_ratio, (
+            f"{big // small}x the input cost {ratio:.1f}x (best of {attempts} "
+            f"paired attempts, limit {max_ratio}x); linear is ~{big // small}x, so "
+            f"a per-match scan of the line has come back"
+        )
 
     def test_many_backticks_stay_linear(self) -> None:
         line = "`x`" * 30_000 + " KiroCrew"

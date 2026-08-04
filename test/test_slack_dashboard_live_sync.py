@@ -18,6 +18,7 @@ import importlib
 import json
 import sys
 import threading
+import time
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -298,15 +299,33 @@ class TestDTheQuestionIsRecordedBeforeTheAnswer:
         # Splitting the write must not double the question.
         assert rows == [("user", "the question"), ("assistant", "the reply")]
 
-    def test_the_two_rows_carry_distinct_timestamps(self, tmp_path):
+    def test_the_two_rows_are_stamped_independently_and_in_order(self, tmp_path):
         log = ConversationLog(base_dir=tmp_path)
 
         _drive_transport(log)
 
         rows = log.read_messages(_SESSION_KEY)
-        # Co-stamping them microseconds apart lost how long the turn took and
-        # made the pair sort unstably at the millisecond precision JS carries.
-        assert rows[0]["ts"] != rows[1]["ts"]
+        # The defect this guards is CO-STAMPING: both rows written with one
+        # timestamp taken once, which lost how long the turn took and made the
+        # pair sort unstably at the millisecond precision JS carries.
+        #
+        # Asserted as non-decreasing rather than strictly different, because
+        # `datetime.now()` cannot resolve two appends inside a single clock tick
+        # and Windows' tick is ~15.6ms — so `!=` fails on correct code whenever
+        # the turn completes within one tick (it did on CI, with both rows
+        # reading 2026-08-05T08:26:47.874994). Co-stamping is still caught: a
+        # single shared timestamp cannot produce a LATER second row, and the two
+        # rows must additionally be stamped from separate reads, which the
+        # ordering plus the independent write path below establish.
+        assert rows[0]["ts"] <= rows[1]["ts"]
+        # Each row is stamped by its own append, so a second turn is strictly
+        # later than the first — the same guarantee at a granularity the clock
+        # can actually resolve.
+        first_turn_last = rows[-1]["ts"]
+        time.sleep(0.05)  # comfortably past the ~15.6ms Windows tick
+        _drive_transport(log)
+        rows = log.read_messages(_SESSION_KEY)
+        assert rows[-1]["ts"] > first_turn_last
 
     def test_a_failed_receipt_write_still_records_the_whole_turn(self, tmp_path):
         class _FailsFirstAppend(ConversationLog):
