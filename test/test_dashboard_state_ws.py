@@ -491,12 +491,27 @@ class TestOwnerSourceStatusTransport:
         class Request(dict):
             def __init__(self) -> None:
                 super().__init__(claims)
+                # Mirror the auth middleware: it sets this POSITIVE flag so the
+                # WS layer never infers trust from a falsy app claim.
+                self.setdefault("is_dashboard_user", not self.get("app"))
                 self.app = {"state": state}
 
         class FakeWebSocket:
             def __init__(self) -> None:
                 self.closed = True
                 self.sent: list[dict] = []
+                # api_ws stores scope state on the socket via item assignment;
+                # flag as a dashboard user so the WS scope gate passes through.
+                self._flags: dict = {"_is_dashboard_user": True}
+
+            def __setitem__(self, key: str, value) -> None:
+                self._flags[key] = value
+
+            def __getitem__(self, key: str):
+                return self._flags[key]
+
+            def get(self, key: str, default=None):
+                return self._flags.get(key, default)
 
             async def prepare(self, request) -> None:
                 return None
@@ -525,6 +540,12 @@ class TestOwnerSourceStatusTransport:
         if owner_request:
             assert initial_slots[0]["source_links"][0]["ci"] == "passed"
             refresh.assert_called_once_with([source_url], state.push_slots_update)
+        elif claims.get("app"):
+            # App token: the per-app WS scope gate filters the initial push, so
+            # an app that declared no slots:* scope sees no slots at all — a
+            # stronger guarantee than merely withholding check status.
+            assert initial_slots == []
+            refresh.assert_not_called()
         else:
             assert "ci" not in str(initial_slots)
             assert "state" not in initial_slots[0]["source_links"][0]
@@ -582,6 +603,9 @@ class TestPeriodicCheckStatusRefresh:
         class Request(dict):
             def __init__(self) -> None:
                 super().__init__({"user": "U_OWNER", "app": ""})
+                # Mirror the auth middleware: it sets this POSITIVE flag so the
+                # WS layer never infers trust from a falsy app claim.
+                self.setdefault("is_dashboard_user", not self.get("app"))
                 self.app = {"state": state}
 
         refreshed = asyncio.Event()
@@ -595,6 +619,18 @@ class TestPeriodicCheckStatusRefresh:
             def __init__(self) -> None:
                 self.closed = False
                 self.sent: list[dict] = []
+                # api_ws stores scope state on the socket via item assignment;
+                # flag as a dashboard user so the WS scope gate passes through.
+                self._flags: dict = {"_is_dashboard_user": True}
+
+            def __setitem__(self, key: str, value) -> None:
+                self._flags[key] = value
+
+            def __getitem__(self, key: str):
+                return self._flags[key]
+
+            def get(self, key: str, default=None):
+                return self._flags.get(key, default)
 
             async def prepare(self, request) -> None:
                 return None
@@ -655,12 +691,27 @@ class TestPeriodicCheckStatusRefresh:
         class Request(dict):
             def __init__(self) -> None:
                 super().__init__({"user": "U_OWNER", "app": ""})
+                # Mirror the auth middleware: it sets this POSITIVE flag so the
+                # WS layer never infers trust from a falsy app claim.
+                self.setdefault("is_dashboard_user", not self.get("app"))
                 self.app = {"state": state}
 
         class FakeWebSocket:
             def __init__(self) -> None:
                 self.closed = False
                 self.sent: list[dict] = []
+                # api_ws stores scope state on the socket via item assignment;
+                # flag as a dashboard user so the WS scope gate passes through.
+                self._flags: dict = {"_is_dashboard_user": True}
+
+            def __setitem__(self, key: str, value) -> None:
+                self._flags[key] = value
+
+            def __getitem__(self, key: str):
+                return self._flags[key]
+
+            def get(self, key: str, default=None):
+                return self._flags.get(key, default)
 
             async def prepare(self, request) -> None:
                 return None
@@ -702,6 +753,11 @@ class TestPeriodicCheckStatusRefresh:
 
         class FakeWs:
             closed = False
+
+            # Dashboard-user flag so the WS scope gate passes through; this
+            # test targets the slots envelope, not per-app filtering.
+            def get(self, key: str, default=None):
+                return True if key == "_is_dashboard_user" else default
 
             def send_str(self, msg: str):
                 sent.append(msg)
@@ -745,12 +801,27 @@ class TestPeriodicCheckStatusRefresh:
         class Request(dict):
             def __init__(self) -> None:
                 super().__init__({"user": "U_OWNER", "app": ""})
+                # Mirror the auth middleware: it sets this POSITIVE flag so the
+                # WS layer never infers trust from a falsy app claim.
+                self.setdefault("is_dashboard_user", not self.get("app"))
                 self.app = {"state": state}
 
         class FakeWebSocket:
             def __init__(self) -> None:
                 self.closed = False
                 self.sent: list[dict] = []
+                # api_ws stores scope state on the socket via item assignment;
+                # flag as a dashboard user so the WS scope gate passes through.
+                self._flags: dict = {"_is_dashboard_user": True}
+
+            def __setitem__(self, key: str, value) -> None:
+                self._flags[key] = value
+
+            def __getitem__(self, key: str):
+                return self._flags[key]
+
+            def get(self, key: str, default=None):
+                return self._flags.get(key, default)
 
             async def prepare(self, request) -> None:
                 return None
@@ -787,6 +858,9 @@ class TestPeriodicCheckStatusRefresh:
         class Request(dict):
             def __init__(self) -> None:
                 super().__init__({"user": "U_OTHER", "app": ""})
+                # Mirror the auth middleware: it sets this POSITIVE flag so the
+                # WS layer never infers trust from a falsy app claim.
+                self.setdefault("is_dashboard_user", not self.get("app"))
                 self.app = {"state": state}
 
         refresh = MagicMock()
@@ -795,6 +869,18 @@ class TestPeriodicCheckStatusRefresh:
             def __init__(self) -> None:
                 self.closed = False
                 self.sent: list[dict] = []
+                # api_ws stores scope state on the socket via item assignment;
+                # flag as a dashboard user so the WS scope gate passes through.
+                self._flags: dict = {"_is_dashboard_user": True}
+
+            def __setitem__(self, key: str, value) -> None:
+                self._flags[key] = value
+
+            def __getitem__(self, key: str):
+                return self._flags[key]
+
+            def get(self, key: str, default=None):
+                return self._flags.get(key, default)
 
             async def prepare(self, request) -> None:
                 return None
@@ -844,6 +930,9 @@ class TestPeriodicCheckStatusRefresh:
         class Request(dict):
             def __init__(self) -> None:
                 super().__init__({"user": "U_OWNER", "app": ""})
+                # Mirror the auth middleware: it sets this POSITIVE flag so the
+                # WS layer never infers trust from a falsy app claim.
+                self.setdefault("is_dashboard_user", not self.get("app"))
                 self.app = {"state": state}
 
         done = asyncio.Event()
@@ -858,6 +947,18 @@ class TestPeriodicCheckStatusRefresh:
             def __init__(self) -> None:
                 self.closed = False
                 self.sent: list[dict] = []
+                # api_ws stores scope state on the socket via item assignment;
+                # flag as a dashboard user so the WS scope gate passes through.
+                self._flags: dict = {"_is_dashboard_user": True}
+
+            def __setitem__(self, key: str, value) -> None:
+                self._flags[key] = value
+
+            def __getitem__(self, key: str):
+                return self._flags[key]
+
+            def get(self, key: str, default=None):
+                return self._flags.get(key, default)
 
             async def prepare(self, request) -> None:
                 return None
@@ -904,6 +1005,9 @@ class TestPeriodicCheckStatusRefresh:
         class Request(dict):
             def __init__(self) -> None:
                 super().__init__({"user": "U_OWNER", "app": ""})
+                # Mirror the auth middleware: it sets this POSITIVE flag so the
+                # WS layer never infers trust from a falsy app claim.
+                self.setdefault("is_dashboard_user", not self.get("app"))
                 self.app = {"state": state}
 
         recovered = asyncio.Event()
@@ -919,6 +1023,18 @@ class TestPeriodicCheckStatusRefresh:
             def __init__(self) -> None:
                 self.closed = False
                 self.sent: list[dict] = []
+                # api_ws stores scope state on the socket via item assignment;
+                # flag as a dashboard user so the WS scope gate passes through.
+                self._flags: dict = {"_is_dashboard_user": True}
+
+            def __setitem__(self, key: str, value) -> None:
+                self._flags[key] = value
+
+            def __getitem__(self, key: str):
+                return self._flags[key]
+
+            def get(self, key: str, default=None):
+                return self._flags.get(key, default)
 
             async def prepare(self, request) -> None:
                 return None

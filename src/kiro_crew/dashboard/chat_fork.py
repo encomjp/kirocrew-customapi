@@ -12,7 +12,7 @@ from kiro_crew.dashboard.chat_utils import (
     _sync_dashboard_slots,
     effective_session_key,
 )
-from kiro_crew.dashboard.state import DashboardState
+from kiro_crew.dashboard.state import DashboardState, request_slot_origin
 from kiro_crew.history import carry_provenance
 from kiro_crew.security import redact_credentials, redact_exfiltration_urls
 from kiro_crew.sel import sel
@@ -204,6 +204,7 @@ async def api_chat_slot_fork(request: web.Request) -> web.Response:
         name=None, agent=slot.agent, workspace=slot.workspace, model=slot.model,
         mode=mode_override if mode_override is not None else slot.mode,
         app=request_app,
+        origin=request_slot_origin(request_app),
     )
     new_slot.forked_from = effective_session_key(slot)
     new_slot.reasoning_effort = slot.reasoning_effort
