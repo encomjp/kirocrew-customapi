@@ -76,7 +76,9 @@ from kiro_crew.dashboard.chat_utils import (
     _remove_queued_by_id,
     _validate_tool_name,
     effective_session_key,
+    expire_slack_options,
     is_system_injection,
+    remember_slack_options,
 )
 from kiro_crew.dashboard.handlers import (
     MAX_PROMPT_BYTES,
@@ -2319,6 +2321,13 @@ async def _run_chat(
 
     session_key = effective_session_key(slot)
     sessions = getattr(state, "sessions", None)
+
+    # A new turn supersedes whatever question the previous one ended on, so any
+    # OPTIONS control still live in this session's Slack thread stops being
+    # answerable. Guarded on _prompt_depth so the in-turn re-entry that expands
+    # a /prompts reference does not count as a new turn.
+    if _prompt_depth == 0:
+        await expire_slack_options(state, session_key)
 
     # Inherit Slack link: if this dashboard session mirrors a Slack thread,
     # copy the link so every exit path, including an auth failure, can reply on
@@ -5208,27 +5217,14 @@ async def _run_chat(
         # ── Bidirectional sync: mirror response to linked Slack thread ──
         if assistant_text and state.slack_client and _mirror_thread and _mirror_chan:
             try:
-                from kiro_crew.slack.format import (  # circular: slack.format -> dashboard.state -> chat
-                    build_options_blocks,
-                    extract_options,
-                    split_message,
-                    to_slack_mrkdwn,
+                from kiro_crew.slack.outbound import (  # circular: slack.format -> dashboard.state -> chat
+                    post_assistant_text,
                 )
 
-                _mirror_text = to_slack_mrkdwn(assistant_text)
-                _mirror_text = redact_exfiltration_urls(_mirror_text)[0]
-                _mirror_text = redact_credentials(_mirror_text)[0]
-                _mirror_text, _mirror_options = extract_options(_mirror_text)
-
-                for _part in split_message(_mirror_text):
-                    await state.slack_client.post_message(_mirror_chan, _part, _mirror_thread)
-                if _mirror_options:
-                    await state.slack_client.post_blocks(
-                        _mirror_chan,
-                        build_options_blocks(_mirror_options),
-                        "Options",
-                        _mirror_thread,
-                    )
+                _mirror_posted = await post_assistant_text(
+                    state.slack_client, _mirror_chan, assistant_text, _mirror_thread
+                )
+                remember_slack_options(state, session_key, _mirror_posted)
             except Exception:
                 logger.debug("Failed to mirror response to Slack", exc_info=True)
 

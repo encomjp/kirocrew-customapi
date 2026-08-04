@@ -47,6 +47,7 @@ from kiro_crew.slack.format import (
     OPTIONS_CHECKBOXES_ACTION,
     OPTIONS_SUBMIT_ACTION,
     build_options_selected_blocks,
+    replace_options_blocks,
 )
 from kiro_crew.slack.handler import (
     APPROVAL_INTERACTIVE,
@@ -1252,43 +1253,23 @@ def _mark_button_clicked(blocks: list[dict], clicked_action_id: str, label: str)
 _ACTION_PREFIX = "action::"
 
 
-def _replace_options_blocks(blocks: list[dict], selected_blocks: list[dict]) -> list[dict]:
-    """Replace OPTIONS actions block(s) with *selected_blocks* in place.
+def _forget_options_control(thread_ts: str) -> None:
+    """Drop the recorded OPTIONS control for *thread_ts*'s conversation.
 
-    Walks *blocks* looking for any ``actions`` block whose elements include
-    ``OPTIONS_CHECKBOXES_ACTION``, ``OPTIONS_SUBMIT_ACTION``, or an action_id
-    starting with ``OPTIONS_ACTION_PREFIX``. The first such block is replaced
-    by *selected_blocks* (inserted in order); subsequent OPTIONS actions blocks
-    are dropped. All other blocks are preserved unchanged.
+    A click has just re-rendered the message with the user's selection, so the
+    turn-start expiry must not run over it afterwards — striking every choice
+    through would erase the choice they made. A thread can be owned either by a
+    Slack-born session or by a dashboard session mirroring into it, so this
+    clears every key that one conversation can be recorded under.
     """
-    result: list[dict] = []
-    inserted = False
-    for block in blocks:
-        if block.get("type") != "actions":
-            result.append(block)
-            continue
-        elements = block.get("elements", [])
-        is_options_block = any(
-            el.get("action_id") in (OPTIONS_CHECKBOXES_ACTION, OPTIONS_SUBMIT_ACTION)
-            or el.get("action_id", "").startswith(OPTIONS_ACTION_PREFIX)
-            for el in elements
-        )
-        if not is_options_block:
-            result.append(block)
-            continue
-        if not inserted:
-            result.extend(selected_blocks)
-            inserted = True
-        # Drop the OPTIONS actions block itself
-    if not inserted:
-        # No OPTIONS actions block found — append selected_blocks at end so
-        # the user still sees their selection (defensive fallback).
-        logger.warning(
-            "OPTIONS actions block not found in parent message blocks; "
-            "appending selection at end"
-        )
-        result.extend(selected_blocks)
-    return result
+    if not _orch or not thread_ts:
+        return
+    try:
+        from kiro_crew.dashboard.chat_utils import forget_slack_options_for_thread
+
+        forget_slack_options_for_thread(_orch.dashboard_state, thread_ts)
+    except Exception:
+        logger.debug("Failed to clear recorded OPTIONS control", exc_info=True)
 
 
 def _extract_selected_value(action: dict) -> tuple[str, str]:
@@ -1500,7 +1481,7 @@ async def _handle_options_submit(payload: dict, channel: str, msg_ts: str) -> No
     # to post-and-delete if update_message raises (resilience).
     selected_blocks = build_options_selected_blocks(all_choices, selected_indices)
     parent_blocks = payload.get("message", {}).get("blocks", [])
-    new_blocks = _replace_options_blocks(parent_blocks, selected_blocks)
+    new_blocks = replace_options_blocks(parent_blocks, selected_blocks)
     new_ts = msg_ts
     edited = False
     try:
@@ -1536,6 +1517,9 @@ async def _handle_options_submit(payload: dict, channel: str, msg_ts: str) -> No
                 "and the new selection message",
                 exc_info=True,
             )
+
+    # The control is spent either way — this message now shows the selection.
+    _forget_options_control(thread_ts)
 
     action_context = (
         "--- CONTEXT ENTRY BEGIN ---\n"
@@ -1676,7 +1660,7 @@ async def _handle_options(payload: dict, action: dict, channel: str, msg_ts: str
     # selection, preserving every other surrounding block. Falls back to
     # post-and-delete if update_message raises.
     selected_blocks = build_options_selected_blocks(all_choices, selected_index)
-    new_blocks = _replace_options_blocks(blocks, selected_blocks)
+    new_blocks = replace_options_blocks(blocks, selected_blocks)
     new_ts = msg_ts
     edited = False
     try:
@@ -1712,6 +1696,9 @@ async def _handle_options(payload: dict, action: dict, channel: str, msg_ts: str
                 "and the new selection message",
                 exc_info=True,
             )
+
+    # The control is spent either way — this message now shows the selection.
+    _forget_options_control(thread_ts)
 
     t = asyncio.create_task(
         handle_message(

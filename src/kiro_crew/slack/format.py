@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import re
 
 from kiro_crew.constants import OPTIONS_RE_LINE
+
+logger = logging.getLogger(__name__)
 
 SLACK_MAX_TEXT = 39_000
 
@@ -91,6 +94,48 @@ def build_options_selected_blocks(choices: list[str], selected_indices: list[int
             "elements": [{"type": "mrkdwn", "text": "  |  ".join(parts)}],
         }
     ]
+
+
+def replace_options_blocks(blocks: list[dict], selected_blocks: list[dict]) -> list[dict]:
+    """Replace OPTIONS actions block(s) with *selected_blocks* in place.
+
+    Walks *blocks* looking for any ``actions`` block whose elements include
+    ``OPTIONS_CHECKBOXES_ACTION``, ``OPTIONS_SUBMIT_ACTION``, or an action_id
+    starting with ``OPTIONS_ACTION_PREFIX``. The first such block is replaced
+    by *selected_blocks* (inserted in order); subsequent OPTIONS actions blocks
+    are dropped. All other blocks are preserved unchanged.
+
+    Returns a new list; the input blocks are never mutated, and preserved
+    blocks keep their identity so a caller can assert on them.
+    """
+    result: list[dict] = []
+    inserted = False
+    for block in blocks:
+        if block.get("type") != "actions":
+            result.append(block)
+            continue
+        elements = block.get("elements", [])
+        is_options_block = any(
+            el.get("action_id") in (OPTIONS_CHECKBOXES_ACTION, OPTIONS_SUBMIT_ACTION)
+            or el.get("action_id", "").startswith(OPTIONS_ACTION_PREFIX)
+            for el in elements
+        )
+        if not is_options_block:
+            result.append(block)
+            continue
+        if not inserted:
+            result.extend(selected_blocks)
+            inserted = True
+        # Drop the OPTIONS actions block itself
+    if not inserted:
+        # No OPTIONS actions block found — append selected_blocks at end so
+        # the user still sees their selection (defensive fallback).
+        logger.warning(
+            "OPTIONS actions block not found in parent message blocks; "
+            "appending selection at end"
+        )
+        result.extend(selected_blocks)
+    return result
 
 
 def build_cron_ack_block(job_id: str) -> list[dict]:

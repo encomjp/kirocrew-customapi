@@ -29,9 +29,10 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
+    from kiro_crew.dashboard.state import DashboardState
     from kiro_crew.session_map import SessionMap
 
 from kiro_crew.acp.client import AcpError, AcpProcessDied, AcpPromptBusy, AcpTimeoutError
@@ -2602,6 +2603,17 @@ async def handle_message(
     # ── Linked thread intercept: route to dashboard slot if linked ──
     if await maybe_route_linked_thread(text, session_key, user_id, channel, slack, reply_ts):
         return
+
+    # A new turn supersedes whatever question the previous one ended on, so any
+    # OPTIONS control still live in this thread stops being answerable. Runs
+    # after the linked-thread intercept because that path routes into _run_chat,
+    # which expires the control itself.
+    from kiro_crew.dashboard.chat_utils import expire_slack_options
+
+    await expire_slack_options(
+        cast("DashboardState | None", get_dashboard_state()), session_key
+    )
+
     logger.info(
         "🔍 handle_message: thread_ts=%s msg_ts=%s → session_key=%s channel=%s",
         thread_ts,
@@ -3788,7 +3800,27 @@ async def handle_message(
         linked_session_key,
         _dashboard_state,
     )
-    await slack.post_blocks(channel, footer_blocks, footer_text, reply_ts)
+    _footer_ts = await slack.post_blocks(channel, footer_blocks, footer_text, reply_ts)
+    if options and _footer_ts:
+        # Remember this turn's OPTIONS control so the next turn can strike it
+        # through once the conversation has moved past the question it asked.
+        try:
+            from kiro_crew.dashboard.chat_utils import remember_slack_options
+            from kiro_crew.slack.outbound import PostedOptions
+
+            remember_slack_options(
+                cast("DashboardState | None", get_dashboard_state()),
+                session_key,
+                PostedOptions(
+                    channel=channel,
+                    ts=_footer_ts,
+                    choices=tuple(options),
+                    blocks=tuple(footer_blocks),
+                    text=footer_text,
+                ),
+            )
+        except Exception:
+            logger.debug("Failed to record OPTIONS control", exc_info=True)
 
     # ── Voice reply (fire-and-forget, non-blocking) ──
     # Triggers when: (a) user has opted in globally or per-thread via !voice,

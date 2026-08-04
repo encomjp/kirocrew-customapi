@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     )
     from kiro_crew.dashboard.loop_watchdog import LoopStallWatchdog  # noqa: F401
     from kiro_crew.messaging.transport import MessagingTransport  # noqa: F401
+    from kiro_crew.slack.outbound import PostedOptions  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -808,6 +809,7 @@ class _ChatSlot:
         "_slack_linked",
         "_slack_channel",
         "_slack_thread_ts",
+        "_slack_options_posted",
         "folder_id",
         "_folder_changed",
         "pinned",
@@ -962,6 +964,12 @@ class _ChatSlot:
         self._slack_linked: bool = False  # True when linked to a Slack thread
         self._slack_channel: str = ""
         self._slack_thread_ts: str = ""
+        # The live OPTIONS control most recently posted into this session's
+        # Slack thread, kept so the next turn can strike it through once the
+        # conversation moves past the question it asked. In-memory only: a
+        # gateway restart drops it, which leaves the pre-existing behaviour
+        # (the control stays live) rather than causing a new failure.
+        self._slack_options_posted: PostedOptions | None = None
         self.folder_id: str = ""  # project folder assignment
         self._folder_changed: bool = False  # re-inject [FOLDER] breadcrumb next turn after move
         self.pinned: bool = False  # pinned to top of sidebar
