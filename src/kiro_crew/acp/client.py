@@ -2498,7 +2498,17 @@ class AcpClient:
 
         Also records ``currentModelId`` for ``_track_metadata``'s context
         window lookup.
+
+        Fork: on the custom-base-URL (router) path the adapter advertises its
+        OWN Bedrock catalog (claude-opus-4.6, claude-sonnet-4.5, ...) which the
+        router does not serve — picking one in the dashboard dropdown would
+        fail with "model not available". Instead, fetch the router's real
+        catalog from ``GET {base_url}/v1/models`` and advertise THAT, so the
+        GUI model picker lists exactly the models that actually run.
         """
+        if getattr(self, "_model_via_env", False):
+            self._capture_router_models()
+            return
         models = session_resp.get("models")
         if not isinstance(models, dict):
             return
@@ -2517,13 +2527,68 @@ class AcpClient:
                 continue
             captured.append(
                 {
-                    "modelId": str(model_id),
-                    "name": str(m.get("name") or model_id),
-                    "description": str(m.get("description") or ""),
+                    "modelId": model_id,
+                    "name": m.get("name") or model_id,
+                    "description": m.get("description") or "",
                 }
             )
         if captured:
             self._available_models = captured
+            self._modes_advertised = True
+
+    def _capture_router_models(self) -> None:
+        """Advertise the router's own catalog (custom base URL path).
+
+        GET ``{base_url}/v1/models`` (OpenAI-style listing, which 9router and
+        most Anthropic-compatible gateways also expose) and map each entry to
+        the ``{modelId, name, description}`` shape the dashboard dropdown
+        expects. Falls back to keeping whatever the adapter advertised when
+        the router is unreachable or the listing is unparseable.
+        """
+        base_url = (self._extra_env or {}).get("ANTHROPIC_BASE_URL", "")
+        # The key may live in _extra_env (provider_api_key) OR in the process
+        # environment (ANTHROPIC_API_KEY exported by the user) — the spawn env
+        # merges both, so read both here too.
+        import os as _os
+
+        api_key = (self._extra_env or {}).get("ANTHROPIC_API_KEY", "") or _os.environ.get("ANTHROPIC_API_KEY", "")
+        if not base_url:
+            return
+        try:
+            import json as _json
+            import urllib.request as _request
+
+            url = base_url.rstrip("/") + "/v1/models"
+            req = _request.Request(url, headers={"x-api-key": api_key})
+            with _request.urlopen(req, timeout=5) as resp:
+                payload = _json.loads(resp.read().decode("utf-8"))
+            entries = payload.get("data") if isinstance(payload, dict) else None
+            if not isinstance(entries, list):
+                return
+            captured: list[dict[str, str]] = []
+            for m in entries:
+                if not isinstance(m, dict):
+                    continue
+                model_id = m.get("id") or m.get("model") or ""
+                if not model_id:
+                    continue
+                captured.append(
+                    {
+                        "modelId": model_id,
+                        "name": model_id,
+                        "description": m.get("description") or "",
+                    }
+                )
+            if captured:
+                self._available_models = captured
+                self._modes_advertised = True
+                logger.debug(
+                    "claude router catalog: %d models advertised from %s",
+                    len(captured),
+                    url,
+                )
+        except Exception as exc:
+            logger.debug("claude router catalog fetch failed: %s", exc)
 
     def available_models(self) -> list[dict[str, str]]:
         """Models advertised by the backend at session init (may be empty)."""
