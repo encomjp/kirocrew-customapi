@@ -715,6 +715,18 @@ def _trusted_bin(name: str) -> str | None:
                 continue
         if resolved:
             break
+    # Windows fallback: tools are commonly installed outside Program Files
+    # (e.g. D:\software\Git\cmd\git.exe, scoop shims). Use shutil.which on
+    # the system PATH as a last resort, but still reject anything under $HOME
+    # to maintain the "no user-planted shim" invariant.
+    if resolved is None and platform_compat.IS_WINDOWS:
+        import shutil
+        found = shutil.which(name)
+        if found:
+            real = Path(found).resolve()
+            home_prefix = str(Path.home().resolve()) + os.sep
+            if not str(real).startswith(home_prefix):
+                resolved = str(real)
     _TRUSTED_BIN_CACHE[name] = resolved
     return resolved
 
