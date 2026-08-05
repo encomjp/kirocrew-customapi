@@ -716,14 +716,26 @@ def main() -> None:
     os.environ.pop("KIROCREW_SANDBOX_ACTIVE", None)
 
     # Validate KIROCREW_PORT early — fail fast before anything else loads.
+    # Range as well as type: an in-range check that lives only in the binder
+    # would let `KIROCREW_PORT=70000 kirocrew service install` bake an
+    # unbindable port into a service definition and report success, leaving a
+    # gateway that dies on every start. Rejecting here keeps ONE policy for
+    # every entry point rather than a second one per consumer.
     _raw_port = os.environ.get("KIROCREW_PORT")
     if _raw_port is not None:
         try:
-            int(_raw_port)
+            _port_val = int(_raw_port)
         except ValueError:
             print(
                 f"❌ KIROCREW_PORT={_raw_port!r} is not a valid integer.\n"
                 f"   Unset it or provide a numeric port (e.g. KIROCREW_PORT=6777).",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if not 1 <= _port_val <= 65535:
+            print(
+                f"❌ KIROCREW_PORT={_raw_port!r} is outside the valid port range 1-65535.\n"
+                f"   Unset it or provide a bindable port (e.g. KIROCREW_PORT=6777).",
                 file=sys.stderr,
             )
             sys.exit(1)

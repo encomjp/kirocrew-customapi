@@ -132,7 +132,10 @@ def render_unit(apparmor_profile: str = "") -> str:
     user = _current_user()
     group = _current_group(user) if user else ""
     home = str(Path.home())
-    exec_start = f"{_sd_quote(bin_path)} gateway"
+    # `--no-open` for the same reason as the launchd plist: a service starts on
+    # boot and on every restart, and auto-opening a browser there is wrong. It is
+    # simply less visible on a headless Linux box than on a desktop.
+    exec_start = f"{_sd_quote(bin_path)} gateway --no-open"
     env_lines = f"Environment={_sd_quote(f'USER={user}')}\n" + "".join(
         f"Environment={_sd_quote(f'{key}={value}')}\n"
         for key, value in service_environment(home).items()

@@ -82,8 +82,11 @@ class TestLinuxUnitRendering:
         ):
             unit = svc_linux.render_unit()
         # ExecStart executable is double-quoted (systemd tokenizes on
-        # whitespace; a spaced path would otherwise break the exec).
-        assert 'ExecStart="/home/u/.toolbox/bin/kirocrew" gateway' in unit
+        # whitespace; a spaced path would otherwise break the exec). `--no-open`
+        # is asserted as part of the SAME string rather than separately: a bare
+        # `in unit` check for the prefix passes even if the flag is dropped,
+        # because the prefix is still a substring of the shorter line.
+        assert 'ExecStart="/home/u/.toolbox/bin/kirocrew" gateway --no-open' in unit
         assert "Restart=on-failure" in unit
         assert "RestartSec=10" in unit
         # System-level unit must run as the invoking user with the user's
@@ -284,6 +287,40 @@ class TestLinuxUnitRendering:
 
 
 class TestMacOSPlistRendering:
+    def test_plist_and_unit_never_auto_open_a_browser(self, monkeypatch, tmp_path):
+        """Both installers pass `--no-open`.
+
+        A service starts at login, on every KeepAlive respawn, and on every
+        `launchctl kickstart` — which is what Dev Fleet's Restart button runs. Without
+        the flag each of those opens a new dashboard tab in the default browser. The
+        surface the user already has (browser tab or Electron window) reconnects on
+        its own, so there is nothing for the service to open.
+
+        Asserted on the plist AND the unit in one test because the flag was missing
+        from both: on a headless Linux box the auto-open has nothing to reach, which
+        is why the gap survived there unnoticed.
+        """
+        from kiro_crew.service import linux as svc_linux
+        from kiro_crew.service import macos as svc_macos
+
+        monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", tmp_path / "live-gateway")
+        with patch(
+            "kiro_crew.service.common.shutil.which", return_value="/opt/homebrew/bin/kirocrew"
+        ):
+            plist = svc_macos.render_plist()
+        args = plist.split("<key>ProgramArguments</key>", 1)[1].split("</array>", 1)[0]
+        assert "<string>--no-open</string>" in args, (
+            "--no-open must be inside ProgramArguments, not merely somewhere in the plist"
+        )
+
+        monkeypatch.setenv("USER", "tester")
+        gid = MagicMock(returncode=0, stdout="staff\n", stderr="")
+        with patch(
+            "kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"
+        ), patch("kiro_crew.service.linux.subprocess.run", return_value=gid):
+            unit = svc_linux.render_unit()
+        assert 'ExecStart="/usr/local/bin/kirocrew" gateway --no-open' in unit
+
     def test_render_plist_runs_the_live_program_not_the_resolved_bin(self, monkeypatch, tmp_path):
         """ProgramArguments[0] is the live-gateway launcher.
 
@@ -1264,6 +1301,47 @@ class TestServiceEnvironment:
         else:
             assert env["LANG"] == "C.UTF-8"
             assert env["LC_ALL"] == "C.UTF-8"
+
+    def test_propagates_port_only_when_set(self, monkeypatch):
+        """KIROCREW_PORT reaches the installed service.
+
+        It is the ONLY input DASHBOARD_PORT reads, so a service definition that
+        cannot carry it can only ever bind the default 5476 — broken by
+        construction on any host where that port is taken, which includes every
+        host running Kiro Crew's own instance tunnel (it pins
+        local_port == remote_port).
+        """
+        monkeypatch.delenv("KIROCREW_PORT", raising=False)
+        assert "KIROCREW_PORT" not in service_environment("/home/tester")
+        monkeypatch.setenv("KIROCREW_PORT", "5477")
+        assert service_environment("/home/tester")["KIROCREW_PORT"] == "5477"
+
+    def test_port_reaches_both_rendered_service_definitions(self, monkeypatch, tmp_path):
+        """End-to-end, not just present in the dict.
+
+        `service_environment()` feeds the launchd plist's EnvironmentVariables and
+        the systemd unit's Environment= lines. Asserting only the dict would pass
+        even if a renderer dropped the key on the way out.
+        """
+        from kiro_crew.service import linux as svc_linux
+        from kiro_crew.service import macos as svc_macos
+
+        monkeypatch.setenv("KIROCREW_PORT", "5477")
+        monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", tmp_path / "live-gateway")
+        with patch(
+            "kiro_crew.service.common.shutil.which", return_value="/opt/homebrew/bin/kirocrew"
+        ):
+            plist = svc_macos.render_plist()
+        envs = plist.split("<key>EnvironmentVariables</key>", 1)[1].split("</dict>", 1)[0]
+        assert "<key>KIROCREW_PORT</key>" in envs and "<string>5477</string>" in envs
+
+        monkeypatch.setenv("USER", "tester")
+        gid = MagicMock(returncode=0, stdout="staff\n", stderr="")
+        with patch(
+            "kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"
+        ), patch("kiro_crew.service.linux.subprocess.run", return_value=gid):
+            unit = svc_linux.render_unit()
+        assert "KIROCREW_PORT=5477" in unit
 
     def test_propagates_kiro_bin_pin_only_when_set(self, monkeypatch):
         monkeypatch.delenv("KIROCREW_KIRO_BIN", raising=False)

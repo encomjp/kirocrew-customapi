@@ -1042,6 +1042,50 @@ class TestCronCli:
             assert ns.agent is None
 
 
+class TestPortEnvValidatedAtEntry:
+    """`main()` rejects an unusable KIROCREW_PORT before any subcommand runs.
+
+    Type alone is not enough. 70000 parses as an int, so a type-only check let
+    `KIROCREW_PORT=70000 kirocrew service install` bake an unbindable port into
+    a service definition and report success -- leaving a gateway that dies on
+    every start, with the failure surfacing far from its cause.
+
+    Rejecting here rather than in the consumer keeps ONE policy for every entry
+    point. It must reject rather than silently drop: dropping would install the
+    DEFAULT port while the operator believes they set theirs.
+    """
+
+    def test_out_of_range_port_exits_before_dispatch(self, monkeypatch, capsys):
+        import sys
+
+        for bad in ("70000", "0", "-1"):
+            monkeypatch.setenv("KIROCREW_PORT", bad)
+            dispatched = []
+            with patch.object(sys, "argv", ["kirocrew", "cron", "list"]), patch(
+                "kiro_crew.cli._cron", lambda _ns: dispatched.append(True)
+            ):
+                from kiro_crew.cli import main
+
+                with pytest.raises(SystemExit) as exc:
+                    main()
+            assert exc.value.code == 1, bad
+            assert not dispatched, f"{bad} reached the subcommand"
+            assert "1-65535" in capsys.readouterr().err
+
+    def test_in_range_port_is_accepted(self, monkeypatch):
+        import sys
+
+        monkeypatch.setenv("KIROCREW_PORT", "5477")
+        dispatched = []
+        with patch.object(sys, "argv", ["kirocrew", "cron", "list"]), patch(
+            "kiro_crew.cli._cron", lambda _ns: dispatched.append(True)
+        ):
+            from kiro_crew.cli import main
+
+            main()
+        assert dispatched == [True]
+
+
 class TestSandboxActiveMarkerCleared:
     """cli.main() must drop an INHERITED KIROCREW_SANDBOX_ACTIVE marker.
 

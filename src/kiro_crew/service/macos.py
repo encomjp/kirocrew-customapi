@@ -70,6 +70,12 @@ def render_plist() -> str:
         "    <array>\n"
         f"        <string>{bin_path}</string>\n"
         "        <string>gateway</string>\n"
+        # A background service must never open a browser. launchd starts this on
+        # login, on every KeepAlive respawn, and on every `kickstart` — which is
+        # what Dev Fleet's Restart button runs — so without this the user gets a
+        # new dashboard tab each time. The surface they are already using (a
+        # browser tab or the Electron window) reconnects on its own.
+        "        <string>--no-open</string>\n"
         "    </array>\n"
         "    <key>RunAtLoad</key>\n"
         "    <true/>\n"
