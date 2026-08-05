@@ -308,6 +308,43 @@ def _resolve_injection_timeout() -> float:
 
 
 INJECTION_TIMEOUT = _resolve_injection_timeout()
+
+
+def _subagent_default_model() -> str:
+    """Default model for a spawned sub-agent that did not pin one explicitly.
+
+    Resolves ``agent.role_models['subagent']`` through the standard chain (role
+    pin -> chat default -> ``"auto"``), then collapses the ``"auto"`` sentinel to
+    ``""`` so an unpinned sub-agent keeps deferring to the provider's configured
+    default exactly as before this knob existed. A concrete pin lets an operator
+    run sub-agent work on a cheaper model without changing the interactive chat
+    default. Never raises: a config hiccup returns ``""`` (defer down).
+    """
+    try:
+        from kiro_crew.config.loader import KiroCrewConfig
+
+        m = KiroCrewConfig.load().agent.resolve_model("subagent")
+        return "" if m == "auto" else m
+    except Exception:
+        return ""
+
+
+def _subagent_default_effort() -> str:
+    """Reasoning effort for a spawned sub-agent that did not pin one.
+
+    Resolves ``agent.role_efforts['subagent']`` -> chat default -> ``""`` (see
+    :meth:`AgentConfig.resolve_effort`). Passed as the session's
+    ``reasoning_effort_override`` so it wins over the factory's agent-derived
+    default. Never raises: a config hiccup returns ``""`` (defer down).
+    """
+    try:
+        from kiro_crew.config.loader import KiroCrewConfig
+
+        return KiroCrewConfig.load().agent.resolve_effort("subagent")
+    except Exception:
+        return ""
+
+
 _STALL_IDLE_SECS = (
     120  # seconds with no stream activity before a running subagent is surfaced as "stalled"
 )
@@ -3998,8 +4035,19 @@ class SubagentManager:
                 resources=f"subagent_id={info.id},inherited_agent={agent}",
             )
         extra_kwargs: dict[str, Any] = {}
-        if info.model:
-            extra_kwargs["model"] = info.model
+        # An explicit per-spawn model wins; otherwise fall back to the
+        # configured sub-agent role model (agent.role_models['subagent']). When
+        # that role is unpinned the helper returns "" so we omit the kwarg and
+        # keep deferring to the provider's configured default, exactly as before.
+        eff_model = info.model or _subagent_default_model()
+        if eff_model:
+            extra_kwargs["model"] = eff_model
+        # Sub-agent reasoning effort (role_efforts['subagent'] -> chat default).
+        # Passed as an override so it wins over the factory's agent-derived
+        # default; "" leaves it to that default.
+        eff_effort = _subagent_default_effort()
+        if eff_effort:
+            extra_kwargs["reasoning_effort_override"] = eff_effort
         if info.bare:
             extra_kwargs["bare"] = True
         if info.allowed_tools:
