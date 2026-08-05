@@ -34,17 +34,25 @@ vi.mock('../api/client', () => ({
   SEARCH_MIN_CHARS: 2,
 }))
 // Controllable voice mock: `recording` is flipped per test and `toggle` is the
-// spy that proves send() ended the dictation.
+// spy that proves send() ended the dictation. `start`/`stop` exist because
+// ChatPage's startVoice/stopVoice call them directly (the push-to-talk driver
+// needs explicit start and stop, not just a toggle).
 const voice = vi.hoisted(() => {
   const v = {
     recording: false,
     onPartial: null as ((t: string) => void) | null,
     onText: null as ((t: string) => void) | null,
     toggle: (() => {}) as () => void,
+    start: (() => {}) as () => void,
+    stop: (() => {}) as () => void,
+    cancel: (() => {}) as () => void,
   }
   return v
 })
 voice.toggle = vi.fn(() => { voice.recording = !voice.recording })
+voice.start = vi.fn(() => { voice.recording = true })
+voice.stop = vi.fn(() => { voice.recording = false })
+voice.cancel = vi.fn(() => { voice.recording = false })
 vi.mock('../hooks/useVoiceInput', () => ({
   useVoiceInput: (onText: (t: string) => void, opts?: { onPartial?: (t: string) => void; streaming?: boolean }) => {
     voice.onPartial = opts?.onPartial ?? null
@@ -55,6 +63,9 @@ vi.mock('../hooks/useVoiceInput', () => ({
     sessionOwner: null,
     streamEnabled: !!opts?.streaming,
     toggle: voice.toggle,
+    start: voice.start,
+    stop: voice.stop,
+    cancel: voice.cancel,
     prewarm: vi.fn(),
     error: null,
     level: 0,

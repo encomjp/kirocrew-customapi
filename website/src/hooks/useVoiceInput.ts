@@ -387,7 +387,6 @@ export function useVoiceInput(onText: (text: string, sessionId: string | null) =
 
   const isRecording = streamEnabled ? streamRecording : recording
   const toggle = useCallback(() => { if (isRecording) stop(); else start() }, [isRecording, start, stop])
-
   /**
    * Change the capture device from the in-chat picker.
    *
@@ -429,5 +428,5 @@ export function useVoiceInput(onText: (text: string, sessionId: string | null) =
   /** True when `switchDevice` takes effect immediately rather than next recording. */
   const deviceSwitchIsLive = streamEnabled && streamRecording
 
-  return { recording: isRecording, transcribing, sessionOwner, streamEnabled, toggle, cancel, prewarm, error, level, deviceLabel, clearError, partial, sampleRef, switchDevice, deviceSwitchIsLive }
+  return { recording: isRecording, transcribing, sessionOwner, streamEnabled, toggle, start, stop, cancel, prewarm, error, level, deviceLabel, clearError, partial, sampleRef, switchDevice, deviceSwitchIsLive }
 }

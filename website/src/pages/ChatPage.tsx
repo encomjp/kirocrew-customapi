@@ -98,6 +98,7 @@ import QueueStack, { SubagentDeliveryProgress, isSystemDelivery, isNonInteractiv
 import { runBelongsToSlot } from '../apps/workflows/runModel'
 import { TipCard, useTipTrigger } from '../components/TipCard'
 import { useVoiceInput, voiceInputSupported } from '../hooks/useVoiceInput'
+import { usePushToTalk } from '../hooks/usePushToTalk'
 import VoiceDisabledModal from '../components/VoiceDisabledModal'
 import { ChatFooter, AssistantMessage, UserMessage, PinnedPrompt } from './chat'
 import type { TurnStats } from './chat/AssistantMessage'
@@ -1558,30 +1559,51 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   // is only re-created when they change. `[voice]` would recreate every
   // render (hooks don't memoize their return by default), re-rendering all
   // child components that receive `toggleVoice` as a prop.
-  const toggleVoice = useCallback(() => {
+  /**
+   * Start voice capture, with the gating and state resets every entry point
+   * needs. Extracted from `toggleVoice` so the push-to-talk key driver
+   * (`usePushToTalk`) goes through the SAME preamble — calling `voice.start()`
+   * raw would skip the disarm reset and the frozen-snapshot clear, and a
+   * key-started dictation would then be rebuilt from stale pre-dictation text.
+   *
+   * RETURNS the start promise. Load-bearing, not incidental: `usePushToTalk`
+   * chains on it to stop a session whose async startup only finished after the
+   * key was already released. Swallowing it here leaves that guard unreachable
+   * and the microphone open with nothing holding it.
+   *
+   * `silent` suppresses the "voice needs setting up" modal. The key binding is a
+   * PASSIVE trigger — a bare modifier is also an ordinary typing modifier — so a
+   * keystroke that used to type a character must never throw an unsolicited
+   * dialog. Clicking the mic button is a deliberate request and still explains
+   * itself.
+   */
+  const startVoice = useCallback((opts?: { silent?: boolean }): Promise<void> | void => {
     // Starting a recording while server-side STT is disabled would capture
     // audio that never gets transcribed. Point the user at the enable setting
-    // instead. Guard on !recording so this only gates the *start* — stopping
-    // an in-progress recording is always allowed.
-    if (!voice.recording && (!sttConfigLoaded || !sttEnabled || !sttAvailable)) {
-      setVoiceSetupOpen(true)
+    // instead — unless this came from the keyboard (see `silent`).
+    if (!sttConfigLoaded || !sttEnabled || !sttAvailable) {
+      if (!opts?.silent) setVoiceSetupOpen(true)
       return
     }
-    if (!voice.recording) {
-      // Exclusive sessions: the mic is a single shared device, so refuse to
-      // START a new recording while another session's transcription is still
-      // in flight (voice.transcribing). This is what keeps voice single-session
-      // — no two recordings/transcriptions ever overlap — so the busy state
-      // needs only a single owner and can never be misattributed. Stopping an
-      // in-progress recording (the else path) is always allowed.
-      if (voice.transcribing) return
-      sttDisarmedRef.current = false
-      // Reset stale snapshot from a prior session that ended without
-      // finals — otherwise onPartial sees a non-null ref, skips
-      // re-snapshotting, and text typed between sessions is dropped.
-      frozenInputRef.current = null
-      frozenCaretRef.current = null
-    } else if (streamEnabledRef.current) {
+    // Exclusive sessions: the mic is a single shared device, so refuse to
+    // START a new recording while another session's transcription is still
+    // in flight (voice.transcribing). This is what keeps voice single-session
+    // — no two recordings/transcriptions ever overlap — so the busy state
+    // needs only a single owner and can never be misattributed.
+    if (voice.transcribing) return
+    sttDisarmedRef.current = false
+    // Reset stale snapshot from a prior session that ended without
+    // finals — otherwise onPartial sees a non-null ref, skips
+    // re-snapshotting, and text typed between sessions is dropped.
+    frozenInputRef.current = null
+    frozenCaretRef.current = null
+    return voice.start()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.transcribing, voice.start, sttEnabled, sttConfigLoaded, sttAvailable])
+
+  /** Stop voice capture. Always allowed — only starting is gated. */
+  const stopVoice = useCallback(() => {
+    if (streamEnabledRef.current) {
       // Manual stop of a STREAMING recording: streamStop() drains the socket
       // asynchronously and a final can still arrive. The dictated text is
       // already in the composer (onPartial writes each hypothesis into `input`),
@@ -1591,12 +1613,19 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
       // copy and must land, so it is never disarmed here.)
       sttDisarmedRef.current = true
     }
-    voice.toggle()
-    // Depend on the individual stable members actually read, not the whole
-    // `voice` object — `[voice]` would recreate this callback every render and
-    // re-render every child that receives `toggleVoice` (see comment above).
+    voice.stop()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voice.recording, voice.transcribing, voice.toggle, sttEnabled, sttConfigLoaded, sttAvailable])
+  }, [voice.stop])
+
+  const toggleVoice = useCallback(() => {
+    if (voice.recording) stopVoice()
+    else startVoice()
+    // Depends on the individual member actually read (`voice.recording`), not the
+    // whole `voice` object — `[voice]` would recreate this callback every render
+    // and re-render every child that receives `toggleVoice`. No suppression is
+    // needed here because the split into startVoice/stopVoice left this list
+    // genuinely exhaustive.
+  }, [voice.recording, startVoice, stopVoice])
   // Cancel (discard) the in-progress dictation — Esc. Batch simply drops the
   // pending audio (the hook's onstop skips transcription), so nothing lands in
   // the composer. Streaming additionally disarms the draining final AND removes
@@ -1643,6 +1672,28 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
     }
     voiceRef.current.cancel()
   }, [])
+
+  // Push-to-talk / tap-to-toggle keyboard binding (default: hold right ⌥ on
+  // macOS, ⌥⇧Space elsewhere). Routed through startVoice/stopVoice rather than
+  // voice.start/stop so a key-driven dictation gets the same gating and
+  // snapshot resets as the mic button. `cancel` here is the HOOK's cancel (bare
+  // warm-mic release), not `cancelVoice` — the driver only cancels when nothing
+  // was ever captured, so the composer-restoring Esc path would be wrong.
+  usePushToTalk(
+    {
+      recording: voice.recording,
+      // silent: a bare modifier is also an ordinary typing modifier, so a
+      // keystroke must never raise the voice-setup modal on its own.
+      start: () => startVoice({ silent: true }),
+      stop: stopVoice,
+      prewarm: voice.prewarm,
+      cancel: voice.cancel,
+      // Decides what a release during startup means: streaming has already
+      // buffered the user's speech by then, batch has captured nothing.
+      streamEnabled: voice.streamEnabled,
+    },
+    { disabled: !voiceInputSupported },
+  )
   // Stop any in-flight recording and clear the streaming prefix when the user
   // switches slots. The mic is a single shared device, so a recording can't
   // follow the user to another session; a BATCH transcript is still delivered
