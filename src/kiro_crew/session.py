@@ -1307,6 +1307,24 @@ class SessionManager:
         # circular import: session -> acp.session_provider -> acp.client -> session
         from kiro_crew.acp.session_provider import AcpSessionProvider
 
+        # Fork: with a claude_code backend there is no shared AcpRuntime to
+        # multiplex onto — each session is its own claude-agent-acp process.
+        # Fall through to the dedicated get_or_create path (which builds the
+        # provider from the same factory, honoring claude_code).
+        try:
+            from kiro_crew.config.loader import KiroCrewConfig
+
+            _cc = KiroCrewConfig.load().agent.provider == "claude_code"
+        except Exception:
+            _cc = False
+        if _cc:
+            return await self.get_or_create(
+                session_key,
+                agent=agent,
+                cwd=cwd,
+                approval_policy=approval_policy,
+            )
+
         key = self._fold_key(session_key)
 
         # Fast path: an existing live session for this key — reuse it.
