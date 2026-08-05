@@ -766,9 +766,26 @@ export function useWebSocket() {
             }
             break
           }
-          case 'activity_event':
-            dispatch(sseActivityEvent(data as { slot: string; kind: string; text: string }))
+          case 'activity_event': {
+            const ev = data as { slot: string; kind: string; text: string }
+            // A session was just created/resumed, which is the ONLY moment the
+            // backend learns what this account is entitled to run (it comes from
+            // session/new's advertised list). /api/models narrows its catalog to
+            // that set, so refetch it now — a cold gateway answered the first
+            // fetch from the unnarrowed catalog and, being a live 200, stopped
+            // the self-heal poll, leaving the picker offering models no turn can
+            // use for the rest of the page's life.
+            //
+            // Deliberately event-driven rather than marking the cold response
+            // degraded: degraded means "poll every 8s", and /api/models SPAWNS
+            // `kiro chat --list-models`, so an idle dashboard with no session
+            // would spawn a subprocess every 8 seconds forever.
+            if (ev.kind === 'session') {
+              queryClient.invalidateQueries({ queryKey: ['available-models'] })
+            }
+            dispatch(sseActivityEvent(ev))
             break
+          }
           case 'subagent_spawn':
             dispatch(sseSubagentSpawn(data as { slot: string; id: string; task: string; agent: string }))
             break

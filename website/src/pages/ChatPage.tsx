@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } fr
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
-import { modelListRefetchInterval } from '../providers/modelListHealth'
+import { modelListRefetchInterval, modelsDegraded } from '../providers/modelListHealth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useRailWidth } from '../hooks/useRailWidth'
 import { SETTINGS_DEFAULT_MODEL_ID } from '../hooks/useSettingHighlight'
@@ -79,6 +79,7 @@ import ChatInput from '../components/ChatInput'
 import SessionGridView from '../components/SessionGridView'
 import { anchorForSlot, loadLayout, sessionSlots } from '../hooks/splitLayoutStore'
 import { modelSupportsEffort } from '../lib/effort'
+import { displayModel } from '../lib/model'
 import FollowUpCard from '../components/FollowUpCard'
 import PendingQuestionCard from '../components/PendingQuestionCard'
 import type { FollowupItem } from '../store/chatSlice'
@@ -3677,9 +3678,22 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   // render pass every time the query settled, for a value that is a pure function
   // of the query result.
   const resolvedModel = _slotResolvedModel || ''
+  // The model to DISPLAY for this slot. A slot can stay pinned to a model the
+  // account can no longer run (a plan downgrade leaves the pin behind): the
+  // backend withholds it at spawn and runs the session on its own default, so
+  // showing the pin would name a model no turn will use. `modelsDegraded` is
+  // the authority on whether the list can be trusted — a cached list served
+  // while /api/models fails is stale, not authoritative.
+  const shownModel = displayModel(
+    currentSlot?.model || resolvedModel || '',
+    availableModels,
+    modelsDegraded(provider.id),
+  )
   // True when the pin row would be a no-op: the agent already stores exactly
   // the model the composer is showing. 'auto' is the inherit spelling, never a
-  // stored pin, so it never counts as pinned.
+  // stored pin, so it never counts as pinned. Reads the slot's REAL model, not
+  // `shownModel` — this pairs with the write below, and a display fallback must
+  // never decide what gets persisted.
   const _modelPinActive = currentSlot?.model || resolvedModel || ''
   const _modelPinPinned =
     !!_modelPinCfg?.model && _modelPinCfg.model === _modelPinActive && _modelPinActive !== 'auto'
@@ -5199,7 +5213,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
               onVoicePrewarm={voiceInputSupported ? voice.prewarm : undefined}
               agentName={currentSlot?.agent || 'default'}
               agentSource={installedAgents.find(a => a.name === (currentSlot?.agent || 'default'))?.source}
-              modelName={currentSlot?.model || resolvedModel || 'auto'}
+              modelName={shownModel}
               onAgentClick={provider.capabilities.agentTemplates ? (rect) => { setAgentBtnRect(rect); setAgentDropdown(!agentDropdown) } : undefined}
               onModelClick={(rect) => { setModelBtnRect(rect); setModelDropdown(!modelDropdown) }}
               onProjectClick={(rect) => {
@@ -5208,7 +5222,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
               }}
               contextPct={contextPct}
               contextUsedTokens={contextTokens?.used}
-              contextWindowTokens={contextTokens?.window || provider.getContextWindow(currentSlot?.model || resolvedModel || 'auto')}
+              contextWindowTokens={contextTokens?.window || provider.getContextWindow(shownModel)}
               showContextPct={chatConfig.showContextPct}
               isRunning={composerBusy}
               onStop={() => {
@@ -5237,7 +5251,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
               approvalMode={displayMode}
               providerId={provider.id}
               reasoningEffort={effectiveEffort}
-              onReasoningEffortClick={provider.capabilities.reasoningEffort && modelSupportsEffort(currentSlot?.model || resolvedModel) ? (rect) => { setReasoningEffortBtnRect(rect); setReasoningEffortDropdown(!reasoningEffortDropdown) } : undefined}
+              onReasoningEffortClick={provider.capabilities.reasoningEffort && modelSupportsEffort(shownModel === 'auto' ? '' : shownModel) ? (rect) => { setReasoningEffortBtnRect(rect); setReasoningEffortDropdown(!reasoningEffortDropdown) } : undefined}
               onAutoNudgeClick={setAutoNudgeOpen}
               autoNudgeLoop={autoNudgeLoop}
               autoNudgeOpen={autoNudgeOpen}
@@ -5330,12 +5344,12 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
                 inputRef={modelInputRef}
                 onListKeyDown={onModelListKeyDown}
                 models={filteredModels}
-                activeModel={currentSlot?.model || resolvedModel || 'auto'}
+                activeModel={shownModel}
                 onSelectModel={name => switchModel(name)}
                 filter={modelFilter}
                 setFilter={setModelFilter}
                 onClose={() => setModelDropdown(false)}
-                hasEffort={!!(activeSlot && provider.capabilities.reasoningEffort && modelSupportsEffort(currentSlot?.model || resolvedModel))}
+                hasEffort={!!(activeSlot && provider.capabilities.reasoningEffort && modelSupportsEffort(shownModel === 'auto' ? '' : shownModel))}
                 slot={activeSlot}
                 currentEffort={currentSlot?.reasoning_effort || ''}
                 defaultEffort={defaultEffort}
@@ -5349,7 +5363,10 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
                   setModelDropdown(false)
                   pinModelToAgentMut.mutate({
                     agent: _modelPinAgent,
-                    model: currentSlot?.model || resolvedModel || '',
+                    // The slot's REAL model, never the display fallback: a
+                    // stale/degraded list must not be able to persist 'auto'
+                    // over a pin the account actually has.
+                    model: _modelPinActive === 'auto' ? '' : _modelPinActive,
                   })
                 }}
               />,
@@ -5363,7 +5380,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
               onSelect={path => { setProject(path); setProjectPickerOpen(false) }}
             />
             {/* Reasoning effort dropdown portal */}
-            {reasoningEffortDropdown && reasoningEffortBtnRect && activeSlot && provider.capabilities.reasoningEffort && modelSupportsEffort(currentSlot?.model || resolvedModel) && createPortal(
+            {reasoningEffortDropdown && reasoningEffortBtnRect && activeSlot && provider.capabilities.reasoningEffort && modelSupportsEffort(shownModel === 'auto' ? '' : shownModel) && createPortal(
               <div ref={reasoningEffortDropdownRef} className="fixed z-[9999] animate-slide-up" style={(() => { const left = Math.max(8, Math.min(reasoningEffortBtnRect.left, window.innerWidth - 220)); return { bottom: window.innerHeight - reasoningEffortBtnRect.top + 4, left: isMobile ? 8 : left, ...(isMobile ? { right: 8, maxWidth: 'calc(100vw - 16px)' } : {}) } })()}>
                 <ReasoningEffortDropdown slot={activeSlot} currentEffort={currentSlot?.reasoning_effort || ''} defaultEffort={defaultEffort} onClose={() => setReasoningEffortDropdown(false)} />
               </div>,

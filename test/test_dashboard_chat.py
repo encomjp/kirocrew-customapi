@@ -3518,6 +3518,230 @@ class TestKiroBackfillProfileGuard:
         assert captured[0][1] == "", "token record must not carry the profile id"
 
 
+class TestPinnedModelWithheld:
+    """The slot's pin must not outlive the account's access to that model.
+
+    ``providers.acp`` withholds a configured model the live session did not
+    advertise and leaves the session on the backend default, so the turn
+    succeeds. Nothing told the slot, so the composer chip and the picker went on
+    naming a model no turn would use — the reported symptom after a plan
+    downgrade (chip read ``claude-opus-5``; every turn ran on auto). The runner
+    now clears the dead pin using the same predicate the withhold uses.
+    """
+
+    @staticmethod
+    def _client(advertised, *, claude_backend=False):
+        client = MagicMock()
+        client.available_models = MagicMock(
+            return_value=[{"modelId": m} for m in advertised]
+        )
+        client.is_claude_backend = claude_backend
+        return client
+
+    def test_pin_absent_from_advertised_is_withheld(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        client = self._client(["auto", "claude-sonnet-5"])
+        assert _pinned_model_withheld(client, "claude-opus-5", "acp")
+
+    def test_advertised_pin_is_kept(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        client = self._client(["auto", "claude-opus-5"])
+        assert not _pinned_model_withheld(client, "claude-opus-5", "acp")
+
+    def test_unknown_entitlement_keeps_the_pin(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        # Advertised nothing (no session yet / backend omits the list) must read
+        # as "unknown", never as "nothing is allowed".
+        assert not _pinned_model_withheld(self._client([]), "claude-opus-5", "acp")
+
+    def test_auto_and_empty_are_never_withheld(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        client = self._client(["claude-sonnet-5"])
+        assert not _pinned_model_withheld(client, "auto", "acp")
+        assert not _pinned_model_withheld(client, "", "acp")
+
+    def test_claude_code_provider_is_exempt(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        # slot.model is a canonical key there while the backend advertises bare
+        # ids — comparing the two namespaces would call every model unusable.
+        client = self._client(["claude-opus-4-8[1m]"])
+        assert not _pinned_model_withheld(client, "opus-4.8-1m", "claude_code")
+
+    def test_claude_backend_provider_is_exempt(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        client = self._client(["claude-opus-4-8[1m]"], claude_backend=True)
+        assert not _pinned_model_withheld(client, "claude-opus-4.8", "acp")
+
+    def test_provider_without_getter_keeps_the_pin(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        client = MagicMock()
+        del client.available_models
+        client.is_claude_backend = False
+        assert not _pinned_model_withheld(client, "claude-opus-5", "acp")
+
+    def test_getter_raising_keeps_the_pin(self):
+        from kiro_crew.dashboard.chat_runner import _pinned_model_withheld
+
+        client = MagicMock()
+        client.is_claude_backend = False
+        client.available_models = MagicMock(side_effect=RuntimeError("boom"))
+        assert not _pinned_model_withheld(client, "claude-opus-5", "acp")
+
+    @pytest.mark.asyncio
+    async def test_run_chat_reports_but_keeps_a_withheld_pin(self, tmp_path, monkeypatch):
+        """End-to-end: a slot pinned to an unentitled model gets an in-chat
+        notice, and the pin SURVIVES so a plan re-upgrade self-heals.
+        """
+        from kiro_crew.providers.base import EVENT_COMPLETE, LLMEvent
+
+        events = [LLMEvent(kind=EVENT_COMPLETE, usage=TurnUsage(input_tokens=3, output_tokens=4))]
+        state = TestTokenPersistenceBackfill._make_state_for_run_chat(tmp_path, monkeypatch)
+        slot = state.get_or_create_slot("s1")
+        slot.model = "claude-opus-5"  # pinned before the plan downgrade
+
+        client = AsyncMock()
+        client.context_usage_pct = MagicMock(return_value=10.0)
+        client.is_claude_backend = False
+        # The live session advertises the free tier only.
+        client.available_models = MagicMock(
+            return_value=[{"modelId": "auto"}, {"modelId": "claude-sonnet-5"}]
+        )
+        inner = MagicMock()
+        inner._model = ""
+        client.client = inner
+
+        async def _stream(msg):
+            for ev in events:
+                yield ev
+
+        client.stream = _stream
+        client.stream_command = _stream
+        state.sessions.get_or_create = AsyncMock(return_value=(client, True, False))
+
+        async def _fake_persist(k, m, e, provider="", **kwargs):
+            del k, m, e, provider, kwargs
+
+        monkeypatch.setattr(
+            "kiro_crew.dashboard.chat_runner.persist_token_record_async", _fake_persist
+        )
+
+        from kiro_crew.dashboard.chat import _run_chat
+
+        await _run_chat(state, slot, "hello")
+
+        # Keeping the pin is the point: withhold keeps it off the wire and
+        # displayModel keeps it off the chip, so deleting an explicit user
+        # setting buys nothing and costs the self-heal on re-upgrade.
+        assert slot.model == "claude-opus-5", "an inert pin must not be deleted"
+        # But the user must be able to learn why their model is not being used.
+        notices = [
+            c.args[1]["text"]
+            for c in state.broadcast_ws.call_args_list
+            if c.args and c.args[0] == "activity_event" and "text" in c.args[1]
+        ]
+        assert any(
+            "claude-opus-5" in t and "not available" in t for t in notices
+        ), f"expected an in-chat notice naming the withheld model, got {notices}"
+
+    @pytest.mark.asyncio
+    async def test_run_chat_stays_quiet_on_a_warm_session(self, tmp_path, monkeypatch):
+        """The notice reports the SPAWN-time withhold, so a warm session (neither
+        new nor resumed) must not repeat it on every turn.
+        """
+        from kiro_crew.providers.base import EVENT_COMPLETE, LLMEvent
+
+        events = [LLMEvent(kind=EVENT_COMPLETE, usage=TurnUsage(input_tokens=3, output_tokens=4))]
+        state = TestTokenPersistenceBackfill._make_state_for_run_chat(tmp_path, monkeypatch)
+        slot = state.get_or_create_slot("s1")
+        slot.model = "claude-opus-5"
+
+        client = AsyncMock()
+        client.context_usage_pct = MagicMock(return_value=10.0)
+        client.is_claude_backend = False
+        client.available_models = MagicMock(return_value=[{"modelId": "claude-sonnet-5"}])
+        inner = MagicMock()
+        inner._model = ""
+        client.client = inner
+
+        async def _stream(msg):
+            for ev in events:
+                yield ev
+
+        client.stream = _stream
+        client.stream_command = _stream
+        # Warm session: not new, not resumed.
+        state.sessions.get_or_create = AsyncMock(return_value=(client, False, False))
+
+        async def _fake_persist(k, m, e, provider="", **kwargs):
+            del k, m, e, provider, kwargs
+
+        monkeypatch.setattr(
+            "kiro_crew.dashboard.chat_runner.persist_token_record_async", _fake_persist
+        )
+
+        from kiro_crew.dashboard.chat import _run_chat
+
+        await _run_chat(state, slot, "hello")
+
+        notices = [
+            c.args[1]["text"]
+            for c in state.broadcast_ws.call_args_list
+            if c.args and c.args[0] == "activity_event" and "text" in c.args[1]
+        ]
+        assert not any("not available on this account" in t for t in notices), (
+            f"the withhold notice must not repeat every turn, got {notices}"
+        )
+        assert slot.model == "claude-opus-5"
+
+    @pytest.mark.asyncio
+    async def test_run_chat_keeps_an_entitled_pin(self, tmp_path, monkeypatch):
+        """Counterpart: an advertised pin is left exactly as the user set it."""
+        from kiro_crew.providers.base import EVENT_COMPLETE, LLMEvent
+
+        events = [LLMEvent(kind=EVENT_COMPLETE, usage=TurnUsage(input_tokens=3, output_tokens=4))]
+        state = TestTokenPersistenceBackfill._make_state_for_run_chat(tmp_path, monkeypatch)
+        slot = state.get_or_create_slot("s1")
+        slot.model = "claude-sonnet-5"
+
+        client = AsyncMock()
+        client.context_usage_pct = MagicMock(return_value=10.0)
+        client.is_claude_backend = False
+        client.available_models = MagicMock(
+            return_value=[{"modelId": "auto"}, {"modelId": "claude-sonnet-5"}]
+        )
+        inner = MagicMock()
+        inner._model = ""
+        client.client = inner
+
+        async def _stream(msg):
+            for ev in events:
+                yield ev
+
+        client.stream = _stream
+        client.stream_command = _stream
+        state.sessions.get_or_create = AsyncMock(return_value=(client, True, False))
+
+        async def _fake_persist(k, m, e, provider="", **kwargs):
+            del k, m, e, provider, kwargs
+
+        monkeypatch.setattr(
+            "kiro_crew.dashboard.chat_runner.persist_token_record_async", _fake_persist
+        )
+
+        from kiro_crew.dashboard.chat import _run_chat
+
+        await _run_chat(state, slot, "hello")
+
+        assert slot.model == "claude-sonnet-5"
+
+
 class TestPrepareMessagesInterleaved:
     """Tests for _prepare_messages with interleaved assistant/tool/chunk messages."""
 

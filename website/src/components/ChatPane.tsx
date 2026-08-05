@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { SplitGlyph } from './SplitGlyph'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { modelListRefetchInterval } from '../providers/modelListHealth'
+import { modelListRefetchInterval, modelsDegraded } from '../providers/modelListHealth'
 import ChatMessageList from '../app-sdk/ChatMessageList'
 import ToolCallLine from '../pages/chat/ToolCallLine'
 import type { ChatMessage } from '../types'
@@ -23,6 +23,7 @@ import { useAppSelector, useAppDispatch } from '../store'
 import { selectSlotMessages, selectSlotStreamState, selectComposerBusy, hydrateSlotMessages, appendSlotMessage, requestStop, cancelQueuedMessage } from '../store/chatSlice'
 import { triggerRefresh } from '../store/dashboardSlice'
 import { api } from '../api/client'
+import { displayModel } from '../lib/model'
 
 
 import { i18nT } from '../i18n/t'
@@ -123,6 +124,10 @@ export default function ChatPane({
     refetchInterval: modelListRefetchInterval,
   })
   const modelDD = useFilteredDropdown(availableModels)
+  // See ChatPage: display what will actually run, not a pin the account lost
+  // access to. `modelsDegraded` gates it — a cached list served while
+  // /api/models fails is stale and cannot disprove entitlement.
+  const shownModel = displayModel(paneSlot?.model || '', availableModels, modelsDegraded(provider.id))
 
   // One-time hydrate of this slot's message history via React Query + the api
   // client (caching + cross-pane dedup; staleTime Infinity keeps it one-shot —
@@ -330,10 +335,10 @@ export default function ChatPane({
           autoFocusKey={slotKey}
           agentName={paneSlot?.agent || 'default'}
           agentSource={installedAgents.find((a) => a.name === (paneSlot?.agent || 'default'))?.source}
-          modelName={paneSlot?.model || 'auto'}
+          modelName={shownModel}
           contextPct={contextPct}
           contextUsedTokens={contextTokens?.used}
-          contextWindowTokens={contextTokens?.window || provider.getContextWindow(paneSlot?.model || 'auto')}
+          contextWindowTokens={contextTokens?.window || provider.getContextWindow(shownModel)}
           onAgentClick={provider.capabilities.agentTemplates ? (rect) => { setAgentBtnRect(rect); agentDD.setOpen(!agentDD.open) } : undefined}
           onModelClick={(rect) => { setModelBtnRect(rect); modelDD.setOpen(!modelDD.open) }}
           approvalMode={displayMode}
@@ -396,7 +401,7 @@ export default function ChatPane({
               />
             </div>
             <div role="listbox" aria-label={i18nT('components.chatPane.model_list')} className="overflow-y-auto max-h-[280px]">
-              <ModelDropdownList models={modelDD.filtered} activeModel={paneSlot?.model || 'auto'} onSelect={(name) => { switchModel(name); modelDD.setOpen(false) }} />
+              <ModelDropdownList models={modelDD.filtered} activeModel={shownModel} onSelect={(name) => { switchModel(name); modelDD.setOpen(false) }} />
             </div>
           </div>,
           document.body,

@@ -16,6 +16,7 @@ from typing import Any
 from aiohttp import web
 
 from kiro_crew import agent_state, model_registry
+from kiro_crew.acp.client import advertised_model_ids
 from kiro_crew.agent_discovery import clear_list_agents_cache, list_agents
 from kiro_crew.config.loader import (
     ConfigReadError,
@@ -663,6 +664,49 @@ def _advertised_cc_models(request: web.Request) -> list[dict]:
     return []
 
 
+def _entitled_kiro_models(request: web.Request, models: list[dict]) -> list[dict]:
+    """Narrow the ``--list-models`` catalog to what a live session advertises.
+
+    ``kiro chat --list-models`` is a CATALOG, not an entitlement: it returns the
+    same rows whatever the account's tier, so after a downgrade the picker kept
+    offering (and kept SHOWING as selected) a model no turn can run. The
+    per-session ``session/new`` ``availableModels`` list is the tier-aware one —
+    the same signal ``model_is_unusable`` pre-flights against before the wire —
+    so when a live session has one, it wins here too. Same rule #1549 applied to
+    the claude_code branch in :func:`_cc_models`: advertised is authoritative
+    when present.
+
+    Fails open in every unknowable case — no live session, a backend that
+    advertises nothing, or an advertised set that does not intersect the catalog
+    at all (a namespace mismatch rather than an entitlement, e.g. the claude
+    backend's bare ids). Filtering on any of those would empty the picker, which
+    is worse than listing one model too many.
+    """
+    try:
+        state: DashboardState = request.app["state"]
+        providers = state.sessions.active_providers()
+    except (KeyError, AttributeError):
+        return models
+    advertised: set[str] = set()
+    for provider in providers:
+        getter = getattr(provider, "available_models", None)
+        if not callable(getter):
+            continue
+        try:
+            ids = advertised_model_ids(getter())
+        except Exception:
+            continue
+        if ids:
+            advertised = {_normalize_model_key(i) for i in ids}
+            break
+    if not advertised:
+        return models
+    kept = [m for m in models if _normalize_model_key(m.get("model_name", "")) in advertised]
+    if not kept:
+        return models
+    return kept
+
+
 def _cc_models(request: web.Request, configured_default: str = "") -> list[dict]:
     """Assemble the CC model dropdown, scoped to what the account can actually use.
 
@@ -889,6 +933,7 @@ async def api_models(request: web.Request) -> web.Response:
                 maintenance_executor(), model_registry.persist_kiro_windows
             )
         models = [m for m in models if not is_deprecated_model(m.get("model_name", ""))]
+        models = _entitled_kiro_models(request, models)
         return web.json_response(models)
     except Exception:
         # Spawn failure, JSON parse error, etc. — degraded, not "zero models".
