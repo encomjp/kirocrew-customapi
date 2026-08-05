@@ -74,6 +74,19 @@
     }
   },
   "apps": {
+    "autoImprovement": {
+      "findingDetail": {
+        "build": "build",
+        "collects": "collects",
+        "green": "GREEN",
+        "lint": "lint",
+        "red": "RED",
+        "staygreen": "STAYGREEN"
+      },
+      "setupPanel": {
+        "https_github_com_owner_repo": "https://github.com/owner/repo"
+      }
+    },
     "autoResearch": {
       "grillTree": {
         "accept": "accept",
