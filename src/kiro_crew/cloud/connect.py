@@ -8,10 +8,11 @@ The instance's gateway is bound to loopback (never public). To reach it we:
 3. Open ``http://localhost:<local>/?token=...`` in the browser.
 
 We also (optionally) register the instance in the existing **Instances** registry
-using an SSM ``ProxyCommand`` ssh alias, so the dashboard's ``/instances`` page
-can auto-tunnel + token-refresh + self-heal it with no new code
-(``docs/system-specs/modules/instances.md`` §9). Removing the box (``cloud destroy``) also removes
-that registration.
+using the **native SSM transport** (``connection_method="ssm"`` with the EC2
+instance id as ``ssm_target``), so the dashboard's ``/instances`` page can
+auto-tunnel + token-refresh + self-heal it with no SSH key, no inbound port, and
+no hand-edited ``~/.ssh/config`` — only IAM + the SSM agent. Removing the box
+(``cloud destroy``) also removes that registration.
 """
 
 from __future__ import annotations
@@ -231,19 +232,31 @@ def connect(
 
 
 def ssm_proxy_ssh_host(instance_id: str, region: str) -> str:
-    """The ssh-alias-free host string used when registering via SSM ProxyCommand.
+    """The ssh-alias-free host string used by the legacy SSM ``ProxyCommand`` path.
 
-    We register the instance id itself as ``ssh_host``; the user's
-    ``~/.ssh/config`` carries the SSM ``ProxyCommand`` (documented in
-    instances.md §9). Kept simple and charset-safe for the registry validator.
+    Retained for reference/back-compat only. The managed registration below no
+    longer uses it — :func:`register_instance` now registers the box with the
+    native SSM transport (``connection_method="ssm"``), which needs no
+    ``~/.ssh/config`` entry.
     """
     return instance_id
 
 
 def register_instance(
-    instance_id: str, *, name: str, remote_port: int = DEFAULT_REMOTE_DASHBOARD_PORT
+    instance_id: str,
+    *,
+    name: str,
+    profile: str = "",
+    region: str = "",
+    remote_port: int = DEFAULT_REMOTE_DASHBOARD_PORT,
 ) -> Optional[str]:
     """Register the box in the Instances registry for the /instances dashboard.
+
+    Registers with the **native SSM transport**: ``connection_method="ssm"`` and
+    the EC2 instance id as ``ssm_target`` (plus the launcher's ``profile`` /
+    ``region``). The dashboard then tunnels, refreshes tokens, and self-heals the
+    box over AWS SSM Session Manager — no SSH key, no inbound port, and no
+    hand-edited ``~/.ssh/config``.
 
     Best-effort: returns the registered instance id, or None if the Instances
     feature isn't available. Idempotent-ish (a duplicate name gets a suffix).
@@ -255,7 +268,14 @@ def register_instance(
         return None
     try:
         reg = InstancesRegistry()
-        inst = reg.add(name=name, ssh_host=instance_id, remote_port=remote_port)
+        inst = reg.add(
+            name=name,
+            connection_method="ssm",
+            ssm_target=instance_id,
+            aws_profile=profile,
+            aws_region=region,
+            remote_port=remote_port,
+        )
         return inst.id
     except Exception as exc:  # pragma: no cover - non-fatal
         logger.info("could not register instance in Instances registry: %s", exc)
@@ -270,9 +290,10 @@ def unregister_instance(instance_id_or_name: str) -> bool:
         return False
     try:
         reg = InstancesRegistry()
-        # Match by ssh_host (the EC2 instance id) or by registry id.
+        # Match by ssm_target (native SSM registration), ssh_host (legacy
+        # ProxyCommand registration), or the registry id.
         for inst in reg.list():
-            if instance_id_or_name in (inst.ssh_host, inst.id):
+            if instance_id_or_name in (inst.ssm_target, inst.ssh_host, inst.id):
                 return reg.remove(inst.id)
     except Exception as exc:  # pragma: no cover
         logger.info("could not unregister instance: %s", exc)
