@@ -636,6 +636,13 @@ NON_EGRESS_REDACTION_MODULES: frozenset[str] = frozenset(
         # Bundled dev-skill script: prints CI/review findings to a
         # developer terminal, not an agent-output egress path.
         "builtin_skills/kirocrew-dev/prepare-pr/scripts/pr_findings.py",
+        # Standalone prepare-pr skill scripts: output goes to the developer's
+        # local terminal (push_guard.py prints fetch diagnostics; preflight.py
+        # prints repo-state blockers).  Neither crosses a chat/dashboard egress
+        # boundary — the shared redact_credentials helper is a pure scrubber
+        # applied before printing, not an egress-sink boundary.
+        "builtin_skills/kirocrew-dev/prepare-pr/scripts/push_guard.py",
+        "builtin_skills/kirocrew-dev/prepare-pr/scripts/preflight.py",
         # Ops Mission Control provider-token redactor. ``secrets.py`` DEFINES
         # ``redact_tokens`` (the PagerDuty/Datadog token shapes) rather than
         # crossing a boundary with it — the same self-referential case as
