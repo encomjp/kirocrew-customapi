@@ -1922,6 +1922,45 @@ class AcpClient:
         )
         self.last_prompt_stats.rebase_to_window(win or 0)
 
+    # Fork: curated model whitelist for the GUI model picker on the router
+    # path. The full 9router catalog is ~265 entries; only these are shown.
+    # Exact ids as advertised by the router's /v1/models endpoint.
+    _ROUTER_MODEL_WHITELIST: frozenset[str] = frozenset(
+        {
+            # deepseek v4 flash — ollama, commandcode (cmc), opencode-go (ocg)
+            "ollama/deepseek-v4-flash",
+            "cmc/deepseek/deepseek-v4-flash",
+            "ocg/deepseek-v4-flash",
+            # deepseek v4 flash free — opencode-go (free tier)
+            "ocg/deepseek-v4-flash",
+            # glm 5.2 — ollama cloud
+            "ollama/glm-5.2",
+            # kimi 2.6 + 2.7-code — ollama-cloud
+            "ollama/kimi-k2.6",
+            "ollama/kimi-k2.7-code",
+            # alle Codex-Modelle via Codex (cx/)
+            "cx/gpt-5.3-codex-spark",
+            "cx/gpt-5.3-codex-spark-review",
+            "cx/gpt-5.4",
+            "cx/gpt-5.4-mini",
+            "cx/gpt-5.4-mini-review",
+            "cx/gpt-5.4-review",
+            "cx/gpt-5.5",
+            "cx/gpt-5.5-review",
+            "cx/gpt-5.6-luna",
+            "cx/gpt-5.6-luna-review",
+            "cx/gpt-5.6-sol",
+            "cx/gpt-5.6-sol-review",
+            "cx/gpt-5.6-terra",
+            "cx/gpt-5.6-terra-review",
+            # luna via commandcode (cu = Claude Code-kompatibel)
+            "cu/gpt-5.6-luna-high",
+            "cu/gpt-5.6-luna-max",
+            # mimo v2.5 via opencode-go
+            "ocg/mimo-v2.5",
+        }
+    )
+
     def _capture_available_models(self, session_resp: dict) -> None:
         """Record the model list the backend advertised in a session response.
 
@@ -1980,6 +2019,10 @@ class AcpClient:
         the ``{modelId, name, description}`` shape the dashboard dropdown
         expects. Falls back to keeping whatever the adapter advertised when
         the router is unreachable or the listing is unparseable.
+
+        Fork: the catalog is filtered to a CURATED whitelist (the full 9router
+        catalog is ~265 entries; the GUI picker should list only the models
+        the user actually wants to switch between).
         """
         base_url = (self._extra_env or {}).get("ANTHROPIC_BASE_URL", "")
         # The key may live in _extra_env (provider_api_key) OR in the process
@@ -2008,6 +2051,8 @@ class AcpClient:
                 model_id = m.get("id") or m.get("model") or ""
                 if not model_id:
                     continue
+                if model_id not in self._ROUTER_MODEL_WHITELIST:
+                    continue
                 captured.append(
                     {
                         "modelId": model_id,
@@ -2019,7 +2064,7 @@ class AcpClient:
                 self._available_models = captured
                 self._modes_advertised = True
                 logger.debug(
-                    "claude router catalog: %d models advertised from %s",
+                    "claude router catalog: %d curated models advertised from %s",
                     len(captured),
                     url,
                 )
