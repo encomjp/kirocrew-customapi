@@ -139,7 +139,7 @@ jobs:
           esac
 
           pr_json="$(gh pr view "$PR" --repo "$REPO" \
-            --json number,state,isDraft,isCrossRepository,headRefOid,url)"
+            --json number,state,isDraft,isCrossRepository,headRefOid,headRefName,headRepositoryOwner,headRepository,url)"
           SHA="$(jq -r '.headRefOid' <<<"$pr_json")"
           STATE="$(jq -r '.state' <<<"$pr_json")"
 
@@ -150,6 +150,12 @@ jobs:
             echo "fork=$(jq -r '.isCrossRepository' <<<"$pr_json")"
             echo "draft=$(jq -r '.isDraft' <<<"$pr_json")"
             echo "url=$(jq -r '.url' <<<"$pr_json")"
+            # The head repo full_name ("owner/name") and head branch identify the
+            # SOURCE of the PR's runs. For a fork PR these disambiguate its own
+            # workflow runs from any foreign fork run that happens to share the
+            # head SHA (see the run selector in "Evaluate current revision").
+            echo "head_repo=$(jq -r '.headRepositoryOwner.login + "/" + .headRepository.name' <<<"$pr_json")"
+            echo "head_branch=$(jq -r '.headRefName' <<<"$pr_json")"
           } >> "$GITHUB_OUTPUT"
 
           if [ -n "$EXPECTED_SHA" ] && [ "$EXPECTED_SHA" != "$SHA" ]; then
@@ -189,6 +195,8 @@ jobs:
           SHA: ${{ steps.context.outputs.sha }}
           DRAFT: ${{ steps.context.outputs.draft }}
           FORK: ${{ steps.context.outputs.fork }}
+          HEAD_REPO: ${{ steps.context.outputs.head_repo }}
+          HEAD_BRANCH: ${{ steps.context.outputs.head_branch }}
           TRIGGER_EVENT: ${{ github.event_name }}
           TRIGGER_ACTION: ${{ github.event.action }}
         run: |
@@ -239,9 +247,38 @@ jobs:
             else
               runs="$(gh api --method GET \
                 "repos/$REPO/actions/workflows/$file/runs?event=pull_request&head_sha=$SHA&per_page=20")"
-              run="$(jq -c --argjson pr "$PR" '
+              # Same-repo pull_request runs carry this PR's number in
+              # .pull_requests, so match on it. Fork pull_request runs come back
+              # with an EMPTY .pull_requests[] array (GitHub never populates it
+              # for a head in a different repository), so a number match drops
+              # every fork run and the check is scored "not started" forever --
+              # freezing fork readiness at pending instead of the intended
+              # terminal "maintainer review" verdict.
+              #
+              # For a fork PR ($FORK) we therefore match its runs by SOURCE
+              # IDENTITY -- the head repository full_name and head branch -- not
+              # by .pull_requests. head_sha pins the commit, not the pull request,
+              # and the base repo's run list includes fork runs, so a same-repo PR
+              # #N at SHA S can coexist with a fork PR that pushed the identical
+              # commit S. Matching on (head_repository.full_name, head_branch)
+              # selects exactly this fork PR's own runs: it excludes the same-repo
+              # runs (different head repo) AND any OTHER fork's runs at the same
+              # SHA (different head repo/branch), so neither a same-repo PR nor a
+              # second fork PR can borrow this PR's verdict. A fork PR still
+              # terminates at the RED "maintainer review" verdict; this only fixes
+              # WHICH runs feed CI/Build/Code Review completeness.
+              run="$(jq -c \
+                --argjson pr "$PR" \
+                --arg fork "$FORK" \
+                --arg head_repo "$HEAD_REPO" \
+                --arg head_branch "$HEAD_BRANCH" '
                 [.workflow_runs[]
-                 | select([.pull_requests[]?.number] | index($pr))]
+                 | select(
+                     ($fork != "true" and ([.pull_requests[]?.number] | index($pr)))
+                     or ($fork == "true"
+                         and (.head_repository.full_name == $head_repo)
+                         and (.head_branch == $head_branch))
+                   )]
                 | sort_by(.created_at)
                 | last // empty
               ' <<<"$runs")"
