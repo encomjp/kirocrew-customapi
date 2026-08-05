@@ -2127,34 +2127,48 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
 
     # ── Dependencies ──
     print("Dependencies")
-    # kiro-cli is THE agent backend for the public build. claude-agent-acp is
-    # only the dormant protocol seam (re-registered by an internal companion),
-    # so report it as optional and report kiro-cli as the backend.
+    # kiro-cli is the default agent backend; claude-agent-acp becomes the
+    # backend when agent.provider is "claude_code" (fork). Report the active
+    # backend as required and the other as optional.
+    _cfg_provider: str = "acp"
+    try:
+        _loaded = KiroCrewConfig.load()
+        _cfg_provider = _loaded.agent.provider or "acp"
+    except Exception:
+        pass
+    _backend_is_claude = _cfg_provider == "claude_code"
     kiro = shutil.which(KIRO_CLI_BIN)
     if kiro:
-        print(f"  kiro-cli:    ✅ {kiro}")
-        # Check login status — best-effort, never a hard failure
-        try:
-            r = subprocess.run(
-                [KIRO_CLI_BIN, "whoami"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            if r.returncode == 0:
-                print("  kiro login:  ✅")
-            else:
-                print("  kiro login:  ⏹ not logged in (run: kiro-cli login)")
-        except Exception:
-            print("  kiro login:  ⚠️  could not check")
+        print(f"  kiro-cli:    {'✅' if not _backend_is_claude else '⏭ '} {kiro}")
+        if not _backend_is_claude:
+            # Check login status — best-effort, never a hard failure
+            try:
+                r = subprocess.run(
+                    [KIRO_CLI_BIN, "whoami"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if r.returncode == 0:
+                    print("  kiro login:  ✅")
+                else:
+                    print("  kiro login:  ⏹ not logged in (run: kiro-cli login)")
+            except Exception:
+                print("  kiro login:  ⚠️  could not check")
         _doctor_headless_auth(issues)
     else:
-        print("  kiro-cli:    ⏭  not found (the agent backend)")
-        print("               Install kiro-cli per its docs, then: kiro-cli login")
+        print(f"  kiro-cli:    {'❌' if not _backend_is_claude else '⏭ '} not found")
+        if not _backend_is_claude:
+            print("               Install kiro-cli per its docs, then: kiro-cli login")
 
     claude_acp = shutil.which(_CLAUDE_ACP_BIN)
     if claude_acp:
-        print(f"  claude-acp:  ✅ {claude_acp} (dormant seam — not used by the public core)")
+        status = "✅" if _backend_is_claude else "⏭ "
+        print(f"  claude-acp:  {status} {claude_acp}"
+              f"{' (active backend)' if _backend_is_claude else ' (dormant seam)'}")
+    elif _backend_is_claude:
+        print("  claude-acp:  ❌ not found (active backend for provider=claude_code)")
+        print("               Install it with: npm i -g @agentclientprotocol/claude-agent-acp")
 
     git = shutil.which("git")
     if git:

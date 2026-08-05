@@ -33,7 +33,7 @@ from contextlib import aclosing
 from pathlib import Path
 from typing import Any, AsyncGenerator, AsyncIterator, Callable, Sequence, TypeVar
 
-from kiro_crew import agent_scratch, model_registry, platform_compat
+from kiro_crew import model_registry, platform_compat
 from kiro_crew.acp._dispatch import (
     _kiro_mcp_server_name,
     _kiro_tool_name,
@@ -131,7 +131,7 @@ from kiro_crew.sandbox import (
     apply_windows_resource_ceiling,
     cgroup_scope_argv,
     create_subprocess_limited,
-    scrub_agent_subprocess_env,
+    scrub_agent_denied_env,
     wrap_argv,
 )
 from kiro_crew.security import redact_credentials, redact_exfiltration_urls
@@ -717,55 +717,6 @@ _TOOL_INTERRUPTED_MARKER = "Tool uses were interrupted, waiting for the next use
 def _is_tool_interrupted_marker(chunk: str) -> bool:
     """Exact match against the kiro-cli security-filter interrupt marker."""
     return chunk.strip() == _TOOL_INTERRUPTED_MARKER
-
-
-def format_command_result(result: dict) -> str:
-    """Extract displayable text from a commands/execute response.
-
-    Module-level (not a method) because both native slash-command paths need
-    it: AcpClient.stream_command (direct-spawn sessions) and
-    AcpSessionHandle.stream_command (shared-runtime sessions).
-
-    The output is two-pass redacted (URLs + credentials) HERE, in the shared
-    helper, so every present and future caller inherits the security control
-    (command output is backend-echoed text that reaches the dashboard) instead
-    of each call site re-discovering it. Call-site re-redaction stays
-    harmless — both passes are idempotent.
-    """
-    data = result.get("data")
-    message = result.get("message", "")
-    text = ""
-    # Structured data — format as readable JSON block
-    if isinstance(data, dict) and data:
-        # Filter out agent/model metadata (handled separately)
-        display = {k: v for k, v in data.items() if k not in ("agent", "model")}
-        if display:
-            block = json.dumps(display, indent=2)
-            text = (
-                f"{message}\n```json\n{block}\n```"
-                if message
-                else f"```json\n{block}\n```"
-            )
-    if not text:
-        text = message or ""
-    if text:
-        text, _ = redact_exfiltration_urls(text)
-        text, _ = redact_credentials(text)
-    return text
-
-
-def parse_slash_command(command: str) -> tuple[str, dict]:
-    """Parse ``/foo bar baz`` into TuiCommand ``(name, args)``.
-
-    Shared by AcpClient.stream_command and AcpSessionHandle.stream_command —
-    both send the OBJECT form (``{command, args}``) because kiro-cli 2.14.0
-    returns no response on the string form of ``_kiro.dev/commands/execute``.
-    """
-    parts = command.strip().split(None, 1)
-    name = parts[0].lstrip("/") if parts else command.lstrip("/")
-    value = parts[1] if len(parts) > 1 else None
-    args: dict = {"value": value} if value else {}
-    return name, args
 
 
 # Timeouts for session initialization steps
@@ -2089,6 +2040,27 @@ class AcpClient:
         self._agent = agent
         self._sandbox_mode = sandbox_mode
         self._acp_backend = acp_backend
+        # Fork: when the claude backend points at a custom ANTHROPIC_BASE_URL
+        # (e.g. a local router), the model id is the router's own namespace and
+        # the claude-agent-acp adapter rejects it in set_config_option. Skip
+        # the wire set and let the model ride in via ANTHROPIC_MODEL env, which
+        # the adapter forwards to Claude Code as its default.
+        self._model_via_env = bool(
+            self._is_claude
+            and (extra_env or {}).get("ANTHROPIC_BASE_URL")
+            and model not in ("", "auto", DEFAULT_MODEL)
+            and not (extra_env or {}).get("ANTHROPIC_MODEL")
+        )
+        if self._model_via_env:
+            self._extra_env = dict(extra_env or {})
+            self._extra_env["ANTHROPIC_MODEL"] = model or ""
+        else:
+            self._extra_env = extra_env or {}
+        logger.debug(
+            "acp client init: backend=%r model=%r model_via_env=%s base_url=%s",
+            self._acp_backend, model, self._model_via_env,
+            (extra_env or {}).get("ANTHROPIC_BASE_URL", ""),
+        )
         # Claude backend permission mode (Auto-mode / permission-UI parity).
         # Inert on the kiro-cli path and unused by the public core; a companion
         # that drives the _is_claude seam reads/writes it and wires the
@@ -2103,7 +2075,7 @@ class AcpClient:
         # SubagentManager, so they never double-log.
         self._audit_source = audit_source
         self._channel_id = channel_id
-        self._extra_env = extra_env or {}
+        # NOTE: self._extra_env is set in the _model_via_env block above.
         # MCP gateway overlay: when set, the broker stubs in its rewritten specs
         # are injected into this session at ACP session/new, where they outrank
         # the same-named entries in the agent spec. Nothing is written to the
@@ -2260,6 +2232,15 @@ class AcpClient:
         # _capture_available_models, which parses the real dict-shaped `models`).
         self._acp_config_options: list[dict] = []
 
+        # Fork: seed the claude backend's per-session settings.local.json now
+        # that _model_via_env is known — the settings file is authoritative
+        # over ANTHROPIC_MODEL env, so the router model must be pinned there.
+        if self._is_claude:
+            try:
+                self._write_claude_local_settings()
+            except Exception:
+                logger.debug("claude local settings seed failed", exc_info=True)
+
     @property
     def backend(self) -> str:
         """ACP backend identifier (e.g. ACP_BACKEND_CLAUDE for claude-agent-acp)."""
@@ -2295,15 +2276,101 @@ class AcpClient:
     def _claude_session_mcp_servers(self) -> list:
         """MCP server array passed to a claude ``session/new`` / ``session/load``.
 
-        Overridable seam for the dormant ``_is_claude`` backend. The Default is
-        ``[]`` so the public core (kiro-cli only, which gets its servers via
-        ``--agent``) is byte-identical. An internal companion that re-registers
-        a Claude backend over the ``ACP_BACKEND_CLAUDE`` seam overrides this to
-        inject the kirocrew-core/cron + user MCP servers — the claude adapter
-        does not read ``kirocrew.mcp.json`` on its own, so without this a claude
-        session would have zero MCP tools.
+        Fork: re-enables the dormant seam. The claude adapter does NOT read
+        ``kirocrew.mcp.json`` on its own, so without this a claude session
+        would have zero MCP tools. We load the agent's own ``mcpServers``
+        from its spec (same shape kiro-cli consumes) and shape them into ACP
+        ``session/new`` entries, mirroring the kiro-cli path.
         """
-        return []
+        if not self._is_claude:
+            return []
+        try:
+            from kiro_crew.config.paths import kiro_agents_dir
+
+            spec_path = kiro_agents_dir() / f"{self._agent or CLIENT_NAME}.json"
+            if not spec_path.is_file():
+                return []
+            spec = json.loads(spec_path.read_text(encoding="utf-8"))
+            servers = spec.get("mcpServers") or {}
+            out: list[dict[str, Any]] = []
+            for name, entry in sorted(servers.items()):
+                if not isinstance(entry, dict) or not entry.get("command"):
+                    continue
+                shaped: dict[str, Any] = {
+                    "name": name,
+                    "command": entry["command"],
+                    "args": list(entry.get("args") or []),
+                }
+                if entry.get("env"):
+                    shaped["env"] = entry["env"]
+                if entry.get("timeout"):
+                    shaped["timeout"] = entry["timeout"]
+                if entry.get("autoApprove"):
+                    shaped["autoApprove"] = entry["autoApprove"]
+                out.append(shaped)
+            return out
+        except Exception:
+            logger.warning(
+                "claude session MCP server injection failed for agent %r",
+                self._agent,
+                exc_info=True,
+            )
+            return []
+
+    def _write_claude_local_settings(self) -> None:
+        """Seed the claude backend's per-session ``settings.local.json``.
+
+        Fork: re-enables the dormant seam. Without this the claude session
+        collapses to the 200K default window and permission routing is
+        absent. Writes into the CLAUDE_CONFIG_DIR the spawned adapter uses
+        (``.claude`` under the work dir when unset, else the env var).
+        """
+        import os as _os
+
+        config_dir = _os.environ.get("CLAUDE_CONFIG_DIR") or str(
+            Path(self._work_dir) / ".claude"
+        )
+        try:
+            Path(config_dir).mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return
+        settings_path = Path(config_dir) / "settings.local.json"
+        data: dict[str, Any] = {}
+        try:
+            if settings_path.is_file():
+                data = json.loads(settings_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        # Permission routing: allow tool calls without interactive prompts —
+        # Kiro Crew's own approval flow sits above the ACP layer and prompts
+        # there, so the backend-level prompt would be a double prompt.
+        data.setdefault("permissions", {}).setdefault("defaultMode", "acceptEdits")
+        # Fork: on a custom base URL (router) the model id MUST be pinned in
+        # settings.local.json — Claude Code treats the settings file as
+        # authoritative over ANTHROPIC_MODEL env / _meta options, and with
+        # only an allowlist present it warns "Model X is restricted by your
+        # organization's settings" and falls back to its Bedrock default
+        # (claude-opus-5[1m]), which the router rejects. NOTE: the
+        # availableModels allowlist must NOT be written on this path — the
+        # wildcard is interpreted as an org restriction that blocks any
+        # router-namespace model id (verified end-to-end: with
+        # availableModels ["*"] present the adapter refuses
+        # oc/deepseek-v4-flash-free; without it, the pinned model runs).
+        if getattr(self, "_model_via_env", False) and self._model:
+            data["model"] = self._model
+        else:
+            # availableModels allowlist unlocks the 1M-token window on claude
+            # backends that gate it (Bedrock path only).
+            if not data.get("availableModels"):
+                data["availableModels"] = ["*"]
+        try:
+            settings_path.write_text(
+                json.dumps(data, indent=2), encoding="utf-8"
+            )
+        except OSError:
+            logger.warning(
+                "claude settings seed failed for %s", settings_path, exc_info=True
+            )
 
     @property
     def is_ready(self) -> bool:
@@ -2399,7 +2466,8 @@ class AcpClient:
             _rejected_log, _ = redact_credentials(_rejected_log)
             raise AcpModelUnavailable(_rejected_log, self._advertised_model_ids())
         if self._is_claude:
-            await self.set_config_option("model", model_id)
+            if not getattr(self, "_model_via_env", False):
+                await self.set_config_option("model", model_id)
         else:
             await self._send_request(
                 METHOD_SET_MODEL,
@@ -2526,7 +2594,8 @@ class AcpClient:
             self._model = DEFAULT_MODEL
             return
         if self._is_claude:
-            await self.set_config_option("model", self._model)
+            if not getattr(self, "_model_via_env", False):
+                await self.set_config_option("model", self._model)
         else:
             await self._send_request(
                 METHOD_SET_MODEL,
@@ -2740,9 +2809,9 @@ class AcpClient:
         # foreign MCP subprocesses (which bundle their own interpreter + deps).
         # is_kiro_cli is membership in ACP_BACKENDS_INTERNAL_SANDBOX
         # (harness-parity H7), not "not claude": the flag makes wrap_argv SKIP
-        # Crew's seatbelt on macOS and grants Windows's Kiro-only delegation in
-        # favour of the harness's own internal sandbox, so a harness without one
-        # must never be granted it by the absence of another harness.
+        # Crew's seatbelt on macOS in favour of the harness's own internal
+        # sandbox, so a harness without one must never be granted it by the
+        # absence of another harness.
         argv, self._sandbox_cleanup = wrap_argv(
             argv,
             mode=self._sandbox_mode,
@@ -2764,6 +2833,22 @@ class AcpClient:
         env = {**os.environ}
         if self._extra_env:
             env.update(self._extra_env)
+        logger.debug(
+            "spawn env check: ANTHROPIC_MODEL=%r ANTHROPIC_BASE_URL=%r model_via_env=%s argv=%r cwd=%s",
+            env.get("ANTHROPIC_MODEL", "<unset>"),
+            env.get("ANTHROPIC_BASE_URL", "<unset>"),
+            getattr(self, "_model_via_env", False),
+            argv,
+            str(self._work_dir),
+        )
+        # Parent-level scrub of gateway-owned channel credentials. The default
+        # auto/standard sandbox launcher strips _AGENT_DENIED_ENV_KEYS only for
+        # cc/strict, and this path copies a raw os.environ + wrap_argv (not
+        # sandboxed_spawn_argv), so without this the Slack/WeCom/Telegram tokens
+        # seeded into os.environ by load_credentials() would be inherited by the
+        # agent subprocess on the default tier. Leaves the AWS/SSH env the
+        # standard sandbox intentionally exposes untouched.
+        env = scrub_agent_denied_env(env)
         env["PATH"] = augmented_path(env.get("PATH", ""))
         if self._is_claude and not env.get("CLAUDE_CODE_EXECUTABLE"):
             # Dormant seam (see _spawn docstring): the adapter's SDK needs a
@@ -2804,30 +2889,10 @@ class AcpClient:
         env = await self._to_thread_guarding_sandbox(
             functools.partial(_resolve_spawn_env, kiro_api_key=self._is_kiro), env
         )
-        # Match the OS launchers' sensitive + Python env scrub in the parent.
-        # Windows Kiro delegation has no POSIX `env -u` wrapper, so this is the
-        # enforcement point there. Keep it after _resolve_spawn_env so SSH repair
-        # cannot reintroduce a denied pointer; KIRO_API_KEY remains available only
-        # to the positively identified Kiro backend.
-        env = scrub_agent_subprocess_env(env)
         # Positive-identity marker for the orphan sweep: kiro-cli and every MCP
         # server it spawns inherit this, so escaped launcher trees (``npx
         # @playwright/mcp`` -> node) are identifiable as ours.
         env[KIROCREW_SPAWNED_ENV] = KIROCREW_SPAWNED_VALUE
-        # Per-process scratch containment (#5063) -- see acp/runtime.py's
-        # twin block. Allocated off-loop, fail-open; owner recorded after
-        # spawn; reclamation is liveness-keyed, never age-keyed.
-        self._scratch_dir = None
-        try:
-            self._scratch_dir = await asyncio.to_thread(
-                agent_scratch.allocate_scratch, self._session_key or "session"
-            )
-            env.update(agent_scratch.scratch_env(self._scratch_dir))
-        except OSError:
-            logger.warning(
-                "agent-scratch: could not allocate; spawning with inherited temp",
-                exc_info=True,
-            )
         # Memory-aware cap for pytest-xdist's ``-n auto``: xdist sizes auto to
         # the CPU count, ignoring memory, so a full-suite run in an agent turn
         # can spawn cpu_count workers x ~1 GB each and exhaust the host. xdist
@@ -2885,13 +2950,6 @@ class AcpClient:
         self._start_time = await asyncio.get_running_loop().run_in_executor(
             subprocess_executor(), _get_start_time, self._pid
         )
-        if self._scratch_dir is not None:
-            # Liveness anchor for the scratch sweeps -- see acp/runtime.py's
-            # twin block. Off-loop, fail-open.
-            await asyncio.get_running_loop().run_in_executor(
-                subprocess_executor(),
-                functools.partial(agent_scratch.record_owner, self._scratch_dir, self._pid),
-            )
         logger.info("Spawned %s (PID %d)", _spawn_label, self._pid)
         # Track root PID and do an early descendant scan.  kiro-cli forks
         # child processes quickly after launch.  Recording them here means
@@ -3228,9 +3286,21 @@ class AcpClient:
             ],
         }
         if self._is_claude:
-            new_params["_meta"] = {"claudeCode": {"options": {}}}
+            # Fork: with a custom base URL the model id lives in the router's
+            # namespace; the adapter rejects it in set_config_option but
+            # forwards _meta.claudeCode.options.model to Claude Code, which
+            # honors it. ANTHROPIC_MODEL env also rides along as the default.
+            cc_opts: dict[str, Any] = {}
+            if getattr(self, "_model_via_env", False) and self._model:
+                cc_opts["model"] = self._model
+            new_params["_meta"] = {"claudeCode": {"options": cc_opts}}
+            logger.debug(
+                "claude session/new _meta options: %r (model=%r via_env=%s)",
+                cc_opts, self._model, getattr(self, "_model_via_env", False),
+            )
 
         self._last_substitution_model = None
+        logger.debug("claude session/new full params: %r", new_params)
         session_id = await self._send_request(METHOD_SESSION_NEW, new_params)
         session_resp = await self._wait_for_response(session_id, timeout=_INIT_TIMEOUT)
 
@@ -4303,7 +4373,7 @@ class AcpClient:
                 if extract_agent_from_result and isinstance(result, dict):
                     # commands/execute returns output in result fields,
                     # not via session/update chunks — yield as text.
-                    text = format_command_result(result)
+                    text = self._format_command_result(result)
                     if text:
                         yield AcpEvent(kind=EVENT_TEXT_CHUNK, text=text)
                     if not saw_agent_switch:
@@ -4667,7 +4737,7 @@ class AcpClient:
         self._cancelled = False
         await self.ensure_ready()
 
-        cmd_name, cmd_args = parse_slash_command(command)
+        cmd_name, cmd_args = self._parse_slash_command(command)
         req_id = await self._send_request(
             METHOD_COMMANDS_EXECUTE,
             {
@@ -4677,6 +4747,34 @@ class AcpClient:
         )
         async for event in self._dispatch_events(req_id, timeout, extract_agent_from_result=True):
             yield event
+
+    @staticmethod
+    def _format_command_result(result: dict) -> str:
+        """Extract displayable text from a commands/execute response."""
+        import json as _json
+
+        data = result.get("data")
+        message = result.get("message", "")
+        # Structured data — format as readable JSON block
+        if isinstance(data, dict) and data:
+            # Filter out agent/model metadata (handled separately)
+            display = {k: v for k, v in data.items() if k not in ("agent", "model")}
+            if display:
+                return (
+                    f"{message}\n```json\n{_json.dumps(display, indent=2)}\n```"
+                    if message
+                    else f"```json\n{_json.dumps(display, indent=2)}\n```"
+                )
+        return message or ""
+
+    @staticmethod
+    def _parse_slash_command(command: str) -> tuple[str, dict]:
+        """Parse ``/foo bar baz`` into TuiCommand ``(name, args)``."""
+        parts = command.strip().split(None, 1)
+        name = parts[0].lstrip("/") if parts else command.lstrip("/")
+        value = parts[1] if len(parts) > 1 else None
+        args: dict = {"value": value} if value else {}
+        return name, args
 
     async def cancel_session(self, grace_secs: float = 0.0) -> None:
         """Cancel the current in-flight operation via ACP session/cancel.
@@ -5635,15 +5733,12 @@ class AcpClient:
         # Record optionIds the agent advertised so approve_tool / reject_tool
         # can echo the exact ids. We record when EITHER an allow option (for
         # approve) OR a reject option (for a clean reject) was advertised.
-        # Both backends advertise a reject option — claude-agent-acp as
-        # {kind:"reject_once", optionId:"reject"}, kiro-cli as
-        # {kind:"reject_once", optionId:"reject_once"} — and sending it is far
-        # better than a "cancelled" outcome: kiro-cli resolves a clean reject to
-        # a FAILED tool call and lets the turn continue to a model-inference
-        # boundary, whereas "cancelled" ends the turn outright with
-        # stopReason:"refusal" (and the claude adapter turns it into the cryptic
-        # "Tool use aborted"). reject_tool falls back to "cancelled" only for a
-        # backend that advertised no reject option at all.
+        # claude-agent-acp advertises a {kind:"reject_once", optionId:"reject"}
+        # option whose selection yields behavior:"deny" — sending that is far
+        # better than a "cancelled" outcome, which the adapter turns into the
+        # cryptic "Tool use aborted". kiro-cli advertises no reject option, so
+        # reject_tool falls back to "cancelled" there (handled as a clean
+        # rejection by kiro).
         any_allow = kind_to_id.get("allow_once") or kind_to_id.get("allow_always")
         any_reject = kind_to_id.get("reject_once") or kind_to_id.get("reject_always")
         if request_id != "" and (any_allow is not None or any_reject is not None):

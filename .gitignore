@@ -147,3 +147,4 @@ SESSION_SUMMARY.md
 # Internal migration worklog — deliberately untracked (contains pre-scrub notes)
 MOCHI_MIGRATION.md
 website/.vitest-reports/
+.venv-test/
