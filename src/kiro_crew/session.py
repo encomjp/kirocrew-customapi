@@ -502,6 +502,10 @@ StopOutcome = Literal["soft", "hard", "idle"]
 class _Session:
     provider: LLMProvider
     last_used: float = field(default_factory=time.monotonic)
+    # Wall-clock spawn time, for the uptime column on the session-memory surface.
+    # ``last_used`` is monotonic (correct for idle math, but it has no epoch), so
+    # it cannot answer "how long has this session been alive".
+    created_at: float = field(default_factory=time.time)
     is_new: bool = True
     prompt_count: int = 0
     consecutive_failures: int = 0
@@ -1817,6 +1821,48 @@ class SessionManager:
             self._schedule_replenish()
         else:
             logger.debug("Pool health: all %d providers healthy", len(healthy))
+
+    def runtime_pids(self) -> list[dict[str, object]]:
+        """Per-session runtime identity: the pid tree root to sample, and whether
+        this session OWNS that runtime.
+
+        Deliberately does no ``/proc`` work — this returns pure metadata so the
+        caller can offload the (syscall-heavy) sampling off the event loop. The pid
+        is the sandbox launcher parent, NOT the kiro-cli that accumulates the RSS;
+        callers must sum the descendant tree (see
+        ``acp.runtime._get_rss_tree_mb``).
+
+        ``owns_runtime`` is False for a multiplexed co-tenant (the shared ``_bg``
+        runtime, and session-sharing subagents): several sessions then report the
+        SAME pid, so a per-pid measurement is that runtime's total, not this
+        session's share. Consumers must label it rather than present it as
+        exclusive.
+        """
+        rows: list[dict[str, object]] = []
+        for key, sess in self._sessions.items():
+            # Two provider shapes hold the runtime at different depths:
+            # AcpProvider delegates to an AcpClient (``_client._runtime``), while
+            # AcpSessionProvider — the unified/task-runner path, session.py:1331 —
+            # stores ``_runtime`` on itself. Falling back to the provider keeps
+            # the latter from silently reporting an unknown pid and no memory.
+            client = getattr(sess.provider, "_client", None)
+            if client is None:
+                client = sess.provider
+            runtime = getattr(client, "_runtime", None)
+            pid = getattr(runtime, "pid", None)
+            rows.append(
+                {
+                    "key": key,
+                    "agent": sess.agent,
+                    "pid": pid if isinstance(pid, int) and pid > 0 else None,
+                    # Absent attribute means a non-ACP provider with no shared
+                    # runtime — exclusive by construction, so default True.
+                    "owns_runtime": bool(getattr(client, "_owns_runtime", True)),
+                    "created_at": sess.created_at,
+                    "prompts": sess.prompt_count,
+                }
+            )
+        return rows
 
     def context_info(self) -> list[dict[str, object]]:
         """Return context usage for all active sessions."""

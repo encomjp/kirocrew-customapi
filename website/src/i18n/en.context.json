@@ -137,16 +137,14 @@
     "pages.systemPage.os": "Abbreviation for \"operating system\", labelling the host OS name in the System diagnostics card. Keep whichever acronym practitioners in the target language use.",
     "pages.systemPage.pid": "Abbreviation for \"process ID\", labelling a numeric process identifier in the System diagnostics card. Keep the Latin acronym unless the target language has an established equivalent.",
     "pages.telemetryPanel.ok": "Status value in a telemetry row, meaning healthy. A state, not the confirmation button.",
-    "apps.crewCompanion.reminders.add_button": "Button that saves the reminder typed in the box beside it. The verb \"add\", not the arithmetic sense.",
-    "apps.crewCompanion.settings.custom_placeholder": "Placeholder in a small number field for a custom break interval. Short for \"minutes\" (the unit), not \"minimum\".",
-    "apps.crewCompanion.time.now": "Relative time label on a reminder that is due at this moment, shown where others read \"20 min from now\".",
-    "lib.effort.low": "Reasoning-effort level in the chat model picker: the least thinking time, fastest answers. An adjective naming an amount of effort, not a volume or a priority.",
-    "lib.effort.max": "Reasoning-effort level in the chat model picker: the highest setting the model offers. Short for \"maximum\" — the top of a scale, not a verb.",
     "apps.opsMissionControl.opsMissionControlPage.act": "Autonomy-mode badge for the highest level, where the agent executes actions its rules grant. The imperative verb \"act\", one of three modes with \"observe\" and \"propose\"; not the noun (\"an act\").",
     "apps.opsMissionControl.settingsPanel.min": "The unit \"min\" = minutes, rendered after a number in a staleness-timeout field. An abbreviation, not the word \"minimum\".",
     "apps.opsMissionControl.settingsPanel.gh": "The literal name of the GitHub CLI executable, `gh`, shown in monospace. Do not translate: the user types it.",
     "apps.opsMissionControl.settingsPanel.who": "The literal `who:` key of an on-call shift entry in the committed rotation.yaml file, shown in monospace. Do not translate: it names a YAML field the user edits.",
     "apps.opsMissionControl.settingsPanel.off": "State value meaning disabled, on a notification-channel or sync badge. Not the preposition or the adverb.",
-    "apps.opsMissionControl.settingsPanel.mode_act_label": "Label on the third segment of the autonomy-mode control in Ops Mission Control Settings, where the agent executes actions its rules grant. The imperative verb \"act\", alongside \"Observe\" and \"Propose\"; not the noun (\"an act\")."
+    "apps.opsMissionControl.settingsPanel.mode_act_label": "Label on the third segment of the autonomy-mode control in Ops Mission Control Settings, where the agent executes actions its rules grant. The imperative verb \"act\", alongside \"Observe\" and \"Propose\"; not the noun (\"an act\").",
+    "pages.sessionMemoryCard.cpu": "Column header on the Session & Task Memory table: cores of CPU used by that session, shown as a decimal like 0.31. \"CPU\" as the processor, not a percentage of one machine. Width-constrained: keep it as short as the target language allows.",
+    "pages.sessionMemoryCard.mcp": "Column header on the Session & Task Memory table counting how many MCP (Model Context Protocol) server processes that session is carrying. Product/protocol terminology — keep the acronym; it is not the English word \"map\".",
+    "pages.sessionMemoryCard.pid": "\"PID\" = operating-system process id, a column header over a column of numeric process identifiers the user can paste into ps or kill. A term of art; keep the acronym practitioners in the target language use."
   }
 }
