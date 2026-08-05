@@ -776,8 +776,56 @@ def _cc_models(request: web.Request, configured_default: str = "") -> list[dict]
     return merged
 
 
+def _cc_model_row(model_id: str, description: str = "") -> dict:
+    """One curated router-model row in the wire shape the picker SPA expects."""
+    if not description:
+        family = model_id.split("/", 1)[0] if "/" in model_id else model_id
+        description = f"{model_id.split('/')[-1]} via {family}"
+    return {
+        "model_name": model_id,
+        "model_id": model_id,
+        "description": description,
+        "context_window_tokens": 200000,
+        "rate_multiplier": 1.0,
+        "rate_unit": "Credit",
+    }
+
+
+def _cc_models_response(request: web.Request) -> web.Response:
+    """Curated router-catalog response for /api/models on the claude_code path.
+
+    The upstream handler spawns ``kiro-cli chat --list-models``, which returns
+    Kiro's Bedrock catalog — useless (and wrong) when the backend is Claude
+    Code talking to a custom LLM router. On the router path we serve the
+    curated whitelist instead: live advertised rows when a session has
+    captured them, otherwise the static whitelist so a cold dashboard never
+    shows an empty picker.
+    """
+    from kiro_crew.acp.client import AcpClient  # noqa: F811
+
+    whitelist = AcpClient._ROUTER_MODEL_WHITELIST
+    rows: list[dict] = []
+    for entry in _advertised_cc_models(request):
+        mid = entry.get("model_name") or ""
+        if mid and mid in whitelist:
+            rows.append(
+                _cc_model_row(
+                    mid,
+                    entry.get("description") or entry.get("display_name") or "",
+                )
+            )
+    if not rows:
+        rows = [_cc_model_row(mid) for mid in sorted(whitelist)]
+    return web.json_response(rows)
+
+
 async def api_models(request: web.Request) -> web.Response:
     """GET /api/models — list available models from the live kiro-cli ACP session."""
+    # Fork: on the claude_code (custom LLM router) path the picker must show
+    # the curated router catalog, not kiro-cli's Bedrock list.
+    cfg = KiroCrewConfig.load()
+    if cfg.agent.provider == "claude_code":
+        return _cc_models_response(request)
     # Signed-out gateways must never reach the spawn below. kiro-cli auto-opens
     # an interactive browser login for ANY subcommand run unauthenticated
     # (--no-interactive does not suppress it, and there is no opt-out env var),
