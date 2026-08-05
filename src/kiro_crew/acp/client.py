@@ -2006,11 +2006,10 @@ class AcpClient:
     # Exact ids as advertised by the router's /v1/models endpoint.
     _ROUTER_MODEL_WHITELIST: frozenset[str] = frozenset(
         {
-            # deepseek v4 flash — ollama, commandcode (cmc), opencode-go (ocg)
+            # deepseek v4 flash — ollama, commandcode (cmc), opencode-go (ocg,
+            # free tier)
             "ollama/deepseek-v4-flash",
             "cmc/deepseek/deepseek-v4-flash",
-            "ocg/deepseek-v4-flash",
-            # deepseek v4 flash free — opencode-go (free tier)
             "ocg/deepseek-v4-flash",
             # glm 5.2 — ollama cloud
             "ollama/glm-5.2",
