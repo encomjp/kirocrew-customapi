@@ -86,10 +86,19 @@ _DOLLAR_SKILL_PATTERN = re.compile(r"(?<![\w$])\$([a-z0-9][a-z0-9/_-]*)")
 _MAX_DOLLAR_SKILLS = 5
 # Cache the discovered skill-file list for this long. get_triggered_skills runs
 # on EVERY message; without this it os.walk()s the skills dir + every extra
-# path per message. Skills change rarely (add/remove via setup or sync), so a
-# short TTL keeps trigger matching off the per-message filesystem hot path
-# while still picking up new skills within a few seconds.
-_ITER_CACHE_TTL_SECS = 5.0
+# path per message.
+#
+# This was 5.0s, which did not achieve that: a walk of a real skills tree (645
+# files across 21 roots on a dev desktop, incl. AIM-installed package roots)
+# takes ~0.7s, and chat messages arrive MINUTES apart — so every message missed
+# the cache and paid the full walk, and the 5s only ever deduped the several
+# _iter() calls WITHIN one message. At 60s the walk is amortized ~12x with a
+# worst-case staleness of one minute.
+#
+# Staleness only affects skills added OUT OF BAND (AIM sync, a manual cp):
+# the app's own create/update/delete/refresh all call _invalidate_iter_cache(),
+# so a skill written through the app is visible immediately regardless of TTL.
+_ITER_CACHE_TTL_SECS = 60.0
 
 # ── Auto skill creation ──
 
