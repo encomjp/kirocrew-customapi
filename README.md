@@ -51,12 +51,9 @@ Kiro Crew.
 
 ## How it works
 
-```
-┌──────────────┐   ACP (JSON-RPC over stdio)   ┌──────────────────┐   Anthropic API    ┌───────────┐
-│ Kiro Crew    │ ────────────────────────────► │ claude-agent-acp │ ─────────────────► │ 9router   │
-│ (this fork)  │ ◄──────────────────────────── │   + Claude Code  │ ◄───────────────── │ /v1/...   │
-└──────────────┘                               └──────────────────┘                    └───────────┘
-```
+<p align="center">
+  <img src="assets/how-it-works.png" alt="KiroCrew-9Router architecture: Kiro Crew -> claude-agent-acp -> Claude Code -> 9router" width="900">
+</p>
 
 - **Kiro Crew** (this fork) acts as the harness: sessions, tool permissions, memory, cron, dashboard.
 - **claude-agent-acp** is the ACP adapter (`@agentclientprotocol/claude-agent-acp` on npm) that exposes the
@@ -174,6 +171,10 @@ export ANTHROPIC_API_KEY="your-key"   # or provider_api_key
 
 > Model ids are passed through **verbatim** to the router — use exactly the id your router advertises
 > (9router-style ids like `<your-model-id>`, `<another-model-id>`, etc.).
+
+<p align="center">
+  <img src="assets/model-routing.png" alt="How your model id reaches the router: config -> provider factory -> Claude Code child process -> 9router" width="900">
+</p>
 
 ### Step 3 — Chat / run tasks
 
