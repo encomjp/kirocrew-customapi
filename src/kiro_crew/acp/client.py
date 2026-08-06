@@ -760,7 +760,25 @@ _RE_INVALID_MODEL_ID = re.compile(r"[Ii]nvalid model ID:\s*([^\s,;'\"]+)")
 _RE_THROTTLE_NAMED = re.compile(
     r"\b(ThrottlingException|TooManyRequestsException|ServiceQuotaExceededException)\b"
 )
-_RE_THROTTLE_GENERIC = re.compile(r"\b(rate.?limit|throttl(?:e|ed|ing))\b", re.IGNORECASE)
+# `rate_limit_error` (OpenAI/Cursor's `type` field) must also match: a plain
+# `rate.?limit` word-boundary pattern would fail it because `_error` continues
+# the word past the `t` of `limit` — leaving the boundary unsatisfied. The
+# explicit `rate_limit` alternative (with an optional trailing `_error`) catches
+# that shape while staying distinct from a bare `rate limit` (matched above).
+_RE_THROTTLE_GENERIC = re.compile(
+    r"\b(rate.?limit|rate_limit(?:ed|_error)?|throttl(?:e|ed|ing))\b", re.IGNORECASE
+)
+# A provider-reported throttle reset window, e.g. OpenAI/Cursor's
+# "reset after 3m 6s", Anthropic's "Retry after 00:01:22", or AWS's
+# "try again in 2 seconds". Captured so the throttle branch can tell the user
+# HOW LONG they must wait instead of just "wait a few seconds". The capture
+# spans a compound duration ("3m 6s") so the whole window is surfaced.
+_RE_RESET_WINDOW = re.compile(
+    r"(?:reset|retry|back)\s+(?:after|in)\s+"
+    r"([0-9][0-9:. ]*(?:seconds?|minutes?|hours?|secs?|mins?|hrs?|h|s|m)?"
+    r"(?:\s+[0-9][0-9:. ]*(?:seconds?|minutes?|hours?|secs?|mins?|hrs?|h|s|m)?)?)",
+    re.IGNORECASE,
+)
 _RE_AUTH = re.compile(
     r"\b(AccessDenied(?:Exception)?|UnauthorizedException|ExpiredToken(?:Exception)?"
     r"|InvalidSignatureException|UnrecognizedClientException)\b"
@@ -1078,13 +1096,28 @@ def _format_acp_error(error: object, available_models: Sequence[str] | None = No
                 f"{req_id_suffix}"
             )
         elif _RE_THROTTLE_NAMED.search(haystack) or _RE_THROTTLE_GENERIC.search(haystack):
-            # Bedrock throttle / rate limit. Cover both AWS service exception
-            # names and the generic phrasing the ACP backend sometimes uses.
-            formatted = (
-                "Bedrock is throttling requests. Try: (1) wait a few seconds and "
-                "retry, or (2) switch to a different model in the picker (e.g. sonnet)."
-                f"{req_id_suffix}"
-            )
+            # Throttle / rate limit. Covers AWS service exception names
+            # (ThrottlingException, TooManyRequestsException), OpenAI/Cursor's
+            # `rate_limit_error` type, and generic "rate limited" phrasing. The
+            # provider is deliberately NOT named (Bedrock, OpenAI, Cursor, ...):
+            # the same wording must read correctly regardless of which backend
+            # ACP is fronting. When the provider includes its own reset window
+            # (e.g. "reset after 3m 6s", "Retry after 00:01:22"), surface it —
+            # it is the single most actionable detail in a 429 body.
+            _reset = _RE_RESET_WINDOW.search(haystack)
+            if _reset:
+                formatted = (
+                    "Rate limit hit — the model is throttling requests. "
+                    f"Retry after {_reset.group(1).strip()} clears, or switch to "
+                    "a different model in the picker."
+                    f"{req_id_suffix}"
+                )
+            else:
+                formatted = (
+                    "The model is throttling requests. Try: (1) wait a few seconds "
+                    "and retry, or (2) switch to a different model in the picker."
+                    f"{req_id_suffix}"
+                )
         elif _RE_AUTH.search(haystack):
             # Bedrock auth failure — almost always missing/expired AWS
             # credentials.
