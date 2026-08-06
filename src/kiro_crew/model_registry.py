@@ -151,6 +151,14 @@ _SUPPLEMENTARY_WINDOWS: dict[str, int] = {
     "glm-4.7": 200_000,
     "glm-4.7-flash": 128_000,
     "qwen3-coder-480b": 256_000,
+    # deepseek-v4-flash via the 9router catalog (ocg/ = opencode-go free tier,
+    # cmc/ = commandcode, ollama/ = ollama cloud). The router /v1/models
+    # capabilities.contextWindow reports 1_000_000 / maxOutput 384_000 for all
+    # three spellings. 9router also serves deepseek-v4-pro at 1M — the two
+    # "deepseek-v4" keys below cover the pro spelling via longest-substring.
+    "deepseek-v4-flash": 1_000_000,
+    "deepseek-v4-pro": 1_000_000,
+    "deepseek-v4": 1_000_000,
 }
 
 
