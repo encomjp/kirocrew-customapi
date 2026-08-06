@@ -243,6 +243,21 @@ def _provider_uses_kiro_identity_store(provider: Any) -> bool:
     return declared is True
 
 
+def _model_is_text_only_for_session(cfg: "KiroCrewConfig", model: str | None) -> bool:
+    """True when *model* is in the configured text-only router model list.
+
+    Text-only models reject image content upstream, so sessions on them must
+    never resume history that may contain image blocks (the SDK replays stored
+    image blocks and the upstream 400s).
+    """
+    if not model:
+        return False
+    try:
+        return model in set(getattr(cfg.agent, "text_only_models", []) or [])
+    except Exception:
+        return False
+
+
 def detect_provider_switch(session_map: "SessionMap", session_key: str, new_provider: str) -> bool:
     """Detect if the provider for a session differs from the stored one.
 
@@ -258,8 +273,7 @@ def detect_provider_switch(session_map: "SessionMap", session_key: str, new_prov
     stored_provider = session_map.get_provider(session_key) or PROVIDER_LABEL_DEFAULT
     if stored_provider == new_provider:
         return False
-    # Only counts as a switch if there's actually a stored SID to discard
-    stored_sid = session_map.get(session_key)
+    # Only counts as a switch if there's actually a stored SID to discard    stored_sid = session_map.get(session_key)
     if not stored_sid:
         return False
     sel().log_tool_invocation(
@@ -3037,6 +3051,22 @@ class SessionManager:
                     _provider_switched = True
                     # Clear the incompatible SID from session_map so future
                     # lookups don't try to resume with a stale ID.
+                    self._session_map.clear_sid(key)
+                # Fork: text-only image guard — a session resuming on a
+                # text-only router model would replay any image blocks the
+                # SDK stored in its history (from before a model switch or a
+                # previous vision-model session), and the text-only upstream
+                # rejects them (400). Discard the resume so the session starts
+                # fresh on the text-only model; conversation replay then
+                # carries only text.
+                if resume_sid and _model_is_text_only_for_session(self._cfg, model):
+                    logger.info(
+                        "Discarding resume for %s: model %s is text-only (image "
+                        "history would be rejected upstream)",
+                        key,
+                        model,
+                    )
+                    resume_sid = None
                     self._session_map.clear_sid(key)
 
             # Set resume ID before start() triggers _initialize_session
