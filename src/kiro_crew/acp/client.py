@@ -1762,21 +1762,28 @@ def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
 # Vision-capable fallback for image prompts on text-only router models.
 # cmc/mimo-v2.5 (commandcode) accepts images (verified 200) and is fast.
 _VISION_FALLBACK_RAW = "xiaomi/mimo-v2.5"
-# Text-only router providers whose upstream rejects image content (400).
-_TEXT_ONLY_ROUTER_PREFIXES = frozenset({"oc", "ol"})
+# Text-only router MODELS whose upstream rejects image content (400).
+# Verified per model against the live upstreams (2026-08-07):
+#   - oc/deepseek-v4-flash (opencode-go) -> 400 "unknown variant image_url"
+#   - ol/deepseek-v4-flash:0731 (ollama-cloud) -> 400 "does not support image input"
+#   - oc/mimo-v2.5 (opencode-go) -> 200 WITH image (vision-capable, NOT listed)
+_TEXT_ONLY_ROUTER_MODELS = frozenset(
+    {
+        "oc/deepseek-v4-flash",
+        "ol/deepseek-v4-flash:0731",
+    }
+)
 
 
 def _is_router_text_only_model(model_id: str) -> bool:
-    """True when *model_id* is a prefixed router model on a text-only provider.
+    """True when *model_id* is a known text-only router model.
 
-    opencode-go (``oc/``) and ollama-cloud (``ol/``) reject image content
-    upstream ("unknown variant image_url" / "does not support image input"),
-    so image prompts must be redirected to a vision-capable model.
+    opencode-go's deepseek-v4-flash and ollama-cloud's deepseek-v4-flash:0731
+    reject image content upstream (400), so image prompts must be redirected
+    to a vision-capable model. Matched by exact model id — a per-model list,
+    because e.g. opencode-go's mimo-v2.5 DOES accept images (verified 200).
     """
-    if not model_id or "/" not in model_id:
-        return False
-    prefix = model_id.split("/", 1)[0]
-    return prefix in _TEXT_ONLY_ROUTER_PREFIXES
+    return model_id in _TEXT_ONLY_ROUTER_MODELS
 
 
 def _message_has_image_path(message: str) -> bool:
