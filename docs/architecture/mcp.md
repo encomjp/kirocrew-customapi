@@ -30,7 +30,9 @@ own gate model is [computer-use](../system-specs/modules/computer-use.md).
 
 `rebuild_agent_config()` writes exactly **one** file, `~/.kiro/agents/kirocrew.json`.
 There is no second rendered agent file and no agent-file renderer for any other
-provider: Kiro Crew is KiroACP-only.
+provider: Kiro Crew targets kiro-cli by default, and the fork's `claude_code`
+router path (see [acp-client.md § Custom LLM router wiring (fork)](../system-specs/modules/acp-client.md))
+drives claude-agent-acp directly without rendering an agent file.
 
 ### Provider-global scopes come from the platform seam, not the core
 

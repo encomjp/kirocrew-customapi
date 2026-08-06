@@ -2038,6 +2038,179 @@ def _select_tool_title(
     return None
 
 
+# Fork: prefixed model ids for the router picker. The GUI picker shows a
+# provider prefix (cmc/, oc/, ol/, cx/, ag/) so the user can disambiguate
+# providers that serve overlapping raw ids (e.g. gpt-5.6-luna exists under
+# both commandcode and Codex). The local CLIProxyAPI (http://127.0.0.1:8317)
+# serves RAW /v1/models ids and REJECTS the prefixed spelling ("unknown
+# provider"), so every picker id is stripped back to the raw form before it
+# goes upstream — see strip_router_model_prefix().
+_ROUTER_MODEL_PROVIDERS: dict[str, str] = {
+    "cmc": "commandcode",
+    "oc": "opencode-go",
+    "ol": "ollama-cloud",
+    "cx": "codex",
+    "ag": "antigravity",
+}
+
+# Legacy 9router aliases that map onto a current prefix (ocg/ predates oc/).
+# The picker keeps accepting them and strip_router_model_prefix() normalizes
+# them to the raw id before the wire.
+_ROUTER_PREFIX_ALIASES: dict[str, str] = {
+    "ocg": "oc",
+}
+
+# owned_by group in the proxy's /v1/models catalog -> picker prefix. The
+# Codex OAuth models are grouped under owned_by "openai" in that catalog.
+_ROUTER_OWNED_BY_TO_PREFIX: dict[str, str] = {
+    "commandcode": "cmc",
+    "opencode-go": "oc",
+    "ollama-cloud": "ol",
+    "openai": "cx",
+    "antigravity": "ag",
+}
+
+# Raw model ids per provider, exactly as the proxy advertises them in
+# /v1/models. Single source for BOTH the picker whitelist and the raw-id
+# translation — keep the two in lockstep. gpt-5.3-codex-spark is deliberately
+# absent: it returns 400 upstream (verified).
+_ROUTER_RAW_MODEL_IDS: dict[str, tuple[str, ...]] = {
+    "cmc": (
+        "deepseek/deepseek-v4-pro",
+        "deepseek/deepseek-v4-flash",
+        "moonshotai/Kimi-K3",
+        "moonshotai/Kimi-K2.7-Code",
+        "moonshotai/Kimi-K2.7-Code-Highspeed",
+        "moonshotai/Kimi-K2.6",
+        "moonshotai/Kimi-K2.5",
+        "zai-org/GLM-5.2",
+        "zai-org/GLM-5.2-Fast",
+        "zai-org/GLM-5.1",
+        "zai-org/GLM-5",
+        "MiniMaxAI/MiniMax-M3",
+        "MiniMaxAI/MiniMax-M2.7",
+        "MiniMaxAI/MiniMax-M2.5",
+        "xiaomi/mimo-v2.5-pro",
+        "xiaomi/mimo-v2.5",
+        "Qwen/Qwen3.8-Max",
+        "Qwen/Qwen3.7-Max",
+        "Qwen/Qwen3.7-Plus",
+        "Qwen/Qwen3.7-Flash",
+        "Qwen/Qwen3.6-Max-Preview",
+        "Qwen/Qwen3.6-Plus",
+        "stepfun/Step-3.7-Flash",
+        "stepfun/Step-3.5-Flash",
+        "tencent/hy3-paid",
+        "google/gemini-3.6-flash",
+        "google/gemini-3.5-flash",
+        "google/gemini-3.5-flash-lite",
+        "google/gemini-3.1-flash-lite",
+        "sakana/fugu-ultra",
+        "nvidia/nemotron-3-ultra-550b-a55b",
+        "thinkingmachines/inkling",
+        "thinkingmachines/inkling-small",
+        "poolside/laguna-s-2.1-free",
+        "meta/muse-spark-1.1",
+        "meta/muse-spark-1.2",
+        "meta/muse-spark-1.2-contributor",
+        "xai/grok-4.5",
+        "gpt-5.6-luna",
+    ),
+    "oc": (
+        "deepseek-v4-flash",
+        "mimo-v2.5",
+    ),
+    "ol": (
+        # Only the 0731 build is exposed from ollama; the plain and kimi/glm
+        # entries are deliberately absent (operator preference).
+        "deepseek-v4-flash:0731",
+    ),
+    "cx": (
+        "gpt-5.6-luna",
+        "gpt-5.6-terra",
+        "gpt-5.6-sol",
+        "gpt-5.5",
+        "gpt-5.4",
+        "gpt-5.4-mini",
+        "codex-auto-review",
+    ),
+    "ag": (
+        "gemini-3-flash",
+        "gemini-3-flash-agent",
+        "gemini-3.5-flash-extra-low",
+        "gemini-3.1-pro-low",
+        "gemini-3.6-flash-high",
+        "gemini-pro-agent",
+        "gemini-3.1-flash-lite",
+        "gemini-3.1-flash-image",
+        "gemini-3.5-flash-low",
+        "claude-opus-4-6-thinking",
+        "claude-sonnet-4-6",
+        "gpt-oss-120b-medium",
+    ),
+}
+
+
+def _router_picker_id(prefix: str, raw: str) -> str:
+    """The picker spelling of a raw id: prefix + the model's short name.
+
+    Commandcode's raw ids carry a vendor namespace (``deepseek/deepseek-v4-pro``,
+    ``moonshotai/Kimi-K3``) that the picker drops — the prefix already names the
+    provider, so the vendor part is redundant there (the picker shows
+    ``cmc/deepseek-v4-pro``, not ``cmc/deepseek/deepseek-v4-pro``). Ids without a
+    vendor namespace keep their full spelling.
+    """
+    return f"{prefix}/{raw.rsplit('/', 1)[-1]}"
+
+
+def strip_router_model_prefix(model_id: str) -> str:
+    """Translate a picker model id to the raw id the proxy serves.
+
+    The GUI picker shows prefixed ids (``cmc/``, ``oc/``, ``ol/``, ``cx/``,
+    ``ag/``, plus the legacy ``ocg/`` alias) so the user can disambiguate
+    providers, but CLIProxyAPI REJECTS the prefixed spelling ("unknown
+    provider"). Strip a known prefix and return the raw id — the full raw id
+    when the picker spelling already carries it (``cmc/deepseek/deepseek-v4-pro``),
+    otherwise the short name matched back to its raw form
+    (``cmc/deepseek-v4-pro`` -> ``deepseek/deepseek-v4-pro``). Ids without a
+    prefix and ids carrying an unknown prefix pass through unchanged, so this
+    is safe to apply on every upstream path.
+    """
+    prefix, _, rest = model_id.partition("/")
+    prefix = _ROUTER_PREFIX_ALIASES.get(prefix, prefix)
+    raws = _ROUTER_RAW_MODEL_IDS.get(prefix, ())
+    if not raws or not rest:
+        return model_id
+    if rest in raws:
+        return rest
+    for raw in raws:
+        if raw.rsplit("/", 1)[-1] == rest:
+            return raw
+    return model_id
+
+
+def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
+    """Map a raw ``/v1/models`` entry to its prefixed picker id (or None).
+
+    The proxy catalog groups entries by ``owned_by``; the group picks the
+    prefix (``openai`` = the Codex OAuth group -> ``cx/``). The raw id must be
+    a known entry of that provider, so the catalog can never advertise a model
+    the whitelist does not show. When ``owned_by`` is absent or unknown, fall
+    back to scanning the raw-id sets and require an unambiguous match —
+    ``gpt-5.6-luna`` is served by both commandcode and Codex, so the raw id
+    alone cannot disambiguate.
+    """
+    prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(owned_by, "")
+    if prefix:
+        if model_id not in _ROUTER_RAW_MODEL_IDS.get(prefix, ()):
+            return None
+        return _router_picker_id(prefix, model_id)
+    matches = [p for p, raw_ids in _ROUTER_RAW_MODEL_IDS.items() if model_id in raw_ids]
+    if len(matches) != 1:
+        return None
+    return _router_picker_id(matches[0], model_id)
+
+
 class AcpClient:
     """JSON-RPC 2.0 client over stdio with kiro-cli acp."""
 
@@ -2086,7 +2259,9 @@ class AcpClient:
         )
         if self._model_via_env:
             self._extra_env = dict(extra_env or {})
-            self._extra_env["ANTHROPIC_MODEL"] = model or ""
+            # The picker id is prefixed (cmc/...); the proxy serves raw ids
+            # and rejects the prefix, so translate before the env carries it.
+            self._extra_env["ANTHROPIC_MODEL"] = strip_router_model_prefix(model or "")
         else:
             self._extra_env = extra_env or {}
         logger.debug(
@@ -2390,7 +2565,10 @@ class AcpClient:
         # availableModels ["*"] present the adapter refuses
         # oc/deepseek-v4-flash-free; without it, the pinned model runs).
         if getattr(self, "_model_via_env", False) and self._model:
-            data["model"] = self._model
+            # Pin the RAW id — Claude Code treats the settings file as
+            # authoritative and forwards the pinned value verbatim to the
+            # proxy, which rejects prefixed spellings.
+            data["model"] = strip_router_model_prefix(self._model)
         else:
             # availableModels allowlist unlocks the 1M-token window on claude
             # backends that gate it (Bedrock path only).
@@ -2520,130 +2698,23 @@ class AcpClient:
         self.last_prompt_stats.rebase_to_window(win or 0)
 
     # Fork: curated model whitelist for the GUI model picker on the router
-    # path. The full 9router catalog is ~265 entries; only these are shown.
-    # Exact ids as advertised by the router's /v1/models endpoint.
-    #
-    # Two catalogs are merged here:
-    # - The 9router catalog (prefixed ids: cmc/ = commandcode, ocg/ =
-    #   opencode-go free tier, ollama/ = ollama cloud, cx/ = Codex, cu/ =
-    #   Claude-Code-compatible commandcode).
-    # - The CLIProxyAPI catalog (http://127.0.0.1:8317/v1/models; raw ids, no
-    #   prefix — the proxy rejects prefixed spellings, so the ids below are the
-    #   exact /v1/models entries grouped by owned_by: commandcode 45,
-    #   ollama-cloud 4, opencode-go 2, openai (Codex OAuth) 8, antigravity 12.
-    #   The two gpt-image-* entries are excluded: they are image-generation
-    #   models, not chat models, and would fail the Messages endpoint; add them
-    #   via the local model_whitelist.json override if ever needed.)
+    # path. Picker ids are PREFIXED (cmc/, oc/, ol/, cx/, ag/ — the raw-id
+    # table is _ROUTER_RAW_MODEL_IDS) so the user can disambiguate providers;
+    # commandcode ids drop their vendor namespace (cmc/deepseek-v4-pro) and
+    # the legacy ocg/ alias spellings stay selectable too. The prefix is
+    # stripped again before any id goes upstream
+    # (strip_router_model_prefix()), because the local CLIProxyAPI serves raw
+    # ids and rejects the prefixed spelling.
     _ROUTER_MODEL_WHITELIST: frozenset[str] = frozenset(
         {
-            # ── 9router catalog (prefixed namespace) ──────────────────────────
-            # deepseek v4 flash — ollama, commandcode (cmc), opencode-go (ocg,
-            # free tier)
-            "ollama/deepseek-v4-flash",
-            "cmc/deepseek/deepseek-v4-flash",
-            "ocg/deepseek-v4-flash",
-            # glm 5.2 — ollama cloud
-            "ollama/glm-5.2",
-            # kimi 2.6 + 2.7-code — ollama-cloud
-            "ollama/kimi-k2.6",
-            "ollama/kimi-k2.7-code",
-            # alle Codex-Modelle via Codex (cx/)
-            "cx/gpt-5.3-codex-spark",
-            "cx/gpt-5.3-codex-spark-review",
-            "cx/gpt-5.4",
-            "cx/gpt-5.4-mini",
-            "cx/gpt-5.4-mini-review",
-            "cx/gpt-5.4-review",
-            "cx/gpt-5.5",
-            "cx/gpt-5.5-review",
-            "cx/gpt-5.6-luna",
-            "cx/gpt-5.6-luna-review",
-            "cx/gpt-5.6-sol",
-            "cx/gpt-5.6-sol-review",
-            "cx/gpt-5.6-terra",
-            "cx/gpt-5.6-terra-review",
-            # luna via commandcode (cu = Claude Code-kompatibel)
-            "cu/gpt-5.6-luna-high",
-            "cu/gpt-5.6-luna-max",
-            # mimo v2.5 via opencode-go
-            "ocg/mimo-v2.5",
-            # ── CLIProxyAPI catalog (raw ids, unprefixed) ─────────────────────
-            # commandcode (owned_by "commandcode", 45 models)
-            "MiniMaxAI/MiniMax-M2.5",
-            "MiniMaxAI/MiniMax-M2.7",
-            "MiniMaxAI/MiniMax-M3",
-            "Qwen/Qwen3.6-Max-Preview",
-            "Qwen/Qwen3.6-Plus",
-            "Qwen/Qwen3.7-Flash",
-            "Qwen/Qwen3.7-Max",
-            "Qwen/Qwen3.7-Plus",
-            "Qwen/Qwen3.8-Max",
-            "claude-fable-5",
-            "claude-haiku-4-5-20251001",
-            "claude-opus-4-7",
-            "claude-opus-4-8",
-            "claude-opus-5",
-            "claude-sonnet-5",
-            "deepseek/deepseek-v4-flash",
-            "deepseek/deepseek-v4-pro",
-            "google/gemini-3.1-flash-lite",
-            "google/gemini-3.5-flash",
-            "google/gemini-3.5-flash-lite",
-            "google/gemini-3.6-flash",
-            "gpt-5.3-codex",
-            "meta/muse-spark-1.1",
-            "meta/muse-spark-1.2",
-            "meta/muse-spark-1.2-contributor",
-            "moonshotai/Kimi-K2.5",
-            "moonshotai/Kimi-K2.6",
-            "moonshotai/Kimi-K2.7-Code",
-            "moonshotai/Kimi-K2.7-Code-Highspeed",
-            "moonshotai/Kimi-K3",
-            "nvidia/nemotron-3-ultra-550b-a55b",
-            "poolside/laguna-s-2.1-free",
-            "sakana/fugu-ultra",
-            "stepfun/Step-3.5-Flash",
-            "stepfun/Step-3.7-Flash",
-            "tencent/hy3-paid",
-            "thinkingmachines/inkling",
-            "thinkingmachines/inkling-small",
-            "xai/grok-4.5",
-            "xiaomi/mimo-v2.5",
-            "xiaomi/mimo-v2.5-pro",
-            "zai-org/GLM-5",
-            "zai-org/GLM-5.1",
-            "zai-org/GLM-5.2",
-            "zai-org/GLM-5.2-Fast",
-            # ollama-cloud (4 models)
-            "deepseek-v4-flash:0731",
-            "glm-5.2",
-            "kimi-k2.6",
-            "kimi-k2.7-code",
-            # opencode-go (2 models)
-            "deepseek-v4-flash",
-            "mimo-v2.5",
-            # openai / Codex OAuth chat models (8; gpt-image-* excluded)
-            "codex-auto-review",
-            "gpt-5.3-codex-spark",
-            "gpt-5.4",
-            "gpt-5.4-mini",
-            "gpt-5.5",
-            "gpt-5.6-luna",
-            "gpt-5.6-sol",
-            "gpt-5.6-terra",
-            # antigravity (12 models across the 3 OAuth accounts)
-            "claude-opus-4-6-thinking",
-            "claude-sonnet-4-6",
-            "gemini-3-flash",
-            "gemini-3-flash-agent",
-            "gemini-3.1-flash-image",
-            "gemini-3.1-flash-lite",
-            "gemini-3.1-pro-low",
-            "gemini-3.5-flash-extra-low",
-            "gemini-3.5-flash-low",
-            "gemini-3.6-flash-high",
-            "gemini-pro-agent",
-            "gpt-oss-120b-medium",
+            _router_picker_id(prefix, raw)
+            for prefix, raw_ids in _ROUTER_RAW_MODEL_IDS.items()
+            for raw in raw_ids
+        }
+        | {
+            # Legacy 9router alias — ocg/ maps to the same provider as oc/.
+            f"ocg/{raw.rsplit('/', 1)[-1]}"
+            for raw in _ROUTER_RAW_MODEL_IDS["oc"]
         }
     )
 
@@ -2739,9 +2810,12 @@ class AcpClient:
         expects. Falls back to keeping whatever the adapter advertised when
         the router is unreachable or the listing is unparseable.
 
-        Fork: the catalog is filtered to a CURATED whitelist (the full 9router
-        catalog is ~265 entries; the GUI picker should list only the models
-        the user actually wants to switch between).
+        Fork: the catalog is filtered to a CURATED whitelist (the GUI picker
+        should list only the models the user actually wants to switch
+        between), and entries are advertised under their PREFIXED picker ids
+        (cmc/, oc/, ol/, cx/, ag/ — see prefixed_router_model_id()) so the
+        dropdown namespace matches what the user picks and what
+        strip_router_model_prefix() accepts.
         """
         base_url = (self._extra_env or {}).get("ANTHROPIC_BASE_URL", "")
         # The key may live in _extra_env (provider_api_key) OR in the process
@@ -2775,12 +2849,17 @@ class AcpClient:
                 model_id = m.get("id") or m.get("model") or ""
                 if not model_id:
                     continue
-                if model_id not in self.router_model_whitelist():
+                # Advertise the PREFIXED spelling — the picker namespace — and
+                # only entries the whitelist actually shows. The prefix is
+                # stripped again before any id goes upstream
+                # (strip_router_model_prefix()).
+                prefixed = prefixed_router_model_id(model_id, m.get("owned_by") or "")
+                if prefixed is None or prefixed not in self.router_model_whitelist():
                     continue
                 captured.append(
                     {
-                        "modelId": model_id,
-                        "name": model_id,
+                        "modelId": prefixed,
+                        "name": prefixed,
                         "description": m.get("description") or "",
                     }
                 )
@@ -3562,7 +3641,9 @@ class AcpClient:
             # honors it. ANTHROPIC_MODEL env also rides along as the default.
             cc_opts: dict[str, Any] = {}
             if getattr(self, "_model_via_env", False) and self._model:
-                cc_opts["model"] = self._model
+                # The _meta model is forwarded verbatim to Claude Code, which
+                # sends it to the proxy — strip the picker prefix first.
+                cc_opts["model"] = strip_router_model_prefix(self._model)
             new_params["_meta"] = {"claudeCode": {"options": cc_opts}}
             logger.debug(
                 "claude session/new _meta options: %r (model=%r via_env=%s)",

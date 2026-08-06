@@ -1,8 +1,10 @@
 ## LLM Provider Abstraction
 
-KiroCrew drives a single LLM backend: `kiro-cli` over ACP. The `LLMProvider`
-interface is retained as a thin seam (consumers depend only on the ABC), but
-there is exactly one concrete provider — `agent.provider` is fixed to `acp`.
+KiroCrew's default LLM backend is `kiro-cli` over ACP. The `LLMProvider`
+interface is retained as a thin seam (consumers depend only on the ABC), and
+`agent.provider` defaults to `acp`; the fork additionally re-enables the
+`claude_code` backend for Anthropic-compatible routers (see below and
+[acp-client.md § Custom LLM router wiring (fork)](acp-client.md)).
 
 ### Architecture
 
@@ -28,10 +30,12 @@ there is exactly one concrete provider — `agent.provider` is fixed to `acp`.
 **deleted** during de-Amazoning, along with their config fields and the
 multi-provider dispatch factory. `acp/client.py` keeps a dormant
 `ACP_BACKEND_CLAUDE` seam (`AcpProvider` can in principle drive
-`claude-agent-acp`) so an internal companion can re-register a Claude backend,
-but the public provider factory never selects it — `kiro-cli` is the only
-backend.
-See [`../features/claude-code-provider.md`](../features/claude-code-provider.md).
+`claude-agent-acp`) so an internal companion can re-register a Claude backend.
+The fork re-enables that seam: `agent.provider = "claude_code"` selects the
+claude backend and drives any Anthropic-compatible router (e.g. the local
+CLIProxyAPI) through it — see [acp-client.md § Custom LLM router wiring
+(fork)](acp-client.md) for the config, key handling, and the prefixed
+model-id table.
 
 ### LLMProvider ABC (`providers/base.py`)
 
@@ -79,10 +83,12 @@ and speaks JSON-RPC 2.0 over stdio.
 **Dormant backend seam:** `AcpProvider`/`AcpClient` retain an `acp_backend`
 parameter (`"" ` → kiro-cli; `"claude"` / `ACP_BACKEND_CLAUDE` → `claude-agent-acp`)
 so an internal companion can re-register a Claude backend over the same
-client. **The public provider factory only ever selects kiro-cli** — the claude
-branch is unreachable in this build. Its binary-resolution + config-isolation
-details live in [`acp-client.md`](acp-client.md); do not re-add the registration
-glue or a provider selector (see the repo-root `CLAUDE.md`).
+client. In the fork, `create_provider_factory` selects `"claude"` whenever
+`agent.provider == "claude_code"` — the router path documented in
+[acp-client.md § Custom LLM router wiring (fork)](acp-client.md). Its
+binary-resolution + config-isolation details live in
+[`acp-client.md`](acp-client.md); do not re-add the registration glue or a
+provider selector (see the repo-root `CLAUDE.md`).
 
 **Key APIs:**
 - `start()` → `AcpClient.ensure_ready()` (spawns process, handshake, session/new)
@@ -119,7 +125,10 @@ glue or a provider selector (see the repo-root `CLAUDE.md`).
 }
 ```
 
-- `agent.provider` is fixed to `"acp"` (enum `["acp"]`); there is no provider to choose.
+- `agent.provider` defaults to `"acp"` (enum `["acp", "claude_code"]`); the
+  fork's `"claude_code"` value selects the claude backend for a custom LLM
+  router (see above and [acp-client.md § Custom LLM router wiring
+  (fork)](acp-client.md)).
 - `create_provider_factory()` returns a `Callable` that creates the kiro-cli `AcpProvider`.
 
 An agent spec's model is consumed by kiro-cli before Kiro Crew reaches

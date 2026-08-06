@@ -8317,10 +8317,10 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
             # Fork: on the claude_code path the canonical keys ARE the wire
             # format, so translate to the claude_code provider id instead.
             # With a custom base URL (e.g. 9router or CLIProxyAPI) the model id
-            # is the router's own namespace (oc/deepseek-v4-flash-free, or the
-            # proxy's raw ids like deepseek-v4-flash:0731) — never
-            # registry-translate, or the Bedrock-form global.anthropic.* id
-            # reaches a router that rejects it.
+            # is the router's own namespace (a prefixed picker id like
+            # cmc/deepseek-v4-pro, which the ACP client strips to the raw id
+            # before the wire) — never registry-translate, or the Bedrock-form
+            # global.anthropic.* id reaches a router that rejects it.
             if provider_backend == "claude":
                 if not provider_base_url:
                     m = model_registry.to_provider_id(m, "claude_code") if m else m

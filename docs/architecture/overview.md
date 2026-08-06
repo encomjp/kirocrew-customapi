@@ -30,8 +30,11 @@ Three layers sit beneath Kiro Crew, and the distinction matters:
    surfaces onto that runtime and adds everything a runtime deliberately has no
    opinion about.
 
-Kiro Crew is **KiroACP-only**: `agent.provider` is fixed to `acp`, and kiro-cli is
-a hard requirement.
+Kiro Crew defaults to **KiroACP**: `agent.provider` defaults to `acp`, and
+kiro-cli is a hard requirement for that path. The fork additionally supports
+`agent.provider = "claude_code"`, which drives an Anthropic-compatible router
+(e.g. a local CLIProxyAPI) through claude-agent-acp instead — see
+[acp-client.md § Custom LLM router wiring (fork)](../system-specs/modules/acp-client.md).
 
 | Capability | kiro-cli alone | With Kiro Crew |
 |---|---|---|

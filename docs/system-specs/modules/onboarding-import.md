@@ -62,7 +62,7 @@ looks like a gap — reopen the decision in this spec first.
 | **Persona / `SOUL.md` as a persona** | KiroCrew's persona surface is theme-pack persona, governed by `capabilities.theme_persona`. Importing a foreign persona document *as a persona* would inject third-party text into the agent's identity through a path that bypasses that gate. The **directive content** of such a file is still migrated — as memory (below) — but its persona role is dropped. |
 | **Credentials of any kind** | `~/.claude/.credentials.json`, `~/.codex/auth.json`, `.env`, `auth-profiles.json`, gateway tokens, provider API keys. Never read. MCP `env`/`headers` keys matching the secret patterns are stripped and counted into `secret_count`. |
 | **Runtime state** | Subagent records, tool results, checkpoints, hook state, in-flight task state. Not user data. |
-| **Architecture-specific config** | Plugin/hook/binding/agent-list configs, memory-backend selection, provider and model mappings. KiroCrew is KiroACP-only, so provider/model translation has no destination. |
+| **Architecture-specific config** | Plugin/hook/binding/agent-list configs, memory-backend selection, provider and model mappings. KiroCrew's provider namespace is kiro-cli's own (the fork's optional `claude_code` router path keeps its own namespace too — see [acp-client.md § Custom LLM router wiring (fork)](acp-client.md)), so provider/model translation has no destination. |
 | **Opaque binary stores** | Foreign SQLite memory stores are reported as `unsupported_memory_database`, never parsed. |
 | **Allow-lists (as opposed to deny-lists)** | A foreign `permissions.allow` *widens* the security boundary. Importing it would let a foreign config grant tool access inside KiroCrew's own gate. Deny rules only. |
 
