@@ -26,6 +26,12 @@
         "acp_backend": "",
         "provider_base_url": "",
         "provider_api_key": "",
+        "image_redirect": "subagent",
+        "vision_fallback_model": "cmc/mimo-v2.5",
+        "text_only_models": [
+          "oc/deepseek-v4-flash",
+          "ol/deepseek-v4-flash:0731"
+        ],
         "default_agent": "",
         "sweep_agents_backups": false,
         "sandbox": "auto",
@@ -288,6 +294,69 @@
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
+    },
+    {
+      "path": "agent.image_redirect",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Image Redirect",
+      "help": "How image prompts on text-only router models are handled. 'subagent' (default): dispatch the image to a one-shot vision subagent and inject its text description. 'switch': switch the session to the vision fallback model. 'off': pass the image through unchanged (upstream will reject it).",
+      "hasChildren": false,
+      "enumValues": [
+        "subagent",
+        "switch",
+        "off"
+      ],
+      "defaultValue": "subagent"
+    },
+    {
+      "path": "agent.vision_fallback_model",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Vision Fallback Model",
+      "help": "Picker-spelling model id used for image redirects (subagent or switch mode). Must be a vision-capable router model served by the local proxy.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": "cmc/mimo-v2.5"
+    },
+    {
+      "path": "agent.text_only_models",
+      "kind": "core",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Text-Only Models",
+      "help": "Router model ids whose upstream rejects image content; image prompts on these trigger the image_redirect behaviour. Empty list disables the redirect entirely.",
+      "hasChildren": true,
+      "enumValues": null,
+      "defaultValue": [
+        "oc/deepseek-v4-flash",
+        "ol/deepseek-v4-flash:0731"
+      ]
+    },
+    {
+      "path": "agent.text_only_models.*",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "*",
+      "help": "",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": null
     },
     {
       "path": "agent.default_agent",
