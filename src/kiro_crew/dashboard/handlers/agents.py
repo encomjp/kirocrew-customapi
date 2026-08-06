@@ -772,7 +772,16 @@ def _cc_models(request: web.Request, configured_default: str = "") -> list[dict]
 
 
 def _cc_model_row(model_id: str, description: str = "") -> dict:
-    """One curated router-model row in the wire shape the picker SPA expects."""
+    """One curated router-model row in the wire shape the picker SPA expects.
+
+    ``context_window_tokens`` comes from the central resolver (kiro-list cache >
+    static registry > supplementary map > ``[1m]`` heuristic), never a hardcoded
+    literal — the fork previously pinned every router model at 200k, which made
+    a 1M model (e.g. ``ocg/deepseek-v4-flash``) read as 200K in the picker. The
+    frontend learns this value into ``LIVE_WINDOWS``, so the composer's context
+    meter follows it too. Unknown ids resolve to the 1M reference rather than a
+    silent 200k.
+    """
     if not description:
         family = model_id.split("/", 1)[0] if "/" in model_id else model_id
         description = f"{model_id.split('/')[-1]} via {family}"
@@ -780,7 +789,10 @@ def _cc_model_row(model_id: str, description: str = "") -> dict:
         "model_name": model_id,
         "model_id": model_id,
         "description": description,
-        "context_window_tokens": 200000,
+        "context_window_tokens": (
+            model_registry.model_window(model_id)
+            or model_registry.REFERENCE_WINDOW_TOKENS
+        ),
         "rate_multiplier": 1.0,
         "rate_unit": "Credit",
     }

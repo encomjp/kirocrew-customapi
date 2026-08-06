@@ -346,9 +346,25 @@ class CCWorker(Worker):
                         text_parts.append(block.get("text", ""))
 
             elif event_type == "result":
-                for block in event.get("result", {}).get("content", []):
-                    if block.get("type") == "text":
-                        text_parts.append(block.get("text", ""))
+                result = event.get("result")
+                if isinstance(result, str):
+                    # Claude Code's stream-json format puts the final response
+                    # directly in ``result``. Assistant events normally already
+                    # streamed the same text, so use the string only as a fallback
+                    # rather than duplicating the response.
+                    if not text_parts:
+                        text_parts.append(result)
+                elif isinstance(result, dict):
+                    content = result.get("content", [])
+                    if isinstance(content, str):
+                        if not text_parts:
+                            text_parts.append(content)
+                    elif isinstance(content, list):
+                        for block in content:
+                            if isinstance(block, str):
+                                text_parts.append(block)
+                            elif isinstance(block, dict) and block.get("type") == "text":
+                                text_parts.append(block.get("text", ""))
                 break
 
         return "".join(text_parts)

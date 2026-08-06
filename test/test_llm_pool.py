@@ -718,6 +718,26 @@ class TestCCWorker:
         await worker.shutdown()  # should not raise
 
     @pytest.mark.asyncio
+    async def test_collect_response_accepts_string_result(self):
+        worker = CCWorker()
+        worker._event_queue = asyncio.Queue()
+        await worker._event_queue.put({"type": "result", "result": "plain response"})
+
+        assert await worker._collect_response() == "plain response"
+
+    @pytest.mark.asyncio
+    async def test_collect_response_does_not_duplicate_string_result(self):
+        worker = CCWorker()
+        worker._event_queue = asyncio.Queue()
+        await worker._event_queue.put({
+            "type": "assistant",
+            "message": {"content": [{"type": "text", "text": "streamed response"}]},
+        })
+        await worker._event_queue.put({"type": "result", "result": "streamed response"})
+
+        assert await worker._collect_response() == "streamed response"
+
+    @pytest.mark.asyncio
     async def test_start_raises_without_claude(self):
         with patch("kiro_crew.knowledge.llm_pool.shutil.which", return_value=None):
             worker = CCWorker()
