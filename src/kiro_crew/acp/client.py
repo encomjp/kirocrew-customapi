@@ -2037,8 +2037,21 @@ class AcpClient:
     # Fork: curated model whitelist for the GUI model picker on the router
     # path. The full 9router catalog is ~265 entries; only these are shown.
     # Exact ids as advertised by the router's /v1/models endpoint.
+    #
+    # Two catalogs are merged here:
+    # - The 9router catalog (prefixed ids: cmc/ = commandcode, ocg/ =
+    #   opencode-go free tier, ollama/ = ollama cloud, cx/ = Codex, cu/ =
+    #   Claude-Code-compatible commandcode).
+    # - The CLIProxyAPI catalog (http://127.0.0.1:8317/v1/models; raw ids, no
+    #   prefix — the proxy rejects prefixed spellings, so the ids below are the
+    #   exact /v1/models entries grouped by owned_by: commandcode 45,
+    #   ollama-cloud 4, opencode-go 2, openai (Codex OAuth) 8, antigravity 12.
+    #   The two gpt-image-* entries are excluded: they are image-generation
+    #   models, not chat models, and would fail the Messages endpoint; add them
+    #   via the local model_whitelist.json override if ever needed.)
     _ROUTER_MODEL_WHITELIST: frozenset[str] = frozenset(
         {
+            # ── 9router catalog (prefixed namespace) ──────────────────────────
             # deepseek v4 flash — ollama, commandcode (cmc), opencode-go (ocg,
             # free tier)
             "ollama/deepseek-v4-flash",
@@ -2069,6 +2082,83 @@ class AcpClient:
             "cu/gpt-5.6-luna-max",
             # mimo v2.5 via opencode-go
             "ocg/mimo-v2.5",
+            # ── CLIProxyAPI catalog (raw ids, unprefixed) ─────────────────────
+            # commandcode (owned_by "commandcode", 45 models)
+            "MiniMaxAI/MiniMax-M2.5",
+            "MiniMaxAI/MiniMax-M2.7",
+            "MiniMaxAI/MiniMax-M3",
+            "Qwen/Qwen3.6-Max-Preview",
+            "Qwen/Qwen3.6-Plus",
+            "Qwen/Qwen3.7-Flash",
+            "Qwen/Qwen3.7-Max",
+            "Qwen/Qwen3.7-Plus",
+            "Qwen/Qwen3.8-Max",
+            "claude-fable-5",
+            "claude-haiku-4-5-20251001",
+            "claude-opus-4-7",
+            "claude-opus-4-8",
+            "claude-opus-5",
+            "claude-sonnet-5",
+            "deepseek/deepseek-v4-flash",
+            "deepseek/deepseek-v4-pro",
+            "google/gemini-3.1-flash-lite",
+            "google/gemini-3.5-flash",
+            "google/gemini-3.5-flash-lite",
+            "google/gemini-3.6-flash",
+            "gpt-5.3-codex",
+            "meta/muse-spark-1.1",
+            "meta/muse-spark-1.2",
+            "meta/muse-spark-1.2-contributor",
+            "moonshotai/Kimi-K2.5",
+            "moonshotai/Kimi-K2.6",
+            "moonshotai/Kimi-K2.7-Code",
+            "moonshotai/Kimi-K2.7-Code-Highspeed",
+            "moonshotai/Kimi-K3",
+            "nvidia/nemotron-3-ultra-550b-a55b",
+            "poolside/laguna-s-2.1-free",
+            "sakana/fugu-ultra",
+            "stepfun/Step-3.5-Flash",
+            "stepfun/Step-3.7-Flash",
+            "tencent/hy3-paid",
+            "thinkingmachines/inkling",
+            "thinkingmachines/inkling-small",
+            "xai/grok-4.5",
+            "xiaomi/mimo-v2.5",
+            "xiaomi/mimo-v2.5-pro",
+            "zai-org/GLM-5",
+            "zai-org/GLM-5.1",
+            "zai-org/GLM-5.2",
+            "zai-org/GLM-5.2-Fast",
+            # ollama-cloud (4 models)
+            "deepseek-v4-flash:0731",
+            "glm-5.2",
+            "kimi-k2.6",
+            "kimi-k2.7-code",
+            # opencode-go (2 models)
+            "deepseek-v4-flash",
+            "mimo-v2.5",
+            # openai / Codex OAuth chat models (8; gpt-image-* excluded)
+            "codex-auto-review",
+            "gpt-5.3-codex-spark",
+            "gpt-5.4",
+            "gpt-5.4-mini",
+            "gpt-5.5",
+            "gpt-5.6-luna",
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            # antigravity (12 models across the 3 OAuth accounts)
+            "claude-opus-4-6-thinking",
+            "claude-sonnet-4-6",
+            "gemini-3-flash",
+            "gemini-3-flash-agent",
+            "gemini-3.1-flash-image",
+            "gemini-3.1-flash-lite",
+            "gemini-3.1-pro-low",
+            "gemini-3.5-flash-extra-low",
+            "gemini-3.5-flash-low",
+            "gemini-3.6-flash-high",
+            "gemini-pro-agent",
+            "gpt-oss-120b-medium",
         }
     )
 
@@ -2170,11 +2260,16 @@ class AcpClient:
         """
         base_url = (self._extra_env or {}).get("ANTHROPIC_BASE_URL", "")
         # The key may live in _extra_env (provider_api_key) OR in the process
-        # environment (ANTHROPIC_API_KEY exported by the user) — the spawn env
-        # merges both, so read both here too.
+        # environment (ANTHROPIC_API_KEY exported by the user, or the
+        # CLIProxyAPI-specific CLIPROXY_API_KEY) — the spawn env merges all
+        # three, so read them all here too.
         import os as _os
 
-        api_key = (self._extra_env or {}).get("ANTHROPIC_API_KEY", "") or _os.environ.get("ANTHROPIC_API_KEY", "")
+        api_key = (
+            (self._extra_env or {}).get("ANTHROPIC_API_KEY", "")
+            or _os.environ.get("ANTHROPIC_API_KEY", "")
+            or _os.environ.get("CLIPROXY_API_KEY", "")
+        )
         if not base_url:
             return
         try:

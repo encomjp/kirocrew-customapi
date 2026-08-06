@@ -147,6 +147,33 @@ Never hardcode a model id (`claude-*`, `opus*`, `sonnet*`, `haiku*`, `gpt-*`,
 `code-review.yml` fails on a newly added hardcoded model literal outside
 `model_registry*`, the config schema, and tests.
 
+### Custom LLM router wiring (fork)
+
+The fork can drive any Anthropic-compatible router through the `claude_code`
+backend instead of (or alongside) kiro-cli's `acp` provider:
+
+- **Config:** `agent.provider = "claude_code"`, `agent.provider_base_url` (e.g.
+  `http://127.0.0.1:8317`), `agent.model` = a router-served model id. The model
+  id is the router's OWN namespace — it must never pass through
+  `model_registry` translation (the Bedrock-form `global.anthropic.*` id would
+  be rejected). On this path the model rides in via `ANTHROPIC_MODEL` env
+  (`AcpClient._model_via_env`), not `session/set_model`.
+- **Key:** `agent.provider_api_key`, or the environment. The fork-specific
+  `CLIPROXY_API_KEY` env var is mapped into `ANTHROPIC_API_KEY` at the provider
+  factory, so a local proxy needs no credential in `config.json`
+  (`config/loader.py` `create_provider_factory`; precedence: config key >
+  `ANTHROPIC_API_KEY` env > `CLIPROXY_API_KEY` env).
+- **GUI picker catalog:** the router path advertises `GET {base_url}/v1/models`
+  filtered through `AcpClient._ROUTER_MODEL_WHITELIST` (9router prefixed ids
+  plus the CLIProxyAPI raw ids; extend locally via `model_whitelist.json` under
+  the config dir, merged by `AcpClient.router_model_whitelist()`).
+- **CLIProxyAPI (localhost:8317):** Anthropic Messages at
+  `http://127.0.0.1:8317/v1/messages`, catalog at `/v1/models`. Model ids are
+  the raw unprefixed `/v1/models` entries (a prefixed spelling is rejected);
+  `owned_by` groups: `commandcode` 45, `ollama-cloud` 4, `opencode-go` 2,
+  `openai` (Codex OAuth) 8 chat models, `antigravity` 12. The two `gpt-image-*`
+  entries are image-generation only and stay out of the picker whitelist.
+
 ## Specification management
 
 - MUST read the relevant spec under `docs/system-specs/modules/` before changing
