@@ -5271,29 +5271,36 @@ class AcpClient:
     async def _send_prompt(self, message: str) -> int:
         # Shared with AcpSessionHandle.prompt via prompt_blocks so the two paths
         # cannot drift.
-        # Fork: text-only router providers (oc/ = opencode-go, ol/ = ollama)
-        # reject image content upstream with a 400. When the active model is
-        # text-only and the message carries an image path, redirect THIS turn
-        # to the vision-capable cmc/mimo-v2.5 so screenshots/pastes work
-        # instead of erroring. The switch is sticky for the session (the SDK
-        # has no per-turn model); the picker shows the original model until the
-        # user changes it.
+        # Fork: text-only router models (oc/deepseek-v4-flash, ol/…) reject
+        # image content upstream with a 400. When the active model is text-only
+        # and the message carries an image path, dispatch the image to a
+        # one-shot VISION subagent (cmc/mimo-v2.5) and inject its text
+        # description in place of the image. The main session keeps its
+        # text-only model; the subagent session is spawned on demand and torn
+        # down after the turn.
         model_id = self._model or ""
-        if self._is_router_text_only_model(model_id) and _message_has_image_path(message):
-            if self._is_claude:
-                await self.set_config_option("model", _VISION_FALLBACK_RAW)
-            else:
-                await self._send_request(
-                    METHOD_SET_MODEL,
-                    {"sessionId": self._session_id, "modelId": _VISION_FALLBACK_RAW},
+        if _is_router_text_only_model(model_id) and _message_has_image_path(message):
+            try:
+                message = await self._describe_images_with_vision(message)
+            except Exception:
+                # Vision subagent failed — fall back to the previous behaviour:
+                # switch the session to the vision model so the image still has
+                # a chance to be processed instead of hard-erroring.
+                logger.warning(
+                    "Vision subagent failed; switching session %s to %s",
+                    model_id,
+                    _VISION_FALLBACK_RAW,
+                    exc_info=True,
                 )
-            self._model = _VISION_FALLBACK_RAW
-            self._resolved_model_id = _VISION_FALLBACK_RAW
-            logger.info(
-                "Image prompt on text-only model %s — redirected to %s",
-                model_id,
-                _VISION_FALLBACK_RAW,
-            )
+                if self._is_claude:
+                    await self.set_config_option("model", "cmc/mimo-v2.5")
+                else:
+                    await self._send_request(
+                        METHOD_SET_MODEL,
+                        {"sessionId": self._session_id, "modelId": "cmc/mimo-v2.5"},
+                    )
+                self._model = "cmc/mimo-v2.5"
+                self._resolved_model_id = "cmc/mimo-v2.5"
         return await self._send_request(
             METHOD_PROMPT,
             {
@@ -5303,6 +5310,66 @@ class AcpClient:
                 "prompt": await asyncio.to_thread(build_prompt_blocks, message),
             },
         )
+
+    async def _describe_images_with_vision(self, message: str) -> str:
+        """Replace each image path in *message* with a vision-subagent description.
+
+        Spawns a one-shot claude-agent-acp session on the vision-capable
+        ``cmc/mimo-v2.5`` (same proxy env as this client), sends it the image
+        with a describe prompt, collects the text reply, and substitutes
+        ``[image: <name>: <description>]`` for the path in the message. The
+        subagent process is shut down afterwards, so the main session keeps its
+        text-only model. Raises on any failure so the caller can fall back.
+        """
+        from kiro_crew.acp.prompt_blocks import _PATH_RE
+
+        paths = [m.group(1).strip() for m in _PATH_RE.finditer(message)]
+        if not paths:
+            return message
+        replacement = message
+        for path in paths:
+            description = await self._vision_subagent_describe(path)
+            name = Path(path).name
+            marker = f"[image: {name}: {description.strip() or 'unavailable'}]"
+            # Replace the FIRST occurrence of the literal path; the regex may
+            # also match substrings of other paths (e.g. shared dirs), so an
+            # anchored literal replace is safer than a global regex sub.
+            replacement = replacement.replace(path, marker, 1)
+        return replacement
+
+    async def _vision_subagent_describe(self, image_path: str) -> str:
+        """One-shot vision subagent: describe *image_path* on cmc/mimo-v2.5."""
+        from kiro_crew.acp.client import AcpClient as _Self  # noqa: F811
+
+        # Fresh env: drop the PARENT's ANTHROPIC_MODEL (which belongs to the
+        # text-only model) so this client derives its own model via
+        # _model_via_env -> ANTHROPIC_MODEL=<stripped mimo id>. Keep the base
+        # URL + key.
+        sub_env = dict(self._extra_env or {})
+        sub_env.pop("ANTHROPIC_MODEL", None)
+        sub = _Self(
+            work_dir=self._work_dir / "vision-subagent",
+            # Picker spelling — the client strips the prefix to the raw id for
+            # the wire and validates config options against the picker form.
+            model="cmc/mimo-v2.5",
+            sandbox_mode=self._sandbox_mode,
+            extra_env=sub_env,
+            acp_backend=self._acp_backend,
+            audit_source="vision-subagent",
+        )
+        try:
+            chunks: list[str] = []
+            async for chunk in sub.send_message_stream(
+                f"Describe this image in 1-3 short sentences: {image_path}",
+                timeout=120.0,
+            ):
+                chunks.append(chunk)
+            return "".join(chunks).strip()
+        finally:
+            try:
+                await sub.shutdown()
+            except Exception:
+                logger.debug("vision subagent shutdown failed", exc_info=True)
 
     async def _read_prompt_response(self, req_id: int, timeout: float) -> str:
         output: list[str] = []
