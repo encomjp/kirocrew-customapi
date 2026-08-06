@@ -2146,6 +2146,33 @@ class TestAcpClientTrackUsageUpdate:
         # A real usage_update marks the counts authoritative.
         assert stats.context_tokens_from_usage is True
 
+    def test_sdk_200k_default_overridden_for_known_1m_router_model(self, tmp_path):
+        """Fork: claude-agent-acp reports its 200K default for router models it
+        does not know (deepseek-v4-flash serves at 1M). A known model's usage
+        update must prefer the central registry window over the SDK default so
+        the context meter does not read 200K for a 1M model."""
+        client = AcpClient(work_dir=tmp_path)
+        client._model = "cmc/deepseek-v4-flash"
+        client._resolved_model_id = "deepseek-v4-flash"
+        client._track_usage_update(self._usage_msg(100_000, 200_000))
+        stats = client.last_prompt_stats
+        # 100K of a 1M window → 10%, not 50% of a false 200K.
+        assert stats.context_window_tokens == 1_000_000
+        assert stats.context_pct == 10.0
+        assert stats.context_used_tokens == 100_000
+        assert stats.context_tokens_from_usage is True
+
+    def test_unknown_model_keeps_sdk_window(self, tmp_path):
+        """A model the registry does not know keeps the SDK-reported window —
+        the override must never invent a window."""
+        client = AcpClient(work_dir=tmp_path)
+        client._model = "cmc/unknown-model"
+        client._resolved_model_id = "unknown-model"
+        client._track_usage_update(self._usage_msg(50_000, 200_000))
+        stats = client.last_prompt_stats
+        assert stats.context_window_tokens == 200_000
+        assert stats.context_pct == 25.0
+
     def test_metadata_pct_does_not_clobber_authoritative_tokens(self, tmp_path):
         """Regression: a real usage_update (408K/1000K → 40.8%) followed by a
         kiro metadata contextUsagePercentage=73 must NOT leave the headline pct
