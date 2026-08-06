@@ -164,4 +164,8 @@ jobs:
       - name: Attach to GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
+          # Re-runs / re-publishes must not fail because a same-named asset
+          # already exists on the release (the fork's release may already hold
+          # the Linux assets from a local build).
+          overwrite: true
           files: release/*
