@@ -9,8 +9,6 @@ apart when they share model names.
 Contract:
 - Known prefix + short name -> the provider's raw id (lookup table, e.g.
   ``cmc/deepseek-v4-pro`` -> ``deepseek/deepseek-v4-pro``).
-- ``ocg/`` is a legacy alias for ``oc/`` (opencode-go); pinned by the existing
-  ``ocg/deepseek-v4-flash`` tests in test_cc_models_endpoint.py.
 - Unknown or absent prefix -> id passes through unchanged.
 - ollama-cloud exposes ONLY ``deepseek-v4-flash:0731``; ``gpt-5.3-codex-spark``
   is deliberately absent (verified 400 upstream).
@@ -35,8 +33,6 @@ _STRIP_CASES = [
     # oc/ -> opencode-go (raw ids are short)
     ("oc/deepseek-v4-flash", "deepseek-v4-flash"),
     ("oc/mimo-v2.5", "mimo-v2.5"),
-    # ocg/ -> legacy alias for opencode-go, kept for existing configs
-    ("ocg/deepseek-v4-flash", "deepseek-v4-flash"),
     # ol/ -> ollama-cloud (only deepseek-v4-flash:0731 is exposed)
     ("ol/deepseek-v4-flash:0731", "deepseek-v4-flash:0731"),
     # cx/ -> codex (openai-owned models via Codex OAuth)
@@ -101,7 +97,6 @@ class TestRouterModelWhitelistPrefixed:
         "cmc/Kimi-K3",
         "oc/deepseek-v4-flash",
         "oc/mimo-v2.5",
-        "ocg/deepseek-v4-flash",  # legacy alias (pinned in test_cc_models_endpoint)
         "ol/deepseek-v4-flash:0731",
         "cx/gpt-5.6-luna",
         "cx/gpt-5.4",
@@ -155,3 +150,34 @@ class TestRouterModelWhitelistPrefixed:
         wl = AcpClient.router_model_whitelist()
         assert "cx/gpt-5.3-codex-spark" not in wl
         assert "gpt-5.3-codex-spark" not in wl
+
+class TestTextOnlyRedirect:
+    """Image prompts on text-only router models redirect to the vision model."""
+
+    def test_text_only_detection(self) -> None:
+        from kiro_crew.acp.client import _is_router_text_only_model
+
+        assert _is_router_text_only_model("oc/deepseek-v4-flash") is True
+        assert _is_router_text_only_model("ol/deepseek-v4-flash:0731") is True
+        # vision-capable providers are NOT text-only
+        assert _is_router_text_only_model("cmc/deepseek-v4-pro") is False
+        assert _is_router_text_only_model("ag/gemini-3.6-flash-high") is False
+        assert _is_router_text_only_model("cx/gpt-5.6-luna") is False
+        # no prefix / bare id -> not text-only (pass-through)
+        assert _is_router_text_only_model("deepseek-v4-flash") is False
+        assert _is_router_text_only_model("") is False
+
+    def test_message_has_image_path(self) -> None:
+        from kiro_crew.acp.client import _message_has_image_path
+
+        assert _message_has_image_path("look at /tmp/shot.png please") is True
+        assert _message_has_image_path("attach /home/me/pic.jpg and explain") is True
+        assert _message_has_image_path("just text, no images here") is False
+        assert _message_has_image_path("") is False
+        assert _message_has_image_path("   ") is False
+
+    def test_vision_fallback_is_mimo(self) -> None:
+        from kiro_crew.acp.client import _VISION_FALLBACK_RAW
+
+        # must be the raw commandcode id the proxy serves (image-capable, 1M)
+        assert _VISION_FALLBACK_RAW == "xiaomi/mimo-v2.5"

@@ -2053,12 +2053,8 @@ _ROUTER_MODEL_PROVIDERS: dict[str, str] = {
     "ag": "antigravity",
 }
 
-# Legacy 9router aliases that map onto a current prefix (ocg/ predates oc/).
-# The picker keeps accepting them and strip_router_model_prefix() normalizes
-# them to the raw id before the wire.
-_ROUTER_PREFIX_ALIASES: dict[str, str] = {
-    "ocg": "oc",
-}
+# (Legacy prefix aliases were removed with the ocg/ spelling — see git history.)
+_ROUTER_PREFIX_ALIASES: dict[str, str] = {}
 
 # owned_by group in the proxy's /v1/models catalog -> picker prefix. The
 # Codex OAuth models are grouped under owned_by "openai" in that catalog.
@@ -2160,7 +2156,7 @@ def strip_router_model_prefix(model_id: str) -> str:
     """Translate a picker model id to the raw id the proxy serves.
 
     The GUI picker shows prefixed ids (``cmc/``, ``oc/``, ``ol/``, ``cx/``,
-    ``ag/``, plus the legacy ``ocg/`` alias) so the user can disambiguate
+    ``ag/``, so the user can disambiguate
     providers, but CLIProxyAPI REJECTS the prefixed spelling ("unknown
     provider"). Strip a known prefix and return the raw id — the full raw id
     when the picker spelling already carries it (``cmc/deepseek/deepseek-v4-pro``),
@@ -2202,6 +2198,45 @@ def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
     if len(matches) != 1:
         return None
     return _router_picker_id(matches[0], model_id)
+
+
+# Vision-capable fallback for image prompts on text-only router models.
+# cmc/mimo-v2.5 (commandcode) accepts images (verified 200) and is fast.
+_VISION_FALLBACK_RAW = "xiaomi/mimo-v2.5"
+# Text-only router providers whose upstream rejects image content (400).
+_TEXT_ONLY_ROUTER_PREFIXES = frozenset({"oc", "ol"})
+
+
+def _is_router_text_only_model(model_id: str) -> bool:
+    """True when *model_id* is a prefixed router model on a text-only provider.
+
+    opencode-go (``oc/``) and ollama-cloud (``ol/``) reject image content
+    upstream ("unknown variant image_url" / "does not support image input"),
+    so image prompts must be redirected to a vision-capable model.
+    """
+    if not model_id or "/" not in model_id:
+        return False
+    prefix = model_id.split("/", 1)[0]
+    return prefix in _TEXT_ONLY_ROUTER_PREFIXES
+
+
+def _message_has_image_path(message: str) -> bool:
+    """Best-effort check whether *message* references an image file on disk.
+
+    Reuses the same path regex ``build_prompt_blocks`` scans, so the redirect
+    fires exactly when the prompt builder would emit an image block. A false
+    negative (path not matched) simply skips the redirect and the upstream
+    rejects the image as before; a false positive only switches model for a
+    text-only model, which is harmless.
+    """
+    if not message or not message.strip():
+        return False
+    try:
+        from kiro_crew.acp.prompt_blocks import _PATH_RE
+
+        return bool(_PATH_RE.search(message))
+    except Exception:  # pragma: no cover - import/attr drift guard
+        return False
 
 
 class AcpClient:
@@ -2693,9 +2728,8 @@ class AcpClient:
     # Fork: curated model whitelist for the GUI model picker on the router
     # path. Picker ids are PREFIXED (cmc/, oc/, ol/, cx/, ag/ — the raw-id
     # table is _ROUTER_RAW_MODEL_IDS) so the user can disambiguate providers;
-    # commandcode ids drop their vendor namespace (cmc/deepseek-v4-pro) and
-    # the legacy ocg/ alias spellings stay selectable too. The prefix is
-    # stripped again before any id goes upstream
+    # commandcode ids drop their vendor namespace (cmc/deepseek-v4-pro). The
+    # prefix is stripped again before any id goes upstream
     # (strip_router_model_prefix()), because the local CLIProxyAPI serves raw
     # ids and rejects the prefixed spelling.
     _ROUTER_MODEL_WHITELIST: frozenset[str] = frozenset(
@@ -2703,11 +2737,6 @@ class AcpClient:
             _router_picker_id(prefix, raw)
             for prefix, raw_ids in _ROUTER_RAW_MODEL_IDS.items()
             for raw in raw_ids
-        }
-        | {
-            # Legacy 9router alias — ocg/ maps to the same provider as oc/.
-            f"ocg/{raw.rsplit('/', 1)[-1]}"
-            for raw in _ROUTER_RAW_MODEL_IDS["oc"]
         }
     )
 
@@ -5235,6 +5264,29 @@ class AcpClient:
     async def _send_prompt(self, message: str) -> int:
         # Shared with AcpSessionHandle.prompt via prompt_blocks so the two paths
         # cannot drift.
+        # Fork: text-only router providers (oc/ = opencode-go, ol/ = ollama)
+        # reject image content upstream with a 400. When the active model is
+        # text-only and the message carries an image path, redirect THIS turn
+        # to the vision-capable cmc/mimo-v2.5 so screenshots/pastes work
+        # instead of erroring. The switch is sticky for the session (the SDK
+        # has no per-turn model); the picker shows the original model until the
+        # user changes it.
+        model_id = self._model or ""
+        if self._is_router_text_only_model(model_id) and _message_has_image_path(message):
+            if self._is_claude:
+                await self.set_config_option("model", _VISION_FALLBACK_RAW)
+            else:
+                await self._send_request(
+                    METHOD_SET_MODEL,
+                    {"sessionId": self._session_id, "modelId": _VISION_FALLBACK_RAW},
+                )
+            self._model = _VISION_FALLBACK_RAW
+            self._resolved_model_id = _VISION_FALLBACK_RAW
+            logger.info(
+                "Image prompt on text-only model %s — redirected to %s",
+                model_id,
+                _VISION_FALLBACK_RAW,
+            )
         return await self._send_request(
             METHOD_PROMPT,
             {
