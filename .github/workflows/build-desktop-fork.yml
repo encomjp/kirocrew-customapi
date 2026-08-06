@@ -1,0 +1,155 @@
+name: Build Desktop (fork, all platforms)
+
+# Fork-specific desktop build for macOS + Windows. Linux desktop is NOT built
+# here: the fork's local build already produces the AppImage + deb, and the
+# wheel/CLI packaging lane (publish-cli.yml) covers the rest.
+#
+# Why a new standalone workflow instead of the upstream build-desktop.yml /
+# build-windows.yml: those are reusable (workflow_call) lanes driven by
+# nightly.yml / release.yml. On a fork, GitHub Actions registers only
+# workflows whose files are newly pushed to the default branch, so the
+# inherited lanes 404 on dispatch here (verified 2026-08-06). This workflow
+# owns its trigger and its release attach, so it registers like
+# build-wheel.yml does and needs no caller.
+#
+# Runs on macos-latest + windows-latest (a public repo gets free GitHub-hosted
+# macOS/Windows runners). Produces unsigned artifacts — scripts/notarize.js
+# and sign-windows.js both SKIP cleanly when no Apple/AWS credentials are
+# present (see their headers), so a credential-less build still succeeds. The
+# artifact is for the fork's GitHub Releases, not the upstream notarized feed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          Version stamp. Defaults to src/kiro_crew/__init__.py's __version__.
+          Leave blank to build the checkout's own version.
+        required: false
+        type: string
+  # Also rebuild when a release is published, so the desktop app always lands
+  # on GitHub Releases alongside the wheel/CLI packages. Matches the fork's
+  # tag convention (v<ver>-9router.<N>).
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build-desktop:
+    name: Build Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact-name: build-macos-desktop
+          - os: windows-latest
+            artifact-name: build-windows-desktop
+
+    env:
+      # Signing is skipped by design (fork has no Apple/AWS credentials). The
+      # sign/notarize hooks skip cleanly on their own, but electron-builder's
+      # local certificate discovery must stay OFF so it never stumbles onto a
+      # stray identity on the runner.
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      # The build script provisions python-build-standalone interpreters through
+      # uv; neither runner ships it, and the script's curl|sh fallback is
+      # POSIX-shaped.
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Stamp version
+        id: stamp
+        shell: bash
+        env:
+          STAMP_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "${STAMP_VERSION}" ]; then
+            # BSD-sed-compatible -i.bak form (macOS) / Git Bash (Windows).
+            sed -i.bak "s/__version__ = \".*\"/__version__ = \"${STAMP_VERSION}\"/" src/kiro_crew/__init__.py
+            rm -f src/kiro_crew/__init__.py.bak
+            node -e "const fs=require('fs');const f='website/electron/package.json';const p=JSON.parse(fs.readFileSync(f));p.version=process.env.STAMP_VERSION;fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+            echo "Stamped desktop version: ${STAMP_VERSION}"
+          else
+            echo "No version input — using checkout's __version__."
+          fi
+          VERSION="$(grep -m1 '__version__' src/kiro_crew/__init__.py | sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building desktop: ${VERSION}"
+
+      - name: Build desktop app
+        shell: bash
+        # UNIVERSAL=0: host-arch-only macOS build. macos-latest is arm64, so
+        # this yields an arm64 DMG/zip. Windows builds the NSIS installer.
+        # The build script is bash on all three runners (macOS + Git Bash).
+        run: |
+          UNIVERSAL=0 bash packaging/build-desktop.sh
+
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: |
+            website/electron/dist/*.dmg
+            website/electron/dist/*.zip
+            website/electron/dist/*.exe
+            website/electron/dist/*.exe.blockmap
+          if-no-files-found: error
+          retention-days: 14
+
+  attach-release:
+    name: Attach desktop apps to release
+    # Runs only on a release-published trigger; skipped for manual dispatch
+    # (manual builds are uploaded as Actions artifacts, which the run page
+    # already exposes).
+    if: github.event_name == 'release'
+    needs: [build-desktop]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: artifacts
+
+      - name: Rename artifacts with release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          VERSION="${GITHUB_REF_NAME#v}"
+          # electron-builder naming is space-y (<ProductName> <ver>.dmg); copy
+          # to space-free, fork-conventional names.
+          if ls artifacts/build-macos-desktop/*.dmg >/dev/null 2>&1; then
+            cp artifacts/build-macos-desktop/*.dmg "release/KiroCrew-${VERSION}-mac.dmg"
+          fi
+          if ls artifacts/build-macos-desktop/*.zip >/dev/null 2>&1; then
+            cp artifacts/build-macos-desktop/*.zip "release/KiroCrew-${VERSION}-mac.zip"
+          fi
+          if ls artifacts/build-windows-desktop/*.exe >/dev/null 2>&1; then
+            cp artifacts/build-windows-desktop/*.exe "release/KiroCrew-Setup-${VERSION}.exe"
+          fi
+          ls -la release/
+
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          files: release/*
