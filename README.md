@@ -26,6 +26,28 @@
   <a href="#upstream"><strong>Upstream</strong></a>
 </p>
 
+<p align="center">
+  <strong>Download the desktop app</strong> — every release ships Linux, macOS, and Windows builds.
+</p>
+
+<p align="center">
+  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest/download/KiroCrew-0.2.0.AppImage">
+    <img alt="Download Linux AppImage" src="https://img.shields.io/badge/Linux-AppImage-3b82f6?style=for-the-badge&logo=linux&logoColor=white">
+  </a>
+  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest/download/KiroCrew-0.2.0-arm64.dmg">
+    <img alt="Download macOS DMG" src="https://img.shields.io/badge/macOS-Apple%20Silicon-a3a3a3?style=for-the-badge&logo=apple&logoColor=white">
+  </a>
+  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest/download/KiroCrew.Setup.0.2.0.exe">
+    <img alt="Download Windows Setup" src="https://img.shields.io/badge/Windows-Setup%20.exe-00b4d8?style=for-the-badge&logo=windows&logoColor=white">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest">
+    <strong>All assets &amp; older versions →</strong>
+  </a>
+</p>
+
 ---
 
 ## Why
@@ -77,11 +99,11 @@ python3 -m venv .venv
 .venv/bin/kirocrew --version
 ```
 
-(For the desktop app, download the fork's own build from
-[encomjp/KiroCrew-9Router releases](https://github.com/encomjp/KiroCrew-9Router/releases) — the fork ships
-Linux (AppImage + deb), macOS (DMG + zip), and Windows (NSIS exe). Use the fork's build, not upstream's:
-upstream's desktop shell is provider-agnostic, but only this fork's release is verified against the
-`claude_code` router backend.)
+**Prefer the desktop app?** Grab the build for your OS with the buttons at the top of this README
+(AppImage for Linux, DMG for macOS Apple Silicon, Setup.exe for Windows), or browse everything under
+[the latest release](https://github.com/encomjp/KiroCrew-9Router/releases/latest). Use the fork's build,
+not upstream's: upstream's desktop shell is provider-agnostic, but only this fork's release is verified
+against the `claude_code` router backend.
 
 ### 2. Install the Claude Code backend
 
