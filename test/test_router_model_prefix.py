@@ -179,7 +179,26 @@ class TestTextOnlyRedirect:
         assert _message_has_image_path("   ") is False
 
     def test_vision_fallback_is_mimo(self) -> None:
-        from kiro_crew.acp.client import _VISION_FALLBACK_RAW
+        from kiro_crew.acp.client import (
+            _DEFAULT_TEXT_ONLY_MODELS,
+            _DEFAULT_VISION_FALLBACK_MODEL,
+            AcpClient,
+        )
 
-        # must be the raw commandcode id the proxy serves (image-capable, 1M)
-        assert _VISION_FALLBACK_RAW == "xiaomi/mimo-v2.5"
+        # default fallback must be the commandcode picker id (image-capable, 1M)
+        assert _DEFAULT_VISION_FALLBACK_MODEL == "cmc/mimo-v2.5"
+        # instance wiring: config overrides land on the client
+        client = AcpClient(
+            work_dir="/tmp/x",
+            image_redirect="switch",
+            vision_fallback_model="ag/gemini-3.6-flash-high",
+            text_only_models=["oc/deepseek-v4-flash"],
+        )
+        assert client._image_redirect == "switch"
+        assert client._vision_fallback_model == "ag/gemini-3.6-flash-high"
+        assert client._text_only_models == frozenset({"oc/deepseek-v4-flash"})
+        # defaults still contain the two verified text-only models
+        assert "oc/deepseek-v4-flash" in _DEFAULT_TEXT_ONLY_MODELS
+        assert "ol/deepseek-v4-flash:0731" in _DEFAULT_TEXT_ONLY_MODELS
+        # oc/mimo-v2.5 is NOT text-only (vision-capable)
+        assert "oc/mimo-v2.5" not in _DEFAULT_TEXT_ONLY_MODELS

@@ -849,6 +849,36 @@ class AgentConfig:
             "variables for shared machines.",
         ),
     )
+    image_redirect: str = field(
+        default="subagent",
+        metadata=_meta(
+            "Image Redirect",
+            "How image prompts on text-only router models are handled. "
+            "'subagent' (default): dispatch the image to a one-shot vision "
+            "subagent and inject its text description. 'switch': switch the "
+            "session to the vision fallback model. 'off': pass the image "
+            "through unchanged (upstream will reject it).",
+            enum=["subagent", "switch", "off"],
+        ),
+    )
+    vision_fallback_model: str = field(
+        default="cmc/mimo-v2.5",
+        metadata=_meta(
+            "Vision Fallback Model",
+            "Picker-spelling model id used for image redirects (subagent or "
+            "switch mode). Must be a vision-capable router model served by the "
+            "local proxy.",
+        ),
+    )
+    text_only_models: list[str] = field(
+        default_factory=lambda: ["oc/deepseek-v4-flash", "ol/deepseek-v4-flash:0731"],
+        metadata=_meta(
+            "Text-Only Models",
+            "Router model ids whose upstream rejects image content; image "
+            "prompts on these trigger the image_redirect behaviour. Empty list "
+            "disables the redirect entirely.",
+        ),
+    )
     default_agent: str = field(
         default="",
         metadata=_meta("Default Agent", "Default agent name for new sessions."),
@@ -4545,6 +4575,17 @@ class KiroCrewConfig:
                 provider=agent_data.get("provider", "acp"),
                 provider_base_url=agent_data.get("provider_base_url", ""),
                 provider_api_key=agent_data.get("provider_api_key", ""),
+                image_redirect=agent_data.get("image_redirect", "subagent"),
+                vision_fallback_model=agent_data.get(
+                    "vision_fallback_model", "cmc/mimo-v2.5"
+                ),
+                text_only_models=list(
+                    agent_data.get(
+                        "text_only_models",
+                        ["oc/deepseek-v4-flash", "ol/deepseek-v4-flash:0731"],
+                    )
+                    or []
+                ),
                 default_agent=agent_data.get("default_agent", ""),
                 sandbox=agent_data.get("sandbox", "off"),
                 sandbox_allow_no_isolation=bool(
@@ -5575,6 +5616,11 @@ class KiroCrewConfig:
                 mcp_gateway_overlay=_gw_overlay,
                 mcp_gateway_settings_mcp_json=_gw_settings,
                 mcp_gateway_socket=_gw_socket,
+                # Fork: image-redirect configuration (text-only models dispatch
+                # image prompts to a vision-capable model).
+                image_redirect=self.agent.image_redirect,
+                vision_fallback_model=self.agent.vision_fallback_model,
+                text_only_models=list(self.agent.text_only_models),
             )
 
         return _acp

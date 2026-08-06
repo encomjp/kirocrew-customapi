@@ -244,6 +244,9 @@ class AcpProvider(LLMProvider):
         mcp_gateway_settings_mcp_json: str | Path | None = None,
         mcp_gateway_socket: str | Path | None = None,
         permission_mode: str | None = None,
+        image_redirect: str = "subagent",
+        vision_fallback_model: str = "cmc/mimo-v2.5",
+        text_only_models: list[str] | None = None,
     ) -> None:
         kwargs: dict[str, Any] = {
             "work_dir": work_dir,
@@ -260,6 +263,10 @@ class AcpProvider(LLMProvider):
             # kiro-cli path — fully inert; a companion-registered backend threads
             # it.
             "permission_mode": permission_mode,
+            # Fork: image-redirect configuration.
+            "image_redirect": image_redirect,
+            "vision_fallback_model": vision_fallback_model,
+            "text_only_models": list(text_only_models or []),
         }
         if agent:
             kwargs["agent"] = agent

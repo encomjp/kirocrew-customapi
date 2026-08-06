@@ -1759,15 +1759,17 @@ def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
     return _router_picker_id(matches[0], model_id)
 
 
-# Vision-capable fallback for image prompts on text-only router models.
-# cmc/mimo-v2.5 (commandcode) accepts images (verified 200) and is fast.
-_VISION_FALLBACK_RAW = "xiaomi/mimo-v2.5"
-# Text-only router MODELS whose upstream rejects image content (400).
+# Default vision-capable fallback for image prompts on text-only router
+# models. cmc/mimo-v2.5 (commandcode) accepts images (verified 200) and is
+# fast. Overridable per install via agent.vision_fallback_model.
+_DEFAULT_VISION_FALLBACK_MODEL = "cmc/mimo-v2.5"
+# Default text-only router MODELS whose upstream rejects image content (400).
 # Verified per model against the live upstreams (2026-08-07):
 #   - oc/deepseek-v4-flash (opencode-go) -> 400 "unknown variant image_url"
 #   - ol/deepseek-v4-flash:0731 (ollama-cloud) -> 400 "does not support image input"
 #   - oc/mimo-v2.5 (opencode-go) -> 200 WITH image (vision-capable, NOT listed)
-_TEXT_ONLY_ROUTER_MODELS = frozenset(
+# Overridable per install via agent.text_only_models.
+_DEFAULT_TEXT_ONLY_MODELS: frozenset[str] = frozenset(
     {
         "oc/deepseek-v4-flash",
         "ol/deepseek-v4-flash:0731",
@@ -1782,8 +1784,10 @@ def _is_router_text_only_model(model_id: str) -> bool:
     reject image content upstream (400), so image prompts must be redirected
     to a vision-capable model. Matched by exact model id — a per-model list,
     because e.g. opencode-go's mimo-v2.5 DOES accept images (verified 200).
+    Instance-level overrides come from ``AcpClient._text_only_models``; this
+    module-level helper checks the defaults.
     """
-    return model_id in _TEXT_ONLY_ROUTER_MODELS
+    return model_id in _DEFAULT_TEXT_ONLY_MODELS
 
 
 def _message_has_image_path(message: str) -> bool:
@@ -1823,6 +1827,9 @@ class AcpClient:
         mcp_gateway_settings_mcp_json: str | Path | None = None,
         mcp_gateway_socket: str | Path | None = None,
         permission_mode: str | None = None,
+        image_redirect: str = "subagent",
+        vision_fallback_model: str = "cmc/mimo-v2.5",
+        text_only_models: list[str] | None = None,
     ):
         if work_dir:
             self._work_dir = Path(work_dir)
@@ -1836,6 +1843,12 @@ class AcpClient:
         self._agent = agent
         self._sandbox_mode = sandbox_mode
         self._acp_backend = acp_backend
+        # Fork: image-redirect configuration (text-only router models dispatch
+        # image prompts to a vision-capable model). Defaults match the module
+        # constants so direct constructions behave like before.
+        self._image_redirect = image_redirect or "subagent"
+        self._vision_fallback_model = vision_fallback_model or "cmc/mimo-v2.5"
+        self._text_only_models = frozenset(text_only_models or _DEFAULT_TEXT_ONLY_MODELS)
         # Fork: when the claude backend points at a custom ANTHROPIC_BASE_URL
         # (e.g. a local router), the model id is the router's own namespace and
         # the claude-agent-acp adapter rejects it in set_config_option. Skip
@@ -4616,28 +4629,32 @@ class AcpClient:
         # text-only model; the subagent session is spawned on demand and torn
         # down after the turn.
         model_id = self._model or ""
-        if _is_router_text_only_model(model_id) and _message_has_image_path(message):
-            try:
-                message = await self._describe_images_with_vision(message)
-            except Exception:
-                # Vision subagent failed — fall back to the previous behaviour:
-                # switch the session to the vision model so the image still has
-                # a chance to be processed instead of hard-erroring.
-                logger.warning(
-                    "Vision subagent failed; switching session %s to %s",
-                    model_id,
-                    _VISION_FALLBACK_RAW,
-                    exc_info=True,
-                )
-                if self._is_claude:
-                    await self.set_config_option("model", "cmc/mimo-v2.5")
-                else:
-                    await self._send_request(
-                        METHOD_SET_MODEL,
-                        {"sessionId": self._session_id, "modelId": "cmc/mimo-v2.5"},
+        is_text_only = model_id in self._text_only_models
+        if (
+            self._image_redirect != "off"
+            and is_text_only
+            and _message_has_image_path(message)
+        ):
+            if self._image_redirect == "subagent":
+                try:
+                    message = await self._describe_images_with_vision(message)
+                except Exception:
+                    # Vision subagent failed — fall back to the session switch
+                    # so the image still has a chance instead of hard-erroring.
+                    logger.warning(
+                        "Vision subagent failed; switching session %s to %s",
+                        model_id,
+                        self._vision_fallback_model,
+                        exc_info=True,
                     )
-                self._model = "cmc/mimo-v2.5"
-                self._resolved_model_id = "cmc/mimo-v2.5"
+                    await self._switch_to_vision_model()
+            else:  # "switch"
+                logger.info(
+                    "Image prompt on text-only model %s — switching to %s",
+                    model_id,
+                    self._vision_fallback_model,
+                )
+                await self._switch_to_vision_model()
         return await self._send_request(
             METHOD_PROMPT,
             {
@@ -4651,9 +4668,10 @@ class AcpClient:
     async def _describe_images_with_vision(self, message: str) -> str:
         """Replace each image path in *message* with a vision-subagent description.
 
-        Spawns a one-shot claude-agent-acp session on the vision-capable
-        ``cmc/mimo-v2.5`` (same proxy env as this client), sends it the image
-        with a describe prompt, collects the text reply, and substitutes
+        Spawns a one-shot claude-agent-acp session on the configured
+        vision-capable fallback model (default ``cmc/mimo-v2.5``, same proxy
+        env as this client), sends it the image with a describe prompt,
+        collects the text reply, and substitutes
         ``[image: <name>: <description>]`` for the path in the message. The
         subagent process is shut down afterwards, so the main session keeps its
         text-only model. Raises on any failure so the caller can fall back.
@@ -4674,8 +4692,20 @@ class AcpClient:
             replacement = replacement.replace(path, marker, 1)
         return replacement
 
+    async def _switch_to_vision_model(self) -> None:
+        """Switch this session to the configured vision fallback model."""
+        if self._is_claude:
+            await self.set_config_option("model", self._vision_fallback_model)
+        else:
+            await self._send_request(
+                METHOD_SET_MODEL,
+                {"sessionId": self._session_id, "modelId": self._vision_fallback_model},
+            )
+        self._model = self._vision_fallback_model
+        self._resolved_model_id = self._vision_fallback_model
+
     async def _vision_subagent_describe(self, image_path: str) -> str:
-        """One-shot vision subagent: describe *image_path* on cmc/mimo-v2.5."""
+        """One-shot vision subagent: describe *image_path* on the vision model."""
         from kiro_crew.acp.client import AcpClient as _Self  # noqa: F811
 
         # Fresh env: drop the PARENT's ANTHROPIC_MODEL (which belongs to the
@@ -4688,7 +4718,7 @@ class AcpClient:
             work_dir=self._work_dir / "vision-subagent",
             # Picker spelling — the client strips the prefix to the raw id for
             # the wire and validates config options against the picker form.
-            model="cmc/mimo-v2.5",
+            model=self._vision_fallback_model,
             sandbox_mode=self._sandbox_mode,
             extra_env=sub_env,
             acp_backend=self._acp_backend,
