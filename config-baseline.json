@@ -21,6 +21,8 @@
         "role_efforts": {},
         "reasoning_effort": "",
         "provider": "acp",
+        "provider_base_url": "",
+        "provider_api_key": "",
         "default_agent": "",
         "sandbox": "off",
         "sandbox_allow_no_isolation": false,
@@ -195,12 +197,41 @@
       "sensitive": false,
       "tags": [],
       "label": "Provider",
-      "help": "LLM provider backend (KiroACP / kiro-cli).",
+      "help": "LLM provider backend. 'acp' drives kiro-cli; 'claude_code' drives claude-agent-acp (Claude Code over ACP, pointing at any ANTHROPIC_BASE_URL — e.g. a local router).",
       "hasChildren": false,
       "enumValues": [
-        "acp"
+        "acp",
+        "claude_code"
       ],
       "defaultValue": "acp"
+    },
+    {
+      "path": "agent.provider_base_url",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Provider Base URL",
+      "help": "ANTHROPIC_BASE_URL for the claude_code backend. Empty inherits the environment. Local endpoints (http://127.0.0.1, http://192.168.x.x) are always allowed.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.provider_api_key",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Provider API Key",
+      "help": "ANTHROPIC_API_KEY for the claude_code backend. Empty inherits the environment (ANTHROPIC_API_KEY, or CLIPROXY_API_KEY for a local CLIProxyAPI). Stored in config.json — prefer environment variables for shared machines.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
     },
     {
       "path": "agent.default_agent",

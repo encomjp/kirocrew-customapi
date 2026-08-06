@@ -2,7 +2,7 @@
   <img src="assets/banner.svg" alt="Kiro Crew. Keep work moving. Runs on your hardware, remembers across sessions, keeps working unattended.">
 </p>
 
-<h1 align="center">KiroCrew-9Router</h1>
+<h1 align="center">kirocrew-customapi</h1>
 
 <p align="center">
   <strong>Kiro Crew — with the Claude Code ACP backend re-enabled for self-hosted LLM routers.</strong>
@@ -31,19 +31,19 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest/download/KiroCrew-0.2.0.AppImage">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0.AppImage">
     <img alt="Download Linux AppImage" src="https://img.shields.io/badge/Linux-AppImage-3b82f6?style=for-the-badge&logo=linux&logoColor=white">
   </a>
-  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest/download/KiroCrew-0.2.0-arm64.dmg">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0-arm64.dmg">
     <img alt="Download macOS DMG" src="https://img.shields.io/badge/macOS-Apple%20Silicon-a3a3a3?style=for-the-badge&logo=apple&logoColor=white">
   </a>
-  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest/download/KiroCrew.Setup.0.2.0.exe">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew.Setup.0.2.0.exe">
     <img alt="Download Windows Setup" src="https://img.shields.io/badge/Windows-Setup%20.exe-00b4d8?style=for-the-badge&logo=windows&logoColor=white">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/encomjp/KiroCrew-9Router/releases/latest">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest">
     <strong>All assets &amp; older versions →</strong>
   </a>
 </p>
@@ -74,7 +74,7 @@ Kiro Crew.
 ## How it works
 
 <p align="center">
-  <img src="assets/how-it-works.png" alt="KiroCrew-9Router architecture: Kiro Crew -> claude-agent-acp -> Claude Code -> 9router" width="900">
+  <img src="assets/how-it-works.png" alt="kirocrew-customapi architecture: Kiro Crew -> claude-agent-acp -> Claude Code -> 9router" width="900">
 </p>
 
 - **Kiro Crew** (this fork) acts as the harness: sessions, tool permissions, memory, cron, dashboard.
@@ -92,8 +92,8 @@ Kiro Crew.
 The quickest path is a source install into a virtualenv (Python 3.11+):
 
 ```bash
-git clone https://github.com/encomjp/KiroCrew-9Router.git
-cd KiroCrew-9Router
+git clone https://github.com/encomjp/kirocrew-customapi.git
+cd kirocrew-customapi
 python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/kirocrew --version
@@ -101,7 +101,7 @@ python3 -m venv .venv
 
 **Prefer the desktop app?** Grab the build for your OS with the buttons at the top of this README
 (AppImage for Linux, DMG for macOS Apple Silicon, Setup.exe for Windows), or browse everything under
-[the latest release](https://github.com/encomjp/KiroCrew-9Router/releases/latest). Use the fork's build,
+[the latest release](https://github.com/encomjp/kirocrew-customapi/releases/latest). Use the fork's build,
 not upstream's: upstream's desktop shell is provider-agnostic, but only this fork's release is verified
 against the `claude_code` router backend.
 
