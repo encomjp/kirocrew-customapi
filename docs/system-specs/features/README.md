@@ -16,4 +16,3 @@ single subsystem belongs in [../modules/](../modules/README.md) instead.
 | [turn-complete-chime.md](turn-complete-chime.md) | The end-of-turn audio cue. |
 | [turn-stats-footer.md](turn-stats-footer.md) | The per-turn token and timing footer. |
 | [code-approvers.md](code-approvers.md) | Tier routing for code review approvers. |
-| [claude-code-provider.md](claude-code-provider.md) | The removed standalone provider, kept as the record of what the KiroACP-only collapse took out. |

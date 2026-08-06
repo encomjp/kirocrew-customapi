@@ -55,6 +55,80 @@ macOS internal-sandbox delegation never depended on a private launch-path
 basename. Resolution runs off the event loop (`asyncio.to_thread`, shielded so a
 cancelled caller still lets the worker settle).
 
+## Custom LLM router wiring (fork)
+
+The fork can drive any Anthropic-compatible router through the `claude_code`
+backend instead of (or alongside) kiro-cli's `acp` provider:
+
+- **Config:** `agent.provider = "claude_code"`, `agent.provider_base_url` (e.g.
+  `http://127.0.0.1:8317`), `agent.model` = a router-served model id. The model
+  id is the router's OWN namespace — it must never pass through
+  `model_registry` translation (the Bedrock-form `global.anthropic.*` id would
+  be rejected). On this path the model rides in via `ANTHROPIC_MODEL` env
+  (`AcpClient._model_via_env`), not `session/set_model`.
+- **Key:** `agent.provider_api_key`, or the environment. The fork-specific
+  `CLIPROXY_API_KEY` env var is mapped into `ANTHROPIC_API_KEY` at the provider
+  factory, so a local proxy needs no credential in `config.json`
+  (`config/loader.py` `create_provider_factory`; precedence: config key >
+  `ANTHROPIC_API_KEY` env > `CLIPROXY_API_KEY` env). The same env key
+  authorizes the catalog fetch (`AcpClient._capture_router_models`).
+- **GUI picker catalog:** the router path advertises `GET {base_url}/v1/models`
+  filtered through `AcpClient._ROUTER_MODEL_WHITELIST` — entries are the
+  PREFIXED picker ids from the table below; extend locally via
+  `model_whitelist.json` under the config dir, merged by
+  `AcpClient.router_model_whitelist()`.
+
+### CLIProxyAPI (localhost:8317)
+
+The default router path is a local **CLIProxyAPI**:
+
+- Anthropic Messages at `http://127.0.0.1:8317/v1/messages`; catalog at
+  `/v1/models` (OpenAI-style listing, same shape 9router exposes).
+- The proxy **rejects prefixed model ids** ("unknown provider"), so the client
+  strips a known prefix and sends the provider's RAW model id upstream.
+- `owned_by` groups on `/v1/models`: `commandcode`, `ollama-cloud`,
+  `opencode-go`, `openai` (Codex OAuth chat models), `antigravity`. The two
+  `gpt-image-*` entries are image-generation only and stay out of the picker
+  whitelist.
+
+### Prefix model-id table
+
+The picker and whitelist expose PREFIXED ids (`cmc/deepseek-v4-pro`,
+`ol/deepseek-v4-flash:0731`) so the user can disambiguate providers; the
+request path strips the prefix and sends the RAW id to the proxy.
+
+| Prefix | Provider / base URL | Raw model ids (advertised as `<prefix><raw id>`) |
+|---|---|---|
+| `cmc/` | commandcode — `https://api.commandcode.ai/provider/v1` | `deepseek/deepseek-v4-pro`, `deepseek/deepseek-v4-flash`, `moonshotai/Kimi-K3`, `moonshotai/Kimi-K2.7-Code`, `moonshotai/Kimi-K2.7-Code-Highspeed`, `moonshotai/Kimi-K2.6`, `moonshotai/Kimi-K2.5`, `zai-org/GLM-5.2`, `zai-org/GLM-5.2-Fast`, `zai-org/GLM-5.1`, `zai-org/GLM-5`, `MiniMaxAI/MiniMax-M3`, `MiniMaxAI/MiniMax-M2.7`, `MiniMaxAI/MiniMax-M2.5`, `xiaomi/mimo-v2.5-pro`, `xiaomi/mimo-v2.5`, `Qwen/Qwen3.8-Max`, `Qwen/Qwen3.7-Max`, `Qwen/Qwen3.7-Plus`, `Qwen/Qwen3.7-Flash`, `Qwen/Qwen3.6-Max-Preview`, `Qwen/Qwen3.6-Plus`, `stepfun/Step-3.7-Flash`, `stepfun/Step-3.5-Flash`, `tencent/hy3-paid`, `google/gemini-3.6-flash`, `google/gemini-3.5-flash`, `google/gemini-3.5-flash-lite`, `google/gemini-3.1-flash-lite`, `sakana/fugu-ultra`, `nvidia/nemotron-3-ultra-550b-a55b`, `thinkingmachines/inkling`, `thinkingmachines/inkling-small`, `poolside/laguna-s-2.1-free`, `meta/muse-spark-1.1`, `meta/muse-spark-1.2`, `meta/muse-spark-1.2-contributor`, `xai/grok-4.5`, `gpt-5.6-luna` |
+| `oc/` | opencode-go — `https://opencode.ai/zen/go/v1`; **legacy alias `ocg/` maps to the same provider** (existing tests pin `ocg/deepseek-v4-flash`) | `deepseek-v4-flash`, `mimo-v2.5` |
+| `ol/` | ollama-cloud — `https://ollama.com/v1`; **ONLY** `deepseek-v4-flash:0731` (kimi-k2.6, glm-5.2, kimi-k2.7-code are deliberately NOT exposed from ollama) | `deepseek-v4-flash:0731` |
+| `cx/` | codex — models `owned_by` `openai` via Codex OAuth; `gpt-5.3-codex-spark` is excluded (verified 400 upstream) | `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`, `gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, `codex-auto-review` |
+| `ag/` | antigravity — three OAuth accounts, round-robin | `gemini-3-flash`, `gemini-3-flash-agent`, `gemini-3.5-flash-extra-low`, `gemini-3.1-pro-low`, `gemini-3.6-flash-high`, `gemini-pro-agent`, `gemini-3.1-flash-lite`, `gemini-3.1-flash-image`, `gemini-3.5-flash-low`, `claude-opus-4-6-thinking`, `claude-sonnet-4-6`, `gpt-oss-120b-medium` |
+
+**Behavior contract:**
+
+- Picker/whitelist entries use the prefixed spelling; before sending to the
+  proxy the client strips the known prefix and sends the raw id
+  (`cmc/deepseek-v4-pro` → `deepseek/deepseek-v4-pro`,
+  `ol/deepseek-v4-flash:0731` → `deepseek-v4-flash:0731`).
+- An unknown or absent prefix passes through unchanged; an already-raw id
+  (e.g. `deepseek-v4-flash:0731`) passes through unchanged.
+- An empty alias value means "default" — no special alias applies.
+
+**Runtime example** (`~/.kiro/crew/config.json`; the API key is either
+`agent.provider_api_key` or the `CLIPROXY_API_KEY` env var — never hardcode one
+in docs):
+
+```json
+{
+  "agent": {
+    "provider": "claude_code",
+    "model": "cmc/deepseek-v4-pro",
+    "provider_base_url": "http://127.0.0.1:8317"
+  }
+}
+```
+
 ## Tool Permission Protocol
 
 `session/request_permission` is the single inbound channel. The agent sends:

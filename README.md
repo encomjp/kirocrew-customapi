@@ -12,8 +12,9 @@
   This fork of <a href="https://github.com/kirodotdev/KiroCrew">kirodotdev/KiroCrew</a> re-activates the
   dormant <code>claude_code</code> provider (the <code>ACP_BACKEND_CLAUDE</code> seam) so you can drive
   Kiro Crew through <strong>your own model router</strong> — e.g. a local
-  <a href="https://github.com/decolua/9router">9router</a> instance speaking the Anthropic API — instead of
-  Kiro's built-in Bedrock catalog.
+  <a href="https://github.com/decolua/9router">9router</a> or a
+  <strong>CLIProxyAPI</strong> instance at <code>http://localhost:8317</code> speaking the Anthropic API —
+  instead of Kiro's built-in Bedrock catalog.
 </p>
 
 <p align="center">
@@ -21,6 +22,7 @@
   <a href="#how-it-works"><strong>How it works</strong></a> ·
   <a href="#installation"><strong>Installation</strong></a> ·
   <a href="#configuration"><strong>Configuration</strong></a> ·
+  <a href="#model-prefixes"><strong>Model prefixes</strong></a> ·
   <a href="#tutorial-connect-your-own-model"><strong>Tutorial: plug in your own models</strong></a> ·
   <a href="#troubleshooting"><strong>Troubleshooting</strong></a> ·
   <a href="#upstream"><strong>Upstream</strong></a>
@@ -67,6 +69,9 @@ This fork re-adds the missing glue:
 - `settings.local.json` seeding so Claude Code honors the router model (see Troubleshooting for the
   `availableModels` pitfall)
 - `kirocrew doctor` reports claude-acp as the active backend when configured
+- the GUI model picker shows **prefixed model ids** (`cmc/`, `oc/`, `ol/`, `cx/`, `ag/`); Kiro Crew strips
+  the prefix before the request leaves, so CLIProxyAPI always receives the provider's raw model id
+- `CLIPROXY_API_KEY` env var feeds the local proxy when `provider_api_key` / `ANTHROPIC_API_KEY` are unset
 
 Everything else — desktop app, dashboard, cron, memory, skills, subagents, apps — is untouched upstream
 Kiro Crew.
@@ -74,16 +79,18 @@ Kiro Crew.
 ## How it works
 
 <p align="center">
-  <img src="assets/how-it-works.png" alt="kirocrew-customapi architecture: Kiro Crew -> claude-agent-acp -> Claude Code -> 9router" width="900">
+  <img src="assets/how-it-works.png" alt="kirocrew-customapi architecture: Kiro Crew -> claude-agent-acp -> Claude Code -> CLIProxyAPI" width="900">
 </p>
 
 - **Kiro Crew** (this fork) acts as the harness: sessions, tool permissions, memory, cron, dashboard.
 - **claude-agent-acp** is the ACP adapter (`@agentclientprotocol/claude-agent-acp` on npm) that exposes the
   Claude Code CLI as an ACP backend.
 - **Claude Code** is the agent engine. It talks to your router via `ANTHROPIC_BASE_URL` /
-  `ANTHROPIC_MODEL` / `ANTHROPIC_API_KEY`.
-- **9router** (or any Anthropic-compatible endpoint) serves the actual models. No Kiro account, no AWS
-  Bedrock, no cloud — your traffic stays on your hardware.
+  `ANTHROPIC_MODEL` / `ANTHROPIC_API_KEY` (the fork maps `CLIPROXY_API_KEY` into `ANTHROPIC_API_KEY`
+  when no other key is set).
+- **CLIProxyAPI** (or any Anthropic-compatible endpoint) serves the actual models — commandcode,
+  ollama-cloud, opencode-go, codex, and antigravity behind one local proxy at `http://localhost:8317`.
+  No Kiro account, no AWS Bedrock, no cloud — your traffic stays on your hardware.
 
 ## Installation
 
@@ -136,15 +143,16 @@ You should see `claude-acp: ✅ ... (active backend)` once `agent.provider` is s
 # Switch the backend from kiro-cli to Claude Code
 .venv/bin/kirocrew config set agent.provider claude_code
 
-# Point it at your router (Anthropic-compatible endpoint)
-.venv/bin/kirocrew config set agent.provider_base_url "http://127.0.0.1:20128"
+# Point it at your router (Anthropic-compatible endpoint) — e.g. CLIProxyAPI
+.venv/bin/kirocrew config set agent.provider_base_url "http://127.0.0.1:8317"
 
-# Optional: API key for the router. If unset, ANTHROPIC_API_KEY from the
-# environment is used instead.
+# Optional: API key for the router. If unset, ANTHROPIC_API_KEY or the
+# fork-specific CLIPROXY_API_KEY from the environment is used instead.
 .venv/bin/kirocrew config set agent.provider_api_key "your-key"
 
-# Pick a model from your router's catalog
-.venv/bin/kirocrew config set agent.model "<your-model-id>"
+# Pick a model — use the PREFIXED id from the Model prefixes table
+# (e.g. cmc/deepseek-v4-pro)
+.venv/bin/kirocrew config set agent.model "cmc/deepseek-v4-pro"
 ```
 
 Equivalent environment variables (used when the config fields are empty):
@@ -154,50 +162,143 @@ Equivalent environment variables (used when the config fields are empty):
 | `agent.provider_base_url` | `ANTHROPIC_BASE_URL`  |
 | `agent.provider_api_key`  | `ANTHROPIC_API_KEY`   |
 | `agent.model`             | `ANTHROPIC_MODEL`     |
+| *(local proxy key)*       | `CLIPROXY_API_KEY` — fallback when `provider_api_key` and `ANTHROPIC_API_KEY` are unset |
 
-The `provider_api_key` config field is stored in plaintext in `~/.kiro/crew/config.json` — prefer the
-environment variable if your router requires a key.
+The `provider_api_key` config field is stored in plaintext in `~/.kiro/crew/config.json` — prefer an
+environment variable (`ANTHROPIC_API_KEY` or `CLIPROXY_API_KEY`) if your router requires a key.
+
+## Model prefixes
+
+CLIProxyAPI's five providers share model names — `deepseek-v4-flash` exists on both commandcode and
+opencode-go, `gpt-5.6-luna` on both commandcode and codex. The router picker therefore shows
+**prefixed ids** so you can tell them apart. Before the request reaches the proxy, Kiro Crew strips the
+known prefix and sends the **raw id** — CLIProxyAPI rejects prefixed spellings (`unknown provider`).
+
+Provider base URLs and notes:
+
+- `cmc/` → commandcode — `https://api.commandcode.ai/provider/v1`
+- `oc/` → opencode-go — `https://opencode.ai/zen/go/v1`. `ocg/` is a **legacy alias** for the same
+  provider (kept so existing configs keep working).
+- `ol/` → ollama-cloud — `https://ollama.com/v1`. Only `deepseek-v4-flash:0731` is exposed — the other
+  ollama-cloud models are deliberately not in the picker.
+- `cx/` → codex — models owned by OpenAI via Codex OAuth. `gpt-5.3-codex-spark` is **not** included
+  (verified to 400 upstream).
+- `ag/` → antigravity — three OAuth accounts, round-robin.
+
+Rules: a known prefix is stripped and the raw id is sent upstream; an unknown or absent prefix passes
+through **unchanged**; an empty alias value means "default" — no special alias is applied.
+
+| Prefix | Provider | Picker id | Raw id sent upstream |
+|---|---|---|---|
+| `cmc/` | commandcode | `cmc/deepseek-v4-pro` | `deepseek/deepseek-v4-pro` |
+| `cmc/` | commandcode | `cmc/deepseek-v4-flash` | `deepseek/deepseek-v4-flash` |
+| `cmc/` | commandcode | `cmc/Kimi-K3` | `moonshotai/Kimi-K3` |
+| `cmc/` | commandcode | `cmc/Kimi-K2.7-Code` | `moonshotai/Kimi-K2.7-Code` |
+| `cmc/` | commandcode | `cmc/Kimi-K2.7-Code-Highspeed` | `moonshotai/Kimi-K2.7-Code-Highspeed` |
+| `cmc/` | commandcode | `cmc/Kimi-K2.6` | `moonshotai/Kimi-K2.6` |
+| `cmc/` | commandcode | `cmc/Kimi-K2.5` | `moonshotai/Kimi-K2.5` |
+| `cmc/` | commandcode | `cmc/GLM-5.2` | `zai-org/GLM-5.2` |
+| `cmc/` | commandcode | `cmc/GLM-5.2-Fast` | `zai-org/GLM-5.2-Fast` |
+| `cmc/` | commandcode | `cmc/GLM-5.1` | `zai-org/GLM-5.1` |
+| `cmc/` | commandcode | `cmc/GLM-5` | `zai-org/GLM-5` |
+| `cmc/` | commandcode | `cmc/MiniMax-M3` | `MiniMaxAI/MiniMax-M3` |
+| `cmc/` | commandcode | `cmc/MiniMax-M2.7` | `MiniMaxAI/MiniMax-M2.7` |
+| `cmc/` | commandcode | `cmc/MiniMax-M2.5` | `MiniMaxAI/MiniMax-M2.5` |
+| `cmc/` | commandcode | `cmc/mimo-v2.5-pro` | `xiaomi/mimo-v2.5-pro` |
+| `cmc/` | commandcode | `cmc/mimo-v2.5` | `xiaomi/mimo-v2.5` |
+| `cmc/` | commandcode | `cmc/Qwen3.8-Max` | `Qwen/Qwen3.8-Max` |
+| `cmc/` | commandcode | `cmc/Qwen3.7-Max` | `Qwen/Qwen3.7-Max` |
+| `cmc/` | commandcode | `cmc/Qwen3.7-Plus` | `Qwen/Qwen3.7-Plus` |
+| `cmc/` | commandcode | `cmc/Qwen3.7-Flash` | `Qwen/Qwen3.7-Flash` |
+| `cmc/` | commandcode | `cmc/Qwen3.6-Max-Preview` | `Qwen/Qwen3.6-Max-Preview` |
+| `cmc/` | commandcode | `cmc/Qwen3.6-Plus` | `Qwen/Qwen3.6-Plus` |
+| `cmc/` | commandcode | `cmc/Step-3.7-Flash` | `stepfun/Step-3.7-Flash` |
+| `cmc/` | commandcode | `cmc/Step-3.5-Flash` | `stepfun/Step-3.5-Flash` |
+| `cmc/` | commandcode | `cmc/hy3-paid` | `tencent/hy3-paid` |
+| `cmc/` | commandcode | `cmc/gemini-3.6-flash` | `google/gemini-3.6-flash` |
+| `cmc/` | commandcode | `cmc/gemini-3.5-flash` | `google/gemini-3.5-flash` |
+| `cmc/` | commandcode | `cmc/gemini-3.5-flash-lite` | `google/gemini-3.5-flash-lite` |
+| `cmc/` | commandcode | `cmc/gemini-3.1-flash-lite` | `google/gemini-3.1-flash-lite` |
+| `cmc/` | commandcode | `cmc/fugu-ultra` | `sakana/fugu-ultra` |
+| `cmc/` | commandcode | `cmc/nemotron-3-ultra-550b-a55b` | `nvidia/nemotron-3-ultra-550b-a55b` |
+| `cmc/` | commandcode | `cmc/inkling` | `thinkingmachines/inkling` |
+| `cmc/` | commandcode | `cmc/inkling-small` | `thinkingmachines/inkling-small` |
+| `cmc/` | commandcode | `cmc/laguna-s-2.1-free` | `poolside/laguna-s-2.1-free` |
+| `cmc/` | commandcode | `cmc/muse-spark-1.1` | `meta/muse-spark-1.1` |
+| `cmc/` | commandcode | `cmc/muse-spark-1.2` | `meta/muse-spark-1.2` |
+| `cmc/` | commandcode | `cmc/muse-spark-1.2-contributor` | `meta/muse-spark-1.2-contributor` |
+| `cmc/` | commandcode | `cmc/grok-4.5` | `xai/grok-4.5` |
+| `cmc/` | commandcode | `cmc/gpt-5.6-luna` | `gpt-5.6-luna` |
+| `oc/` | opencode-go | `oc/deepseek-v4-flash` | `deepseek-v4-flash` |
+| `oc/` | opencode-go | `oc/mimo-v2.5` | `mimo-v2.5` |
+| `ol/` | ollama-cloud | `ol/deepseek-v4-flash:0731` | `deepseek-v4-flash:0731` |
+| `cx/` | codex | `cx/gpt-5.6-luna` | `gpt-5.6-luna` |
+| `cx/` | codex | `cx/gpt-5.6-terra` | `gpt-5.6-terra` |
+| `cx/` | codex | `cx/gpt-5.6-sol` | `gpt-5.6-sol` |
+| `cx/` | codex | `cx/gpt-5.5` | `gpt-5.5` |
+| `cx/` | codex | `cx/gpt-5.4` | `gpt-5.4` |
+| `cx/` | codex | `cx/gpt-5.4-mini` | `gpt-5.4-mini` |
+| `cx/` | codex | `cx/codex-auto-review` | `codex-auto-review` |
+| `ag/` | antigravity | `ag/gemini-3-flash` | `gemini-3-flash` |
+| `ag/` | antigravity | `ag/gemini-3-flash-agent` | `gemini-3-flash-agent` |
+| `ag/` | antigravity | `ag/gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` |
+| `ag/` | antigravity | `ag/gemini-3.1-pro-low` | `gemini-3.1-pro-low` |
+| `ag/` | antigravity | `ag/gemini-3.6-flash-high` | `gemini-3.6-flash-high` |
+| `ag/` | antigravity | `ag/gemini-pro-agent` | `gemini-pro-agent` |
+| `ag/` | antigravity | `ag/gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
+| `ag/` | antigravity | `ag/gemini-3.1-flash-image` | `gemini-3.1-flash-image` |
+| `ag/` | antigravity | `ag/gemini-3.5-flash-low` | `gemini-3.5-flash-low` |
+| `ag/` | antigravity | `ag/claude-opus-4-6-thinking` | `claude-opus-4-6-thinking` |
+| `ag/` | antigravity | `ag/claude-sonnet-4-6` | `claude-sonnet-4-6` |
+| `ag/` | antigravity | `ag/gpt-oss-120b-medium` | `gpt-oss-120b-medium` |
 
 ## Tutorial: plug in your own models
 
 This is the whole point of the fork. Any router or gateway that speaks the **Anthropic Messages API**
-(`POST /v1/messages`) works — [9router](https://github.com/decolua/9router) being the reference setup.
+(`POST /v1/messages`) works — [9router](https://github.com/decolua/9router) included — with
+**CLIProxyAPI** as the reference setup covered below.
 
-### Step 1 — Run a 9router instance
+### Step 1 — Run a CLIProxyAPI instance
 
-9router (https://9router.com, [github.com/decolua/9router](https://github.com/decolua/9router)) is a free
-AI model router with smart fallback for Claude, Codex and others. Run it anywhere on your network:
+CLIProxyAPI is a local Anthropic-compatible proxy that fronts five providers — commandcode,
+ollama-cloud, opencode-go, codex (Codex OAuth), and antigravity — behind one endpoint. Run it anywhere
+on your network so it listens on `http://127.0.0.1:8317`:
 
 ```bash
-# example: official container or binary — see the 9router docs for the current method
+# see the CLIProxyAPI docs for the current install method
 # (self-hosted, keeps all model traffic on your hardware)
 ```
 
-After startup, verify the Anthropic endpoint answers:
+After startup, verify the Anthropic endpoint answers. The proxy expects **raw** model ids here —
+prefixed spellings are rejected:
 
 ```bash
-curl -s -X POST "http://127.0.0.1:20128/v1/messages" \
+curl -s -X POST "http://127.0.0.1:8317/v1/messages" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $YOUR_KEY" \
+  -H "x-api-key: $CLIPROXY_API_KEY" \
   -H "anthropic-version: 2023-06-01" \
-  -d '{"model":"<your-model-id>","max_tokens":10,
+  -d '{"model":"deepseek-v4-flash:0731","max_tokens":10,
        "messages":[{"role":"user","content":"Say hi"}]}'
 ```
+
+> Any other Anthropic-compatible router works too — [9router](https://github.com/decolua/9router)
+> being the classic reference setup. Only the prefixed-id catalog is CLIProxyAPI-specific.
 
 ### Step 2 — Point Kiro Crew at it
 
 ```bash
 .venv/bin/kirocrew config set agent.provider claude_code
-.venv/bin/kirocrew config set agent.provider_base_url "http://127.0.0.1:20128"
-export ANTHROPIC_API_KEY="your-key"   # or provider_api_key
-.venv/bin/kirocrew config set agent.model "<your-model-id>"
+.venv/bin/kirocrew config set agent.provider_base_url "http://127.0.0.1:8317"
+export CLIPROXY_API_KEY="your-key"   # or provider_api_key
+.venv/bin/kirocrew config set agent.model "cmc/deepseek-v4-pro"
 ```
 
-> Model ids are passed through **verbatim** to the router — use exactly the id your router advertises
-> (9router-style ids like `<your-model-id>`, `<another-model-id>`, etc.).
+> Use a **prefixed** id (see the [Model prefixes](#model-prefixes) table) — the prefix is stripped
+> before the request reaches the proxy, so CLIProxyAPI always receives the raw id. A raw id with no
+> prefix passes through unchanged.
 
 <p align="center">
-  <img src="assets/model-routing.png" alt="How your model id reaches the router: config -> provider factory -> Claude Code child process -> 9router" width="900">
+  <img src="assets/model-routing.png" alt="How your model id reaches the router: config -> provider factory -> Claude Code child process -> CLIProxyAPI" width="900">
 </p>
 
 ### Step 3 — Chat / run tasks
@@ -254,6 +355,13 @@ An old `session/set_config_option("model")` path tried to push a router id throu
 validation. The fork skips that call when `ANTHROPIC_BASE_URL` is set (the model rides via
 `ANTHROPIC_MODEL` env + `settings.local.json` instead). If you still see it, your install is not the
 fork — check `git log` contains the `feat: re-enable claude_code provider` commit.
+
+### CLIProxyAPI says "unknown provider"
+
+The proxy only accepts raw model ids; a prefixed spelling (e.g. `cmc/deepseek-v4-pro`) is rejected. Kiro
+Crew strips known prefixes automatically, so this shows up only when another client sends a prefixed id
+straight at the proxy. In `curl` or other tools, use the raw id from the [Model prefixes](#model-prefixes)
+table.
 
 ### Router returns 429 / quota errors
 

@@ -13,7 +13,7 @@ agent loads only the one it needs.
 | Spec | Subsystem |
 |---|---|
 | [acp-client.md](acp-client.md) | The ACP JSON-RPC client that drives `kiro-cli`: transport, framing, timeouts, and the backend seam. |
-| [providers.md](providers.md) | The `LLMProvider` interface and the KiroACP-only provider surface. |
+| [providers.md](providers.md) | The `LLMProvider` interface and the provider surface (kiro-cli default; fork `claude_code` router path). |
 | [session.md](session.md) | Sessions, slots, session keys, the warm pool, and PID tracking. |
 | [history.md](history.md) | Conversation persistence, JSONL rotation, and transcript search. |
 | [config.md](config.md) | The config schema, defaults, loading, and live reload. |

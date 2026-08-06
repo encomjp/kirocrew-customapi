@@ -29,8 +29,11 @@ artifacts need neither Node nor a compiler.
 
 Kiro Crew drives an LLM through the **`kiro-cli`** agent over the
 [Agent Client Protocol](https://github.com/zed-industries/agent-client-protocol)
-(ACP). It is the only provider: `agent.provider` is fixed to `acp`, and the
-gateway spawns `kiro-cli acp --agent <name>`.
+(ACP). It is the default provider: `agent.provider` defaults to `acp`, and the
+gateway spawns `kiro-cli acp --agent <name>`. The fork also allows
+`agent.provider = "claude_code"` to route through an Anthropic-compatible
+router instead (e.g. a local CLIProxyAPI — see
+[acp-client.md § Custom LLM router wiring (fork)](../system-specs/modules/acp-client.md)).
 
 Install `kiro-cli` per its own docs, put it on your `PATH`, and log in:
 

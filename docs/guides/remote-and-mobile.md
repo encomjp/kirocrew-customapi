@@ -59,8 +59,12 @@ git config --global user.email "you@example.com"
 
 ### Install the agent backend
 
-Kiro Crew drives the `kiro-cli` agent over ACP, and it is the only provider
-(`agent.provider = acp`). Install `kiro-cli` per its own docs, put it on your
+Kiro Crew drives the `kiro-cli` agent over ACP, and it is the default provider
+(`agent.provider = acp`). The fork also allows `agent.provider = "claude_code"`
+to route through an Anthropic-compatible router instead (e.g. a local
+CLIProxyAPI — see
+[acp-client.md § Custom LLM router wiring (fork)](../system-specs/modules/acp-client.md)).
+Install `kiro-cli` per its own docs, put it on your
 `PATH`, and log in:
 
 ```bash
