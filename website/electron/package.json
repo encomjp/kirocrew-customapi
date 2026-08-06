@@ -2,6 +2,7 @@
   "name": "kirocrew-electron-mac",
   "version": "0.2.0",
   "description": "Kiro Crew \u2014 AI agent desktop app",
+  "homepage": "https://github.com/encomjp/KiroCrew-9Router",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -48,8 +49,12 @@
     "linux": {
       "category": "Development",
       "icon": "icon.png",
+      "synopsis": "Kiro Crew — AI agent desktop app",
+      "description": "Kiro Crew is an open source development workspace that runs locally or remotely on your hardware. This fork re-enables the claude_code provider for custom LLM routers.",
+      "maintainer": "Adrian Kozlowski <encomjp@users.noreply.github.com>",
       "target": [
-        "AppImage"
+        "AppImage",
+        "deb"
       ]
     },
     "dmg": {

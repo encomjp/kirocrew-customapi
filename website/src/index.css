@@ -1490,12 +1490,43 @@ button:hover .app-icon{--ico-a:var(--accent);--ico-b:var(--text)}
    and the branding sits flush left again (back to the header's own pl-5). */
 .mac-electron.mac-fullscreen header.topbar-glass{padding-left:1.25rem}
 
-/* ── Frameless Electron window (Windows) ──
+/* ── Topbar pill system (shared by capsule / request-a-feature / bell) ──
+   The right-corner controls float as translucent pills on the glass header,
+   with a hairline border + top inset highlight (the modern VS Code / Linear
+   look) instead of solid card blocks. The translucent fill keeps the header's
+   backdrop blur visible behind the controls so the whole chrome reads as one
+   surface. */
+.topbar-pill {
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  box-shadow: inset 0 1px 0 var(--card-hl);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+.topbar-pill:hover {
+  background: color-mix(in srgb, var(--card-hl) 45%, color-mix(in srgb, var(--card) 70%, transparent));
+  border-color: var(--border-strong);
+}
+
+/* ── Frameless Electron window (Windows + Linux) ──
    titleBarOverlay places native caption controls (min/max/close) in a 138px
    overlay strip at the top-right of the window. Inset the header's right side
    so interactive elements (bell, settings, actions) stay clear of the overlay.
    Keep 138px in sync with WIN_CAPTION_OVERLAY_WIDTH in src/lib/electron.ts. */
 .win-electron header.topbar-glass{padding-right:142px}
+/* Linux has no native drag surface (no traffic lights, no caption drag area),
+   so the header itself is the window drag region. Interactive children are
+   punched out with no-drag so buttons/inputs stay clickable. */
+.linux-electron header.topbar-glass{-webkit-app-region:drag;padding-right:142px}
+.linux-electron header.topbar-glass a,
+.linux-electron header.topbar-glass button,
+.linux-electron header.topbar-glass input,
+.linux-electron header.topbar-glass select,
+.linux-electron header.topbar-glass textarea,
+.linux-electron header.topbar-glass [role="button"],
+.linux-electron header.topbar-glass [tabindex],
+.linux-electron header.topbar-glass iframe{-webkit-app-region:no-drag}
 /* Embedded remote pane (option B): the pane is a separate document loaded in an
    iframe, so its SPA can't see Electron — `isMacElectron` is false inside it and
    the `.mac-electron` rule never applies. The parent relays whether it is a

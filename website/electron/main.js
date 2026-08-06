@@ -129,6 +129,7 @@ const POLL_INTERVAL_MS = 500;
 const MAX_WAIT_MS = 30_000; // 30s max wait for backend
 const IS_MAC = process.platform === "darwin";
 const IS_WIN = process.platform === "win32";
+const IS_LINUX = process.platform === "linux";
 const DEFAULT_THEME_ACCENT = "#8E48FF";
 const THEME_ACCENT_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
@@ -1211,9 +1212,16 @@ function setupWindowContents(win, backendUrl) {
     // macOS + Windows + Linux (non-native-frame): the frameless window needs
     // an injected drag region so the dashboard header can move the window.
     // On macOS titleBarStyle:"hidden" makes the whole window frameless; on
-    // Windows titleBarOverlay provides caption controls but no drag area.
-    // The drag bar is pointer-events:none so clicks pass through to the SPA;
-    // interactive controls are marked no-drag so they remain clickable.
+    // Windows/Linux titleBarOverlay provides caption controls but no drag area.
+    //
+    // macOS/Windows keep the overlay approach: a pointer-events:none strip at
+    // 99999 whose native chrome (traffic lights / caption overlay) owns the
+    // real drag gesture. Linux is different — with no native drag surface,
+    // `-webkit-app-region: drag` on a pointer-events:none element never
+    // receives the pointer, and a pointer-events:auto overlay would block the
+    // header's interactive controls. So on Linux we do NOT inject the overlay:
+    // the SPA's own `.topbar-glass` carries `-webkit-app-region: drag` (see
+    // index.css) and its interactive children are marked no-drag.
     if (IS_MAC || IS_WIN) {
       view.webContents.insertCSS(`
         #electron-drag-bar {
@@ -1340,9 +1348,10 @@ function createWindow() {
   // macOS: titleBarStyle:"hidden" + native traffic lights inset into it.
   // Windows: titleBarStyle:"hidden" + titleBarOverlay puts native caption
   //   controls (minimize/maximize/close) in an overlay strip synced to theme.
-  // Linux: Electron ignores titleBarStyle, so it keeps the native frame.
+  // Linux: same titleBarOverlay treatment as Windows so the native menu bar
+  //   disappears and the header gets the same pretty caption-button strip.
   if (IS_MAC) opts.titleBarStyle = "hidden";
-  if (IS_WIN) {
+  if (IS_WIN || IS_LINUX) {
     opts.titleBarStyle = "hidden";
     opts.titleBarOverlay = {
       color: nativeTheme.shouldUseDarkColors ? "#0f1117" : "#f8fafc",
@@ -1350,10 +1359,10 @@ function createWindow() {
       height: 42,
     };
   }
-  // Window + taskbar icon (Windows only): running unpackaged (`electron .`)
-  // otherwise shows the default Electron icon. macOS takes its icon from the
-  // .app bundle and Linux from the .desktop/AppImage, so leave those untouched.
-  if (IS_WIN) {
+  // Window + taskbar icon: Windows and Linux both get an explicit window icon
+  // (running unpackaged `electron .` otherwise shows the default Electron
+  // icon). macOS takes its icon from the .app bundle, so leave it untouched.
+  if (IS_WIN || IS_LINUX) {
     const iconFile = identityFamily(app.getVersion()) === "nightly"
       && fs.existsSync(path.join(__dirname, "icon-nightly.png"))
       ? "icon-nightly.png" : "icon.png";
@@ -2043,10 +2052,10 @@ async function openNewConnectionWindow() {
       backgroundColor: "#0f1117",
     };
     // Same platform-conditional chrome as the main window (see createWindow):
-    // frameless + inset traffic lights on macOS, titleBarOverlay on Windows,
-    // native frame elsewhere (Linux).
+    // frameless + inset traffic lights on macOS, titleBarOverlay on Windows
+    // and Linux.
     if (IS_MAC) connOpts.titleBarStyle = "hidden";
-    if (IS_WIN) {
+    if (IS_WIN || IS_LINUX) {
       connOpts.titleBarStyle = "hidden";
       connOpts.titleBarOverlay = {
         color: nativeTheme.shouldUseDarkColors ? "#0f1117" : "#f8fafc",
@@ -2306,7 +2315,17 @@ app.whenReady().then(async () => {
       openConfigFile: () => shell.openPath(store.path),
     })
   );
-  Menu.setApplicationMenu(appMenu);
+  // The native menu bar is macOS-only. On Windows and Linux the window is
+  // frameless with a titleBarOverlay (caption buttons) and the dashboard's own
+  // 42px header as the title bar, so the File/Edit/View/Connection/Window/Help
+  // menu bar is removed entirely. The menu template is still built (and the
+  // accelerators registered) only on macOS; everywhere else a null application
+  // menu drops the visible bar.
+  if (IS_MAC) {
+    Menu.setApplicationMenu(appMenu);
+  } else {
+    Menu.setApplicationMenu(null);
+  }
 
   // DevTools gate: renderer sends dev-mode state, we toggle menu visibility.
   ipcMain.on("dev-mode-changed", (_event, enabled) => {
@@ -2335,11 +2354,12 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Windows titleBarOverlay color sync: when the resolved dark/light mode
-  // changes, update the overlay background and symbol colors to match. The
-  // renderer sends the resolved mode ("dark" | "light") after any theme change.
+  // Windows/Linux titleBarOverlay color sync: when the resolved dark/light
+  // mode changes, update the overlay background and symbol colors to match.
+  // The renderer sends the resolved mode ("dark" | "light") after any theme
+  // change.
   ipcMain.on("titlebar-overlay-theme", (_event, mode) => {
-    if (!IS_WIN) return;
+    if (!IS_WIN && !IS_LINUX) return;
     const dark = mode === "dark";
     const color = dark ? "#0f1117" : "#f8fafc";
     const symbolColor = dark ? "#e2e8f0" : "#1e293b";
