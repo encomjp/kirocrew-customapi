@@ -2989,6 +2989,19 @@ class AcpSessionHandle:
             if used is not None and size:
                 try:
                     if size > 0:
+                        # Fork: prefer the central registry's window over the
+                        # claude-agent-acp SDK's 200K default for unknown
+                        # router models (deepseek-v4-flash etc. serve at 1M) —
+                        # otherwise the context meter reports 200K for a 1M
+                        # model and can force premature compaction.
+                        resolved = self._resolved_model_id or self._model or ""
+                        if (
+                            size <= 200_000
+                            and model_registry.has_known_window(resolved)
+                        ):
+                            reg_win = model_registry.model_window(resolved)
+                            if reg_win and reg_win > size:
+                                size = int(reg_win)
                         self.last_prompt_stats.context_pct = round((used / size) * 100, 1)
                         self.last_prompt_stats.context_used_tokens = int(used)
                         self.last_prompt_stats.context_window_tokens = int(size)

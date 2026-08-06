@@ -2106,7 +2106,6 @@ _ROUTER_RAW_MODEL_IDS: dict[str, tuple[str, ...]] = {
         "thinkingmachines/inkling-small",
         "poolside/laguna-s-2.1-free",
         "meta/muse-spark-1.2",
-        "meta/muse-spark-1.2-contributor",
         "xai/grok-4.5",
         "gpt-5.6-luna",
     ),
@@ -5375,6 +5374,20 @@ class AcpClient:
             # chokepoint used by AcpSessionHandle._handle_update too.
             used, size = parse_usage_update(update)
             if used is not None and size and size > 0:
+                # Fork: the claude-agent-acp SDK reports its DEFAULT 200K
+                # window for router models it does not know (e.g.
+                # deepseek-v4-flash, served at 1M). The central registry knows
+                # the true window, so prefer it over the SDK's fallback — a
+                # 200K reading for a 1M model makes the context meter lie
+                # ("96K / 200K") and can force premature compaction.
+                resolved = self._resolved_model_id or self._model or ""
+                if (
+                    size <= 200_000
+                    and model_registry.has_known_window(resolved)
+                ):
+                    reg_win = model_registry.model_window(resolved)
+                    if reg_win and reg_win > size:
+                        size = int(reg_win)
                 self.last_prompt_stats.context_pct = round((used / size) * 100, 1)
                 # Keep the raw counts so the dashboard token text uses the real
                 # served window (size) instead of re-deriving it from the model id.
