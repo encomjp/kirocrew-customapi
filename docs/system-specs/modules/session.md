@@ -52,9 +52,11 @@ returning `AcpSessionHandle | _ProviderBgSession`. Provider dispatch is via
   (`max_retries=1`, 2 attempts total).
 - **non-kiro** — falls back to a `_ProviderBgSession` over the shared
   `BACKGROUND_KEY` `_Session`, serialized by its `Semaphore(1)`. `AcpRuntime` is
-  kiro-only, so any non-kiro backend must use the provider path. In the public
-  KiroCrew edition `agent.provider` is fixed to `acp`, so this branch is the
-  dormant fallback for the reserved `ACP_BACKEND_CLAUDE` seam only.
+  kiro-only, so any non-kiro backend must use the provider path. In the fork,
+  `agent.provider = "claude_code"` selects this branch (the custom LLM router
+  path — see [acp-client.md § Custom LLM router wiring (fork)](acp-client.md));
+  upstream it is the dormant fallback for the reserved `ACP_BACKEND_CLAUDE`
+  seam only.
 
 Both paths yield `AcpEvent` through the shared
 `acp/_dispatch.parse_session_update` parser, so there is no behavioral drift

@@ -9,5 +9,5 @@ source it claims to mirror.
 | [kiro-cli/](kiro-cli/README.md) | The `kiro-cli` documentation. kiro-cli is Kiro Crew's required agent backend, so its ACP surface, agent-spec schema, and MCP config shape are load-bearing here. |
 
 Where Kiro Crew's own behavior differs from a mirrored page, Kiro Crew's docs win:
-this fork is KiroACP-only and does not use every capability the upstream CLI
-documents.
+this fork defaults to the kiro-cli (acp) backend and does not use every capability
+the upstream CLI documents.

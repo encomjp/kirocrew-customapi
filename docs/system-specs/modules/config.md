@@ -584,10 +584,15 @@ name:
   `migrate_agent_specs()`, and `_refresh_dynamic_fields()` — so none of them
   can drift from the other three.
 
-Note: KiroCrew is KiroACP (kiro-cli) only — the deleted `claude_code` provider
-was the sole reader of spec `cc_model`, so `cc_model` is now dead config. The
-lite/heartbeat installers still write it to the sidecar (harmless bookkeeping)
-purely to keep the kiro spec schema-clean; nothing in the fork resolves it.
+Note: KiroCrew is KiroACP (kiro-cli) first — upstream's `claude_code` provider
+was the sole reader of spec `cc_model`, so `cc_model` is dead config there.
+The fork re-enables the claude_code backend and still resolves it:
+`agent_state.get_cc_model(name)` feeds `agent._background_cc_model()` (the
+`_BACKGROUND_CC_MODEL` fallback) for background/lite agents, while the chat
+model on the claude_code path comes from `agent.model` via `ANTHROPIC_MODEL`
+(see [acp-client.md § Custom LLM router wiring (fork)](acp-client.md)). The
+lite/heartbeat installers keep writing it to the sidecar so the kiro spec stays
+schema-clean.
 
 **Invariant:** `~/.kiro/agents/*.json` must contain only kiro-cli schema keys at
 all times — after install, refresh, and any dashboard edit — or kiro-cli drops
@@ -601,7 +606,7 @@ class AgentConfig:
     approval_mode: str = "auto"    # "auto" or "interactive"
     streaming: bool = True
     model: str = "auto"            # resolved from agent config
-    provider: str = "acp"          # fixed to "acp" (kiro-cli) — the only provider
+    provider: str = "acp"          # default "acp" (kiro-cli); fork also allows "claude_code" (custom router)
     sandbox: str = "auto"          # default "auto" (namespace on Linux, seatbelt on macOS; delegates to kiro-cli's internal sandbox on macOS when enabled); "off" skips Kiro Crew's sandbox
     sandbox_allow_no_isolation: bool = False  # SEC-009: acknowledge running un-isolated when no sandbox backend exists; false = loud SECURITY warning, true = info-level
     enforce_denied_commands: str = "all"  # "all" or "kirocrew"
