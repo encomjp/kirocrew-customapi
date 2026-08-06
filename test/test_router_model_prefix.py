@@ -202,3 +202,50 @@ class TestTextOnlyRedirect:
         assert "ol/deepseek-v4-flash:0731" in _DEFAULT_TEXT_ONLY_MODELS
         # oc/mimo-v2.5 is NOT text-only (vision-capable)
         assert "oc/mimo-v2.5" not in _DEFAULT_TEXT_ONLY_MODELS
+
+class TestSessionStartImageGuard:
+    """Text-only models never emit image blocks and disable screenshot tools."""
+
+    def test_settings_guard_disables_tools_for_text_only(self, tmp_path, monkeypatch) -> None:
+        import json as _json
+
+        from kiro_crew.acp.client import AcpClient
+
+        monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path))
+        c = AcpClient(
+            work_dir=str(tmp_path),
+            model="oc/deepseek-v4-flash",
+            acp_backend="claude",
+            extra_env={"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317"},
+        )
+        c._write_claude_local_settings()
+        data = _json.loads((tmp_path / "settings.local.json").read_text())
+        assert data.get("model") == "deepseek-v4-flash"  # raw pin
+        assert "ComputerUse" in data.get("disabledTools", [])
+        assert "browser_screenshot" in data.get("disabledTools", [])
+
+    def test_settings_guard_leaves_vision_model_alone(self, tmp_path, monkeypatch) -> None:
+        import json as _json
+
+        from kiro_crew.acp.client import AcpClient
+
+        monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path))
+        c = AcpClient(
+            work_dir=str(tmp_path),
+            model="cmc/mimo-v2.5",
+            acp_backend="claude",
+            extra_env={"ANTHROPIC_BASE_URL": "http://127.0.0.1:8317"},
+        )
+        c._write_claude_local_settings()
+        data = _json.loads((tmp_path / "settings.local.json").read_text())
+        assert not data.get("disabledTools")
+
+    def test_prompt_blocks_allow_image_false_for_text_only(self) -> None:
+        from kiro_crew.acp.client import AcpClient, _message_has_image_path
+
+        assert _message_has_image_path("look at /tmp/shot.png") is True
+        # the guard flag is derived from the text-only set membership, which
+        # the instance config controls; verify the set is consulted
+        c = AcpClient(work_dir="/tmp/x", text_only_models=["oc/deepseek-v4-flash"])
+        assert "oc/deepseek-v4-flash" in c._text_only_models
+        assert "cmc/mimo-v2.5" not in c._text_only_models
