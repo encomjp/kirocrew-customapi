@@ -251,21 +251,21 @@ class TestRouterModelWhitelistMerge:
         self._write_whitelist(["cmc/meta/muse-spark-1.2-contributor"])
         merged = AcpClient.router_model_whitelist()
         # built-in defaults still present
-        assert "ocg/deepseek-v4-flash" in merged
+        assert "oc/deepseek-v4-flash" in merged
         # local override added
         assert "cmc/meta/muse-spark-1.2-contributor" in merged
 
     def test_missing_file_degrades_to_defaults(self):
         # no file written -> only built-in defaults, no error
         merged = AcpClient.router_model_whitelist()
-        assert "ocg/deepseek-v4-flash" in merged
+        assert "oc/deepseek-v4-flash" in merged
         assert "cmc/meta/muse-spark-1.2-contributor" not in merged
 
     def test_corrupt_file_degrades_to_defaults(self):
         path = config_dir() / "model_whitelist.json"
         path.write_text("{not json", encoding="utf-8")
         merged = AcpClient.router_model_whitelist()
-        assert "ocg/deepseek-v4-flash" in merged
+        assert "oc/deepseek-v4-flash" in merged
         assert "cmc/meta/muse-spark-1.2-contributor" not in merged
 
     def test_response_includes_local_override_models(self):
@@ -275,4 +275,4 @@ class TestRouterModelWhitelistMerge:
         payload = json.loads(body)
         names = {m["model_name"] for m in payload}
         assert "cmc/meta/muse-spark-1.2-contributor" in names
-        assert "ocg/deepseek-v4-flash" in names
+        assert "oc/deepseek-v4-flash" in names
