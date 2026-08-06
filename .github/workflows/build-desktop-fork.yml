@@ -142,14 +142,21 @@ jobs:
           set -euo pipefail
           mkdir -p release
           VERSION="${GITHUB_REF_NAME#v}"
-          # electron-builder naming is space-y (<ProductName> <ver>.dmg); copy
-          # to space-free, fork-conventional names.
-          if ls artifacts/build-macos-desktop/*.dmg >/dev/null 2>&1; then
-            cp artifacts/build-macos-desktop/*.dmg "release/KiroCrew-${VERSION}-mac.dmg"
-          fi
-          if ls artifacts/build-macos-desktop/*.zip >/dev/null 2>&1; then
-            cp artifacts/build-macos-desktop/*.zip "release/KiroCrew-${VERSION}-mac.zip"
-          fi
+          # electron-builder naming is space-y (<ProductName> <ver>-<arch>.dmg
+          # / ...-<arch>-mac.zip, e.g. KiroCrew-0.2.0-arm64.dmg). Copy to
+          # space-free names while PRESERVING the arch label so the artifact
+          # says which mac it is for (arm64 vs future x64).
+          for f in artifacts/build-macos-desktop/*.dmg; do
+            [ -f "$f" ] || continue
+            ARCH="$(basename "$f" .dmg | sed -E 's/.*-([^-]+)$/\1/')"
+            cp "$f" "release/KiroCrew-${VERSION}-${ARCH}.dmg"
+          done
+          for f in artifacts/build-macos-desktop/*.zip; do
+            [ -f "$f" ] || continue
+            # zip name is <ProductName> <ver>-<arch>-mac.zip
+            ARCH="$(basename "$f" .zip | sed -E 's/.*-([^-]+)-mac$/\1/')"
+            cp "$f" "release/KiroCrew-${VERSION}-${ARCH}-mac.zip"
+          done
           if ls artifacts/build-windows-desktop/*.exe >/dev/null 2>&1; then
             cp artifacts/build-windows-desktop/*.exe "release/KiroCrew-Setup-${VERSION}.exe"
           fi
