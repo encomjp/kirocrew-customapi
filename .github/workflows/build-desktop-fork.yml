@@ -31,7 +31,7 @@ on:
         type: string
   # Also rebuild when a release is published, so the desktop app always lands
   # on GitHub Releases alongside the wheel/CLI packages. Matches the fork's
-  # tag convention (v<ver>-9router.<N>).
+  # tag convention (v<ver>-customapi.<N>).
   release:
     types: [published]
 

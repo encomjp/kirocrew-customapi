@@ -1441,7 +1441,8 @@ class AgentConfig:
         metadata=_meta(
             "Provider API Key",
             "ANTHROPIC_API_KEY for the claude_code backend. Empty inherits "
-            "the environment. Stored in config.json — prefer environment "
+            "the environment (ANTHROPIC_API_KEY, or CLIPROXY_API_KEY for a "
+            "local CLIProxyAPI). Stored in config.json — prefer environment "
             "variables for shared machines.",
         ),
     )
@@ -8315,8 +8316,9 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
             # them (the claude backend has no Haiku).
             # Fork: on the claude_code path the canonical keys ARE the wire
             # format, so translate to the claude_code provider id instead.
-            # With a custom base URL (e.g. 9router) the model id is the
-            # router's own namespace (oc/deepseek-v4-flash-free) — never
+            # With a custom base URL (e.g. 9router or CLIProxyAPI) the model id
+            # is the router's own namespace (oc/deepseek-v4-flash-free, or the
+            # proxy's raw ids like deepseek-v4-flash:0731) — never
             # registry-translate, or the Bedrock-form global.anthropic.* id
             # reaches a router that rejects it.
             if provider_backend == "claude":
@@ -8348,8 +8350,20 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
             if provider_backend == "claude":
                 if provider_base_url and not _env.get("ANTHROPIC_BASE_URL"):
                     _env["ANTHROPIC_BASE_URL"] = provider_base_url
-                if provider_api_key and not _env.get("ANTHROPIC_API_KEY"):
-                    _env["ANTHROPIC_API_KEY"] = provider_api_key
+                if not _env.get("ANTHROPIC_API_KEY"):
+                    # Precedence: explicit extra_env (already handled above) >
+                    # config key > ANTHROPIC_API_KEY env (which the child would
+                    # inherit anyway; naming it keeps the catalog fetch in sync)
+                    # > CLIPROXY_API_KEY, the fork-specific key for a local
+                    # CLIProxyAPI, so a local proxy needs no credential in
+                    # config.json.
+                    api_key = (
+                        provider_api_key
+                        or os.environ.get("ANTHROPIC_API_KEY")
+                        or os.environ.get("CLIPROXY_API_KEY")
+                    )
+                    if api_key:
+                        _env["ANTHROPIC_API_KEY"] = api_key
             return AcpProvider(
                 work_dir=wdir,
                 model=m,
