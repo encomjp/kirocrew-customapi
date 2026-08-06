@@ -159,7 +159,9 @@ class TestTextOnlyRedirect:
 
         assert _is_router_text_only_model("oc/deepseek-v4-flash") is True
         assert _is_router_text_only_model("ol/deepseek-v4-flash:0731") is True
-        # vision-capable providers are NOT text-only
+        # vision-capable models are NOT text-only — incl. oc/mimo-v2.5 which
+        # accepts images upstream (verified 200)
+        assert _is_router_text_only_model("oc/mimo-v2.5") is False
         assert _is_router_text_only_model("cmc/deepseek-v4-pro") is False
         assert _is_router_text_only_model("ag/gemini-3.6-flash-high") is False
         assert _is_router_text_only_model("cx/gpt-5.6-luna") is False
