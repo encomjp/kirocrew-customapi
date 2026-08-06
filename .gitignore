@@ -141,3 +141,6 @@ SESSION_SUMMARY.md
 MOCHI_MIGRATION.md
 website/.vitest-reports/
 .venv-test/
+
+# Runtime/test artifacts
+sqlite_mcp_server.db
