@@ -2216,6 +2216,18 @@ _DEFAULT_TEXT_ONLY_MODELS: frozenset[str] = frozenset(
         "ol/deepseek-v4-flash:0731",
     }
 )
+# Tools that produce image content (screenshots) — disabled at session start
+# when the model is text-only so the SDK never forwards an image block to a
+# rejecting upstream. Claude Code tool names for computer use / browser
+# screenshots; unknown names are harmless (the SDK ignores them).
+_TEXT_ONLY_DISABLED_TOOLS: frozenset[str] = frozenset(
+    {
+        "ComputerUse",
+        "computer",
+        "browser_screenshot",
+        "Screenshot",
+    }
+)
 
 
 def _is_router_text_only_model(model_id: str) -> bool:
@@ -2617,6 +2629,16 @@ class AcpClient:
             # authoritative and forwards the pinned value verbatim to the
             # proxy, which rejects prefixed spellings.
             data["model"] = strip_router_model_prefix(self._model)
+            # Fork: session-start image guard — a text-only router model must
+            # never receive image content, including agent-taken screenshots
+            # (computer-use / browser screenshot tools return image blocks the
+            # SDK forwards upstream, where the text-only provider rejects
+            # them). Disable the screenshot-producing tools for this session.
+            if self._model in self._text_only_models:
+                disabled = set(data.get("disabledTools") or [])
+                for tool in _TEXT_ONLY_DISABLED_TOOLS:
+                    disabled.add(tool)
+                data["disabledTools"] = sorted(disabled)
         else:
             # availableModels allowlist unlocks the 1M-token window on claude
             # backends that gate it (Bedrock path only).
@@ -5324,7 +5346,15 @@ class AcpClient:
                 "sessionId": self._session_id,
                 # Offloaded: see the note in session_handle.prompt -- image
                 # reads and base64 encoding must not block the event loop.
-                "prompt": await asyncio.to_thread(build_prompt_blocks, message),
+                # Fork: on a text-only model, image blocks are NEVER emitted
+                # (allow_image=False) — the image path stays as plain text so
+                # a tool-capable agent could still open it, but no image block
+                # reaches the SDK and therefore never hits the rejecting
+                # upstream. This is the session-start guard: text-only models
+                # cannot carry images in the conversation at all.
+                "prompt": await asyncio.to_thread(
+                    build_prompt_blocks, message, allow_image=not is_text_only
+                ),
             },
         )
 
