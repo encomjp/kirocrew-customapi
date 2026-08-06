@@ -1,8 +1,9 @@
 name: Build Desktop (fork, all platforms)
 
-# Fork-specific desktop build for macOS + Windows. Linux desktop is NOT built
-# here: the fork's local build already produces the AppImage + deb, and the
-# wheel/CLI packaging lane (publish-cli.yml) covers the rest.
+# Fork-specific desktop build for macOS + Windows + Linux. It triggers on
+# release publication so EVERY fork release lands with the full desktop app
+# across all three platforms, plus a manual workflow_dispatch for ad-hoc
+# builds.
 #
 # Why a new standalone workflow instead of the upstream build-desktop.yml /
 # build-windows.yml: those are reusable (workflow_call) lanes driven by
@@ -12,11 +13,12 @@ name: Build Desktop (fork, all platforms)
 # owns its trigger and its release attach, so it registers like
 # build-wheel.yml does and needs no caller.
 #
-# Runs on macos-latest + windows-latest (a public repo gets free GitHub-hosted
-# macOS/Windows runners). Produces unsigned artifacts — scripts/notarize.js
-# and sign-windows.js both SKIP cleanly when no Apple/AWS credentials are
-# present (see their headers), so a credential-less build still succeeds. The
-# artifact is for the fork's GitHub Releases, not the upstream notarized feed.
+# Runs on macos-latest + windows-latest + ubuntu-22.04 (a public repo gets
+# free GitHub-hosted macOS/Windows runners). Produces unsigned artifacts —
+# scripts/notarize.js and sign-windows.js both SKIP cleanly when no
+# Apple/AWS credentials are present (see their headers), so a credential-less
+# build still succeeds. The artifact is for the fork's GitHub Releases, not
+# the upstream notarized feed.
 
 on:
   workflow_dispatch:
@@ -49,6 +51,8 @@ jobs:
             artifact-name: build-macos-desktop
           - os: windows-latest
             artifact-name: build-windows-desktop
+          - os: ubuntu-22.04
+            artifact-name: build-linux-desktop
 
     env:
       # Signing is skipped by design (fork has no Apple/AWS credentials). The
@@ -111,6 +115,8 @@ jobs:
             website/electron/dist/*.zip
             website/electron/dist/*.exe
             website/electron/dist/*.exe.blockmap
+            website/electron/dist/*.AppImage
+            website/electron/dist/*.deb
           if-no-files-found: error
           retention-days: 14
 
@@ -146,6 +152,12 @@ jobs:
           fi
           if ls artifacts/build-windows-desktop/*.exe >/dev/null 2>&1; then
             cp artifacts/build-windows-desktop/*.exe "release/KiroCrew-Setup-${VERSION}.exe"
+          fi
+          if ls artifacts/build-linux-desktop/*.AppImage >/dev/null 2>&1; then
+            cp artifacts/build-linux-desktop/*.AppImage "release/KiroCrew-${VERSION}.AppImage"
+          fi
+          if ls artifacts/build-linux-desktop/*.deb >/dev/null 2>&1; then
+            cp artifacts/build-linux-desktop/*.deb "release/KiroCrew-${VERSION}-desktop.deb"
           fi
           ls -la release/
 
