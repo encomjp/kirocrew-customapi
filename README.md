@@ -177,7 +177,7 @@ known prefix and sends the **raw id** — CLIProxyAPI rejects prefixed spellings
 Provider base URLs and notes:
 
 - `cmc/` → commandcode — `https://api.commandcode.ai/provider/v1`
-- `oc/` → opencode-go — `https://opencode.ai/zen/go/v1`. `ocg/` is a **legacy alias** for the same
+- `oc/` → opencode-go — `https://opencode.ai/zen/go/v1`.
   provider (kept so existing configs keep working).
 - `ol/` → ollama-cloud — `https://ollama.com/v1`. Only `deepseek-v4-flash:0731` is exposed — the other
   ollama-cloud models are deliberately not in the picker.

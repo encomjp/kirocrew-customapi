@@ -174,8 +174,8 @@ backend instead of (or alongside) kiro-cli's `acp` provider:
   `/v1/models` ids and REJECTS prefixed spellings ("unknown provider"), so
   `strip_router_model_prefix()` is applied before anything goes upstream (the
   `ANTHROPIC_MODEL` env, the `settings.local.json` model pin, and the
-  `_meta.claudeCode.options.model` seed). A known prefix is stripped — legacy
-  `ocg/` included; unknown or absent prefixes pass through unchanged.
+  `_meta.claudeCode.options.model` seed). A known prefix is stripped; unknown
+  or absent prefixes pass through unchanged.
   `AcpClient._ROUTER_RAW_MODEL_IDS` is the single source for both the whitelist
   and the translation; `_capture_router_models` resolves each catalog entry to
   its prefix via `owned_by` (`openai` = the Codex OAuth group).
@@ -188,8 +188,8 @@ backend instead of (or alongside) kiro-cli's `acp` provider:
 
 | Prefix | Provider | Raw `/v1/models` ids (what the proxy receives) |
 |---|---|---|
-| `cmc/` | commandcode (`https://api.commandcode.ai/provider/v1`) | `deepseek/deepseek-v4-pro`, `deepseek/deepseek-v4-flash`, `moonshotai/Kimi-K3`, `moonshotai/Kimi-K2.7-Code`, `moonshotai/Kimi-K2.7-Code-Highspeed`, `moonshotai/Kimi-K2.6`, `moonshotai/Kimi-K2.5`, `zai-org/GLM-5.2`, `zai-org/GLM-5.2-Fast`, `zai-org/GLM-5.1`, `zai-org/GLM-5`, `MiniMaxAI/MiniMax-M3`, `MiniMaxAI/MiniMax-M2.7`, `MiniMaxAI/MiniMax-M2.5`, `xiaomi/mimo-v2.5-pro`, `xiaomi/mimo-v2.5`, `Qwen/Qwen3.8-Max`, `Qwen/Qwen3.7-Max`, `Qwen/Qwen3.7-Plus`, `Qwen/Qwen3.7-Flash`, `Qwen/Qwen3.6-Max-Preview`, `Qwen/Qwen3.6-Plus`, `stepfun/Step-3.7-Flash`, `stepfun/Step-3.5-Flash`, `tencent/hy3-paid`, `google/gemini-3.6-flash`, `google/gemini-3.5-flash`, `google/gemini-3.5-flash-lite`, `google/gemini-3.1-flash-lite`, `sakana/fugu-ultra`, `nvidia/nemotron-3-ultra-550b-a55b`, `thinkingmachines/inkling`, `thinkingmachines/inkling-small`, `poolside/laguna-s-2.1-free`, `meta/muse-spark-1.1`, `meta/muse-spark-1.2`, `meta/muse-spark-1.2-contributor`, `xai/grok-4.5`, `gpt-5.6-luna` |
-| `oc/` (legacy alias `ocg/`) | opencode-go (`https://opencode.ai/zen/go/v1`) | `deepseek-v4-flash`, `mimo-v2.5` |
+| `cmc/` | commandcode (`https://api.commandcode.ai/provider/v1`) | `deepseek/deepseek-v4-pro`, `deepseek/deepseek-v4-flash`, `moonshotai/Kimi-K3`, `moonshotai/Kimi-K2.7-Code`, `moonshotai/Kimi-K2.7-Code-Highspeed`, `moonshotai/Kimi-K2.6`, `moonshotai/Kimi-K2.5`, `zai-org/GLM-5.2`, `zai-org/GLM-5.2-Fast`, `zai-org/GLM-5.1`, `zai-org/GLM-5`, `MiniMaxAI/MiniMax-M3`, `MiniMaxAI/MiniMax-M2.7`, `MiniMaxAI/MiniMax-M2.5`, `xiaomi/mimo-v2.5-pro`, `xiaomi/mimo-v2.5`, `Qwen/Qwen3.8-Max`, `Qwen/Qwen3.7-Max`, `Qwen/Qwen3.7-Plus`, `Qwen/Qwen3.7-Flash`, `Qwen/Qwen3.6-Max-Preview`, `Qwen/Qwen3.6-Plus`, `stepfun/Step-3.7-Flash`, `stepfun/Step-3.5-Flash`, `tencent/hy3-paid`, `nvidia/nemotron-3-ultra-550b-a55b`, `thinkingmachines/inkling`, `thinkingmachines/inkling-small`, `poolside/laguna-s-2.1-free`, `meta/muse-spark-1.2`, `xai/grok-4.5`, `gpt-5.6-luna` |
+| `oc/` | opencode-go (`https://opencode.ai/zen/go/v1`) | `deepseek-v4-flash`, `mimo-v2.5` |
 | `ol/` | ollama-cloud (`https://ollama.com/v1`) | `deepseek-v4-flash:0731` only — the plain and kimi/glm entries are deliberately NOT exposed |
 | `cx/` | codex (Codex OAuth; catalog `owned_by` `openai`) | `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`, `gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, `codex-auto-review` — `gpt-5.3-codex-spark` is NOT listed (400 upstream) |
 | `ag/` | antigravity (3 OAuth accounts, round-robin) | `gemini-3-flash`, `gemini-3-flash-agent`, `gemini-3.5-flash-extra-low`, `gemini-3.1-pro-low`, `gemini-3.6-flash-high`, `gemini-pro-agent`, `gemini-3.1-flash-lite`, `gemini-3.1-flash-image`, `gemini-3.5-flash-low`, `claude-opus-4-6-thinking`, `claude-sonnet-4-6`, `gpt-oss-120b-medium` |
