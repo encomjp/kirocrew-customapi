@@ -2557,6 +2557,39 @@ class AcpClient:
         }
     )
 
+    @classmethod
+    def router_model_whitelist(cls) -> frozenset[str]:
+        """The effective router-model whitelist: built-in defaults PLUS any ids
+        from the local overrides file (``model_whitelist.json`` under the config
+        dir), if present.
+
+        The local file lets a user add their own router models (e.g. a private
+        9router catalog entry) WITHOUT editing this source file or rebuilding —
+        the GUI picker then shows those models as selectable options. The file
+        is a flat JSON array of model-id strings::
+
+            ["cmc/vendor/my-private-model"]
+
+        Best-effort: a missing/empty/corrupt file degrades to the built-in
+        defaults and never raises. Non-string entries are skipped.
+        """
+        base = set(cls._ROUTER_MODEL_WHITELIST)
+        try:
+            from kiro_crew.config.paths import config_dir
+
+            path = config_dir() / "model_whitelist.json"
+            if path.is_file():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    data = data.get("models", [])
+                if isinstance(data, list):
+                    for mid in data:
+                        if isinstance(mid, str) and mid.strip():
+                            base.add(mid.strip())
+        except Exception:  # pragma: no cover - config never fatal
+            logger.debug("model_whitelist.json unreadable; using defaults", exc_info=True)
+        return frozenset(base)
+
     def _capture_available_models(self, session_resp: dict) -> None:
         """Record the model list the backend advertised in a session response.
 
@@ -2647,7 +2680,7 @@ class AcpClient:
                 model_id = m.get("id") or m.get("model") or ""
                 if not model_id:
                     continue
-                if model_id not in self._ROUTER_MODEL_WHITELIST:
+                if model_id not in self.router_model_whitelist():
                     continue
                 captured.append(
                     {

@@ -11,13 +11,17 @@ sentinel, not a served model.
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from kiro_crew import model_registry
+from kiro_crew.acp.client import AcpClient
+from kiro_crew.config.paths import config_dir
 from kiro_crew.dashboard.handlers.agents import (
     _advertised_cc_models,
     _cc_models,
+    _cc_models_response,
 )
 
 # Canonical registry rows now lead the dropdown (replaces _CC_CURATED_MODELS).
@@ -229,3 +233,46 @@ class TestCcModelsMerge:
         assert all(m["model_name"] for m in out)
         # the canonical "auto" row is still present, exactly once.
         assert names.count("auto") == 1
+
+
+class TestRouterModelWhitelistMerge:
+    """The router-model whitelist merges a local model_whitelist.json.
+
+    _isolate_kirocrew_home (autouse in conftest) pins config_dir() to a per-test
+    tmp dir, so writing model_whitelist.json there exercises the merge path
+    without touching the developer's real home.
+    """
+
+    def _write_whitelist(self, models):
+        path = config_dir() / "model_whitelist.json"
+        path.write_text(json.dumps({"models": models}), encoding="utf-8")
+
+    def test_local_json_models_merge_into_defaults(self):
+        self._write_whitelist(["cmc/meta/muse-spark-1.2-contributor"])
+        merged = AcpClient.router_model_whitelist()
+        # built-in defaults still present
+        assert "ocg/deepseek-v4-flash" in merged
+        # local override added
+        assert "cmc/meta/muse-spark-1.2-contributor" in merged
+
+    def test_missing_file_degrades_to_defaults(self):
+        # no file written -> only built-in defaults, no error
+        merged = AcpClient.router_model_whitelist()
+        assert "ocg/deepseek-v4-flash" in merged
+        assert "cmc/meta/muse-spark-1.2-contributor" not in merged
+
+    def test_corrupt_file_degrades_to_defaults(self):
+        path = config_dir() / "model_whitelist.json"
+        path.write_text("{not json", encoding="utf-8")
+        merged = AcpClient.router_model_whitelist()
+        assert "ocg/deepseek-v4-flash" in merged
+        assert "cmc/meta/muse-spark-1.2-contributor" not in merged
+
+    def test_response_includes_local_override_models(self):
+        self._write_whitelist(["cmc/meta/muse-spark-1.2-contributor"])
+        resp = _cc_models_response(_request_with_providers({}))
+        body = resp.body.decode("utf-8") if isinstance(resp.body, bytes) else resp.body
+        payload = json.loads(body)
+        names = {m["model_name"] for m in payload}
+        assert "cmc/meta/muse-spark-1.2-contributor" in names
+        assert "ocg/deepseek-v4-flash" in names
