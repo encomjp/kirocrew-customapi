@@ -2,7 +2,7 @@
   "name": "kirocrew-desktop",
   "version": "0.5.0",
   "description": "Kiro Crew \u2014 AI agent desktop app",
-  "homepage": "https://github.com/kirodotdev/KiroCrew",
+  "homepage": "https://github.com/encomjp/kirocrew-customapi",
   "desktopName": "kirocrew-desktop.desktop",
   "main": "main.js",
   "scripts": {
@@ -52,8 +52,9 @@
       "category": "Development",
       "icon": "build/icons",
       "executableName": "kirocrew-desktop",
-      "maintainer": "Kiro Crew Maintainers <maintainers@crew.kiro.dev>",
+      "maintainer": "Adrian Kozlowski <encomjp@users.noreply.github.com>",
       "synopsis": "Persistent AI agent workspace with memory, schedules, and unattended work",
+      "description": "Kiro Crew fork with the claude_code provider re-enabled for self-hosted LLM routers (9router, any Anthropic-compatible endpoint).",
       "syncDesktopName": true,
       "target": [
         "AppImage",
