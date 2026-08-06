@@ -20,5 +20,15 @@
   "glm-4.7": 200000,
   "glm-4.7-flash": 128000,
   "qwen3-coder-next": 256000,
-  "qwen3-coder-480b": 256000
+  "qwen3-coder-480b": 256000,
+  "deepseek-v4-flash": 1000000,
+  "deepseek-v4-pro": 1000000,
+  "deepseek-v4": 1000000,
+  "ocg/deepseek-v4-flash": 1000000,
+  "cmc/deepseek/deepseek-v4-flash": 1000000,
+  "ollama/deepseek-v4-flash": 1000000,
+  "ocg/mimo-v2.5": 1048576,
+  "ollama/glm-5.2": 200000,
+  "ollama/kimi-k2.6": 262144,
+  "ollama/kimi-k2.7-code": 262144
 }
