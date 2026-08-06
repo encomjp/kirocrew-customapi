@@ -139,3 +139,6 @@ SESSION_SUMMARY.md
 # Internal migration worklog — deliberately untracked (contains pre-scrub notes)
 MOCHI_MIGRATION.md
 .venv-test/
+
+# Runtime/test artifacts
+sqlite_mcp_server.db
