@@ -77,9 +77,11 @@ python3 -m venv .venv
 .venv/bin/kirocrew --version
 ```
 
-(For the desktop app, download the official Kiro Crew AppImage from
-[kirodotdev/KiroCrew releases](https://github.com/kirodotdev/KiroCrew/releases) — the desktop shell is
-provider-agnostic; the provider lives in the CLI/backend it spawns.)
+(For the desktop app, download the fork's own build from
+[encomjp/KiroCrew-9Router releases](https://github.com/encomjp/KiroCrew-9Router/releases) — the fork ships
+Linux (AppImage + deb), macOS (DMG + zip), and Windows (NSIS exe). Use the fork's build, not upstream's:
+upstream's desktop shell is provider-agnostic, but only this fork's release is verified against the
+`claude_code` router backend.)
 
 ### 2. Install the Claude Code backend
 
