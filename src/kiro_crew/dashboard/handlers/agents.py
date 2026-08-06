@@ -1036,7 +1036,7 @@ def _cc_models_response(request: web.Request) -> web.Response:
     """
     from kiro_crew.acp.client import AcpClient  # noqa: F811
 
-    whitelist = AcpClient._ROUTER_MODEL_WHITELIST
+    whitelist = AcpClient.router_model_whitelist()
     rows: list[dict] = []
     for entry in _advertised_cc_models(request):
         mid = entry.get("model_name") or ""
