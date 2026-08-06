@@ -294,6 +294,9 @@ class AcpProvider(LLMProvider):
         mcp_gateway_socket: str | Path | None = None,
         permission_mode: str | None = None,
         crew_agent: str | None = None,
+        image_redirect: str = "subagent",
+        vision_fallback_model: str = "cmc/mimo-v2.5",
+        text_only_models: list[str] | None = None,
     ) -> None:
         # An unrecognized backend would pass every ``_is_<backend>`` check and
         # spawn kiro-cli, so a typo'd config would drive the wrong agent with no
@@ -318,6 +321,10 @@ class AcpProvider(LLMProvider):
             # kiro-cli path — fully inert; a companion-registered backend threads
             # it.
             "permission_mode": permission_mode,
+            # Fork: image-redirect configuration.
+            "image_redirect": image_redirect,
+            "vision_fallback_model": vision_fallback_model,
+            "text_only_models": list(text_only_models or []),
         }
         if agent:
             kwargs["agent"] = agent
