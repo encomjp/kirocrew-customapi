@@ -1665,6 +1665,7 @@ _ROUTER_RAW_MODEL_IDS: dict[str, tuple[str, ...]] = {
         "thinkingmachines/inkling-small",
         "poolside/laguna-s-2.1-free",
         "meta/muse-spark-1.2",
+        "meta/muse-spark-1.2-contributor",
         "xai/grok-4.5",
         "gpt-5.6-luna",
     ),
