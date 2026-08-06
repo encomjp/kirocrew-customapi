@@ -4511,3 +4511,29 @@ class TestIneffectiveCompactionCooldown:
         # with no inherited damping.
         assert "dashboard:chat-1" not in mgr._compact_cooldown_until
         await mgr.close_all()
+
+class TestTextOnlyResumeGuard:
+    """Sessions on text-only router models must not resume image-bearing history."""
+
+    def test_helper_detects_text_only(self):
+        from kiro_crew.session import _model_is_text_only_for_session
+
+        class _Agent:
+            text_only_models = ["oc/deepseek-v4-flash", "ol/deepseek-v4-flash:0731"]
+
+        class _Cfg:
+            agent = _Agent()
+
+        assert _model_is_text_only_for_session(_Cfg(), "oc/deepseek-v4-flash") is True
+        assert _model_is_text_only_for_session(_Cfg(), "ol/deepseek-v4-flash:0731") is True
+        assert _model_is_text_only_for_session(_Cfg(), "cmc/mimo-v2.5") is False
+        assert _model_is_text_only_for_session(_Cfg(), "") is False
+        assert _model_is_text_only_for_session(_Cfg(), None) is False
+
+    def test_helper_tolerates_missing_config(self):
+        from kiro_crew.session import _model_is_text_only_for_session
+
+        class _Cfg:
+            pass  # no agent attr at all
+
+        assert _model_is_text_only_for_session(_Cfg(), "oc/deepseek-v4-flash") is False
