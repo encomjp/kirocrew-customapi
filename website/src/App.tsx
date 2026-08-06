@@ -37,7 +37,7 @@ import { OnboardingShellHost } from './components/OnboardingChapterShell'
 import { PREVIEW_FOCUS_EVENT } from './components/WebPreviewPanel'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePersistedBool } from './hooks/usePersistedBool'
-import { isMacElectron, isWinElectron } from './lib/electron'
+import { isMacElectron, isWinElectron, isLinuxElectron } from './lib/electron'
 import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, DragOverlay, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -688,7 +688,7 @@ function NotificationsBellButton() {
     <div ref={containerRef} className="relative">
       <button
         ref={bellRef}
-        className={`flex items-center justify-center w-7 h-7 rounded-md hover:bg-bg-hover transition-colors bg-transparent border-none cursor-pointer shrink-0 relative ${open ? 'text-accent' : 'text-muted hover:text-text'}`}
+        className={`topbar-pill flex items-center justify-center w-7 h-7 rounded-md cursor-pointer shrink-0 relative ${open ? 'text-accent' : 'text-muted hover:text-text'}`}
         onClick={() => { if (open) closePanel(); else openPanel() }}
         title={unacked.length > 0 ? `${unacked.length} notification${unacked.length === 1 ? '' : 's'}` : i18nT('app.notifications')}
         aria-label={i18nT('app.notifications')}
@@ -1605,7 +1605,7 @@ export default function App() {
       <div className="absolute inset-0" style={{ display: activeInstanceId === null ? 'block' : 'none' }}>
     <div
       data-testid="dashboard-shell"
-      className={`relative z-[1] h-full grid animate-rise overflow-hidden bg-bg ${isMacElectron ? `mac-electron ${macFullscreen ? 'mac-fullscreen' : ''}` : ''} ${isWinElectron ? 'win-electron' : ''} ${isMobile ? 'grid-cols-[minmax(0,1fr)] grid-rows-[42px_minmax(0,1fr)]' : 'grid-rows-[42px_minmax(0,1fr)]'}`}
+      className={`relative z-[1] h-full grid animate-rise overflow-hidden bg-bg ${isMacElectron ? `mac-electron ${macFullscreen ? 'mac-fullscreen' : ''}` : ''} ${isWinElectron ? 'win-electron' : ''} ${isLinuxElectron ? 'linux-electron' : ''} ${isMobile ? 'grid-cols-[minmax(0,1fr)] grid-rows-[42px_minmax(0,1fr)]' : 'grid-rows-[42px_minmax(0,1fr)]'}`}
       style={{
         gridTemplateAreas: isMobile ? '"topbar" "content"' : '"topbar topbar topbar" "nav content actbar"',
         ...(!isMobile && {
@@ -1812,7 +1812,7 @@ export default function App() {
               <motion.div
                 layout
                 transition={{ layout: { duration: capsuleLayoutPulse ? 0.25 : 0, ease: 'easeOut' } }}
-                className={`flex items-center gap-2 h-7 px-2.5 rounded-xl transition-colors duration-300 ${offline ? 'bg-danger-subtle' : 'bg-card'}`}
+                className={`topbar-pill flex items-center gap-2 h-7 px-2.5 rounded-xl transition-colors duration-300 ${offline ? 'bg-danger-subtle' : ''}`}
               >
                 {segments.flatMap((s, i) => (i === 0 ? [s] : [<span key={`sep-${i}`} className="w-px h-3.5 bg-border shrink-0" aria-hidden="true" />, s]))}
               </motion.div>
@@ -1832,7 +1832,7 @@ export default function App() {
               separated from the readout capsule (item 2.3). */}
           {!isMobile && (
             <button
-              className="flex items-center gap-1.5 h-7 px-2.5 rounded-xl bg-card text-muted hover:text-text transition-colors cursor-pointer text-[12px] whitespace-nowrap shrink-0"
+              className="topbar-pill flex items-center gap-1.5 h-7 px-2.5 rounded-xl text-muted hover:text-text transition-colors cursor-pointer text-[12px] whitespace-nowrap shrink-0"
               onClick={requestFeature}
               title={i18nT('app.request_a_feature')}
             >
