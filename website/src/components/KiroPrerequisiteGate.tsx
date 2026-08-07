@@ -259,7 +259,7 @@ function SetupStatusError({
 // AppArmor profile `service install` writes. Linked from the gate so the screen
 // is a starting point rather than a dead end (issue #1660).
 const SANDBOX_DOCS_URL =
-  'https://github.com/kirodotdev/KiroCrew/blob/main/docs/guides/install.md' +
+  'https://github.com/encomjp/kirocrew-customapi/blob/main/docs/guides/install.md' +
   '#linux-the-agent-sandbox-and-unprivileged-user-namespaces'
 
 /**

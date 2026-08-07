@@ -44,15 +44,10 @@ import ChatSidebar from '../pages/ChatSidebar'
 import type { ChatSlot } from '../types'
 import type { RootState } from '../store'
 
-/** The chip's title now names the panel and the modifier escape hatch. Built
- *  here rather than matched loosely, so the tooltip's promise is asserted too.
- *  `platformShortcut` is deterministic under jsdom: navigator.platform is '',
- *  so the non-mac branch yields 'Ctrl+click'. */
-const chipTitle = (url: string) => `Open ${url} in the side panel (Ctrl+click to open it in the browser)`
-const ISSUE_URL = 'https://github.com/kirodotdev/KiroCrew/issues/701'
+const ISSUE_URL = 'https://github.com/encomjp/kirocrew-customapi/issues/701'
 const MR_ISSUE_URL = 'https://gitlab.com/acme/service/-/issues/8'
-const PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/634'
-const LEGACY_PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/500'
+const PR_URL = 'https://github.com/encomjp/kirocrew-customapi/pull/634'
+const LEGACY_PR_URL = 'https://github.com/encomjp/kirocrew-customapi/pull/500'
 
 const slots = [
   {

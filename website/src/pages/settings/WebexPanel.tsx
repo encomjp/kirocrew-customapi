@@ -12,7 +12,7 @@ import { i18nT } from '../../i18n/t'
 /** Brand name — do-not-translate, so it lives here rather than in the catalog. */
 const CHANNEL_NAME = "Webex"
 const CREATE_BOT_URL = 'https://developer.webex.com/my-apps/new/bot'
-const SETUP_GUIDE = 'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs/webex-integration.md'
+const SETUP_GUIDE = 'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs/webex-integration.md'
 
 /** Loose email shape check via linear string ops (mirrors the backend —
  *  avoids the polynomially-backtracking regex CodeQL flags). */

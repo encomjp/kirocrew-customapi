@@ -28,7 +28,7 @@ const RESULT = {
   skipped: [],
   redaction_summary: { 'gateway.log': 3 },
   total_redactions: 3,
-  github_issue_url: 'https://github.com/kirodotdev/KiroCrew/issues/new?title=x&body=y',
+  github_issue_url: 'https://github.com/encomjp/kirocrew-customapi/issues/new?title=x&body=y',
   download_url: '/api/diagnostics/download/b.zip',
 }
 

@@ -19,7 +19,7 @@ import { i18nT } from '../../i18n/t'
 
 /** Base for source deep links. Exported so `SecurityPanel` shares this one
  *  definition rather than each file carrying its own copy of the repo URL. */
-export const CODE_BASE = 'https://github.com/kirodotdev/KiroCrew/blob/main'
+export const CODE_BASE = 'https://github.com/encomjp/kirocrew-customapi/blob/main'
 
 /** Show the filter box once scanning the list by eye stops being practical. */
 const FILTER_THRESHOLD = 12

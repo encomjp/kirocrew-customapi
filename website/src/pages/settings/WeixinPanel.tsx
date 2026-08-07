@@ -13,7 +13,7 @@ import { useImeGuard } from '../../hooks/useImeGuard'
 /** Brand name — do-not-translate, so it lives here rather than in the catalog. */
 const CHANNEL_NAME = "WeChat"
 const SETUP_GUIDE =
-  'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs/weixin-integration.md'
+  'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs/weixin-integration.md'
 
 /** How often we poll the QR scan status while a login session is open. */
 const POLL_MS = 1500
