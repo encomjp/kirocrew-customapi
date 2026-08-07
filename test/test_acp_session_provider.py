@@ -1186,3 +1186,31 @@ class TestAdvertisedModelIds:
         assert advertised_model_ids(None) == []
         assert advertised_model_ids("nope") == []
         assert advertised_model_ids([{"modelId": "  "}, "x", 7]) == []
+
+
+@pytest.mark.asyncio
+async def test_set_model_falls_back_to_auto_when_unadvertised():
+    """A stale/unadvertised model must never error a new session: set_model
+    falls back to the advertised 'auto' instead of raising."""
+    handle = _make_handle()
+    handle.available_models = [{"modelId": "auto"}, {"modelId": "deepseek-3.2"}]
+    handle.set_model = AsyncMock()
+    provider = AcpSessionProvider(handle, _make_runtime())
+
+    await provider.set_model("deepseek-v4-flash:0731")
+
+    handle.set_model.assert_awaited_once_with("auto")
+
+
+@pytest.mark.asyncio
+async def test_set_model_raises_only_when_auto_also_unusable():
+    """Genuinely broken entitlement still raises AcpModelUnavailable."""
+    from kiro_crew.acp.client import AcpModelUnavailable
+
+    handle = _make_handle()
+    handle.available_models = [{"modelId": "deepseek-3.2"}]
+    handle.set_model = AsyncMock()
+    provider = AcpSessionProvider(handle, _make_runtime())
+
+    with pytest.raises(AcpModelUnavailable):
+        await provider.set_model("deepseek-v4-flash:0731")
