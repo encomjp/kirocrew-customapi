@@ -2107,6 +2107,18 @@ async def api_kirocrew_config_patch(request: web.Request) -> web.Response:
             if slot.model:
                 slot.model = ""
         state.push_slots_update()
+        # Bug 3 fix: also clear the global default model when the provider
+        # switches — the old provider's model id is invalid for the new one.
+        if path_key == "agent.provider" and cfg.agent.model:
+            from kiro_crew.config.loader import config_path  # noqa: F811
+
+            cfg_data = json.loads(config_path().read_text(encoding="utf-8"))
+            agent_section = cfg_data.get("agent", {})
+            if agent_section.get("model"):
+                agent_section["model"] = ""
+                cfg_data["agent"] = agent_section
+                _atomic_json_write(config_path(), cfg_data)
+                logger.info("Cleared agent.model on provider switch (was %r)", cfg.agent.model)
         logger.info(
             "Provider switched to %s — config rebuilt, factory reloaded, slot models cleared", value
         )

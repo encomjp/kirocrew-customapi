@@ -392,8 +392,10 @@ async function forceStopPort(
     if (ours) {
       // A service-managed gateway is respawned by launchd/systemd the moment we
       // kill it, so evicting it cannot free the port — it only makes the retry
-      // race the respawn. Leave it alone and tell the caller why.
-      if (await isServiceManaged(pid, getPpid)) {
+      // race the respawn. An AppImage process under /tmp/.mount_* is different:
+      // PID 1 adopted it after Electron exited, and no service will respawn it.
+      const orphanedAppImage = /(?:^|\s)\/tmp\/\.mount_[^/]+\//.test(cmd);
+      if (!orphanedAppImage && await isServiceManaged(pid, getPpid)) {
         serviceHolder = true;
         log(`force-stop: SKIP pid=${pid} — service-managed KiroCrew gateway (${cmd.slice(0, 80)})`);
         continue;
@@ -514,9 +516,13 @@ async function classifyPortOwner(
   }
   for (const pid of pids) {
     const cmd = (await getCommand(pid)).trim();
-    const ours = isKirocrew(cmd);
-    if (ours) {
-      if (await isServiceManaged(pid, getPpid)) {
+    if (isKirocrew.test(cmd)) {
+      // AppImage backends can be reparented to init after their Electron shell
+      // exits. They are not system services: their executable remains under the
+      // ephemeral /tmp/.mount_* tree and must be replaceable when that mount is
+      // stale. Keep genuine launchd/systemd gateways protected.
+      const orphanedAppImage = /(?:^|\s)\/tmp\/\.mount_[^/]+\//.test(cmd);
+      if (!orphanedAppImage && await isServiceManaged(pid, getPpid)) {
         log(`port-owner: :${port} held by SERVICE-MANAGED KiroCrew pid=${pid} (${cmd.slice(0, 80)}) — reuse, never evict`);
         return "service";
       }

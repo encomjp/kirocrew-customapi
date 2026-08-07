@@ -195,6 +195,16 @@ def _provider_label(provider: Any) -> str:
     return provider_label(provider)
 
 
+def _provider_label(provider: Any) -> str:
+    """Return the session-map identity for an ACP provider backend."""
+    backend = getattr(getattr(provider, "client", None), "backend", "")
+    if backend == "claude":
+        return "claude_code"
+    if backend == "opencode":
+        return "opencode"
+    return "acp"
+
+
 def _provider_effectively_alive(provider: Any) -> bool:
     """Whether a session's provider should be treated as live (NOT stale).
 
@@ -3061,7 +3071,9 @@ class SessionManager:
                         sid = provider.client._session_id
                         _prov_label = _provider_label(provider)
                         if sid:
-                            self._session_map.set(key, sid, provider=_prov_label, cwd=_cwd_str)
+                            self._session_map.set(
+                                key, sid, provider=_provider_label(provider), cwd=_cwd_str
+                            )
                     elif (
                         not is_stateless
                         and ClaudeCodeProvider is not None

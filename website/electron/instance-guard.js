@@ -111,10 +111,18 @@ function identityFamily(version) {
  *        gateway-stop.js). Defaults to "unknown" so a caller that forgets to
  *        pass it fails SAFE (reuse) rather than inheriting the old
  *        evict-on-payload-alone behavior.
+ * @param {boolean} [opts.gatewayUsable=true] whether the dashboard root can
+ *        still be served. A packaged Linux backend can outlive its AppImage
+ *        mount; /api/health remains healthy while every UI request returns 500.
  * @returns {{action:"reuse", reason:string} |
+ *           {action:"restart-local", reason:string} |
  *           {action:"takeover-prompt", otherFamily:"prod"|"nightly", otherVersion:string}}
  */
-function decideGatewayAction(ownVersion, remoteHealth, { localOwner = "unknown" } = {}) {
+function decideGatewayAction(
+  ownVersion,
+  remoteHealth,
+  { localOwner = "unknown", gatewayUsable = true } = {},
+) {
   const own = identityFamily(ownVersion);
   // A shell we can't classify never evicts anyone.
   if (own === null) return { action: "reuse", reason: "unclassified-shell" };
@@ -125,6 +133,9 @@ function decideGatewayAction(ownVersion, remoteHealth, { localOwner = "unknown" 
     return { action: "reuse", reason: "unidentified-gateway" };
   }
   const remote = identityFamily(remoteHealth.version);
+  if (remote === own && !gatewayUsable && localOwner === "kirocrew") {
+    return { action: "restart-local", reason: "unusable-local-gateway" };
+  }
   if (remote === null || remote === own) {
     return { action: "reuse", reason: remote === own ? "same-family" : "dev-gateway" };
   }
