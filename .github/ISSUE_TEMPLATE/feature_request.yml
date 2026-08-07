@@ -7,7 +7,7 @@ body:
       value: |
         For anything significant, this issue is the right place to agree on the
         approach before code gets written — see
-        [CONTRIBUTING.md](https://github.com/kirodotdev/KiroCrew/blob/main/CONTRIBUTING.md).
+        [CONTRIBUTING.md](https://github.com/encomjp/kirocrew-customapi/blob/main/CONTRIBUTING.md).
 
   - type: checkboxes
     id: search

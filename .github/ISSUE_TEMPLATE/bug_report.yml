@@ -9,7 +9,7 @@ body:
         otherwise have to ask for, so filling them in usually saves a round trip.
 
         Do NOT use this form for a security vulnerability. Report those privately
-        per [SECURITY.md](https://github.com/kirodotdev/KiroCrew/blob/main/SECURITY.md).
+        per [SECURITY.md](https://github.com/encomjp/kirocrew-customapi/blob/main/SECURITY.md).
 
   - type: checkboxes
     id: search

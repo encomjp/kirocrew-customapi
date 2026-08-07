@@ -344,7 +344,7 @@ def test_issue_url_is_well_formed(tmp_path, monkeypatch):
     r = diagnostics.collect_bundle(note="hi", output_dir=tmp_path / "out")
 
     assert r.github_issue_url.startswith(
-        "https://github.com/kirodotdev/KiroCrew/issues/new?"
+        "https://github.com/encomjp/kirocrew-customapi/issues/new?"
     )
     # Routes through the issue FORM, not a free-form body: the form is what
     # carries the version / install / channel answers triage reads.
@@ -680,7 +680,7 @@ def test_collect_handler_returns_download_url(tmp_path, monkeypatch):
         included=["versions.txt", "manifest.json"],
         skipped=[],
         redaction_summary={"versions.txt": 0},
-        github_issue_url="https://github.com/kirodotdev/KiroCrew/issues/new?title=x",
+        github_issue_url="https://github.com/encomjp/kirocrew-customapi/issues/new?title=x",
     )
     monkeypatch.setattr(dh.diagnostics, "collect_bundle", lambda **kw: fake)
 
