@@ -40,14 +40,14 @@ const HEARTBEAT_FIELDS = [
   'first-run flag',
 ] as const
 
-const RECEIPT_DISCLOSURE = "Official app slug · per-app anonymous token (not linkable across apps) · fresh/update flag · Kiro Crew version"
+const RECEIPT_DISCLOSURE = "Official app slug · per-app anonymous token (not linkable across apps) · fresh/update flag · kirocrew-customapi version"
 
 const RECEIPT_FIELDS = [
   'Official app slug',
   'per-app anonymous token',
   'not linkable across apps',
   'fresh/update flag',
-  'Kiro Crew version',
+  'kirocrew-customapi version',
 ] as const
 
 // Fields the payload excludes. Asserted ABSENT, not just omitted from the list

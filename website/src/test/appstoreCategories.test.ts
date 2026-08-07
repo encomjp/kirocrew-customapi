@@ -112,7 +112,7 @@ describe('provenance helpers', () => {
   it('labels built-ins, tagged registries, and core entries', () => {
     expect(sourceLabel({ origin: 'builtin' })).toBe('Built-in')
     expect(sourceLabel({ _registry: 'kirodotdev-labs' })).toBe('kirodotdev-labs')
-    expect(sourceLabel({})).toBe('Kiro Crew registry')
+    expect(sourceLabel({})).toBe('kirocrew-customapi registry')
   })
 
   it('verifies built-ins and kirocrew-authored core apps only', () => {
