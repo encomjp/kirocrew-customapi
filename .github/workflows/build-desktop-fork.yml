@@ -117,6 +117,8 @@ jobs:
             website/electron/dist/*.exe.blockmap
             website/electron/dist/*.AppImage
             website/electron/dist/*.deb
+            website/electron/dist/latest-linux.yml
+            website/electron/dist/latest-mac.yml
           if-no-files-found: error
           retention-days: 14
 
@@ -165,6 +167,12 @@ jobs:
           fi
           if ls artifacts/build-linux-desktop/*.deb >/dev/null 2>&1; then
             cp artifacts/build-linux-desktop/*.deb "release/KiroCrew-${VERSION}-desktop.deb"
+          fi
+          if ls artifacts/build-linux-desktop/latest-linux.yml >/dev/null 2>&1; then
+            cp artifacts/build-linux-desktop/latest-linux.yml "release/latest-linux.yml"
+          fi
+          if ls artifacts/build-macos-desktop/latest-mac.yml >/dev/null 2>&1; then
+            cp artifacts/build-macos-desktop/latest-mac.yml "release/latest-mac.yml"
           fi
           ls -la release/
 
