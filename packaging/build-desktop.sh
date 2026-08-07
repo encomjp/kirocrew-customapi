@@ -479,6 +479,12 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
     EB_ARGS+=( --linux )
   fi
 
+  # Never publish from this build: artifacts + update metadata (latest-*.yml)
+  # are attached to the fork release by build-desktop-fork.yml itself. The
+  # github publish provider in package.json would otherwise make electron-builder
+  # try to publish here, which fails without a GH_TOKEN.
+  EB_ARGS+=( --publish never )
+
   # Start from a pristine output dir. A prior interrupted universal build can
   # leave dist/mac-universal-<arch>-temp dirs behind (with a .DS_Store inside);
   # those linger and re-trip the ENOTEMPTY cleanup below on every later run.
