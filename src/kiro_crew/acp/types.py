@@ -203,6 +203,7 @@ KAS_CLIENT_CAPABILITIES: dict = {
     **ACP_CLIENT_CAPABILITIES,
     "_meta": {"kiro": {"settings": {}}},
 }
+ACP_BACKEND_OPENCODE = "opencode"
 
 # ── Claude backend permission modes ──
 # Values an edition writes into a per-session settings.local.json

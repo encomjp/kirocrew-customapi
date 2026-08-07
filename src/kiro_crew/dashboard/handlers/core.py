@@ -1591,7 +1591,34 @@ _MOVED_CONFIG_FIELDS: dict[str, str] = {
 
 
 _EDITABLE_CONFIG: dict[str, dict] = {
-    "agent.provider": {"type": "enum", "values": ["acp"]},
+    # Agent backend: kiro-native (acp/kiro-cli), Claude Code (claude_code,
+    # Anthropic-compatible base URL), or OpenCode (opencode, OpenAI-compatible
+    # base URL — OpenCode translates to Anthropic internally).
+    "agent.provider": {"type": "enum", "values": ["acp", "claude_code", "opencode"]},
+    # Router base URL for the claude_code / opencode backends. Local
+    # http://localhost:PORT and https endpoints both allowed; shell
+    # metacharacters and whitespace rejected.
+    "agent.provider_base_url": {
+        "type": "str",
+        "max_len": 2048,
+        "pattern": r"^https?://[A-Za-z0-9._\-:\[\]/]+$",
+    },
+    # Router API key (masked in the config GET response; only ever written).
+    "agent.provider_api_key": {"type": "str", "max_len": 512},
+    # Wire format for the opencode backend: which AI-SDK adapter OpenCode uses
+    # for the custom provider (anthropic vs openai-compatible).
+    "agent.provider_api_format": {"type": "enum", "values": ["anthropic", "openai"]},
+    # Optional model allowlist: when non-empty, the picker only shows these ids
+    # (a user-curated subset of the provider's catalog).
+    "agent.model_whitelist": {
+        "type": "list",
+        "max_len": 200,
+        "item": {
+            "type": "str",
+            "max_len": 128,
+            "pattern": r"^(?!.*\.\.)[A-Za-z0-9._\-/:@+\[\]]*$",
+        },
+    },
     # Default model for new sessions. Membership can NOT be validated against a
     # fixed list: the real vocabulary is whatever the live kiro-cli advertises
     # (/api/models spawns it to find out), and it spans both canonical registry
@@ -1866,6 +1893,21 @@ async def api_kirocrew_config_patch(request: web.Request) -> web.Response:
     if spec["type"] == "enum":
         if value not in spec["values"]:
             return _deny(f"invalid value, must be one of {spec['values']}", f"{path_key}={value}")
+    elif spec["type"] == "list":
+        if not isinstance(value, list):
+            return _deny("must be a list", f"{path_key}={value}")
+        max_items = spec.get("max_len", 200)
+        if len(value) > max_items:
+            return _deny(f"must have at most {max_items} entries", f"{path_key}={value}")
+        item = spec.get("item", {})
+        if item:
+            item_type = item.get("type", "str")
+            item_pattern = item.get("pattern")
+            for entry in value:
+                if item_type == "str" and not isinstance(entry, str):
+                    return _deny("list entries must be strings", f"{path_key}={value}")
+                if item_pattern and not re.fullmatch(item_pattern, entry):
+                    return _deny(f"invalid value for {path_key}", f"{path_key}={value}")
     elif spec["type"] == "int":
         try:
             value = int(value)
@@ -2046,7 +2088,7 @@ async def api_kirocrew_config_patch(request: web.Request) -> web.Response:
     cfg = KiroCrewConfig.load()
 
     # If provider changed, reload the factory so new sessions use the new provider
-    if path_key == "agent.provider":
+    if path_key in ("agent.provider", "agent.provider_base_url", "agent.provider_api_key", "agent.provider_api_format"):
         state: DashboardState = request.app["state"]
         # Refresh agent artifacts so the target provider is immediately usable.
         # For claude_code this (re)writes ~/.claude/agents/kirocrew.mcp.json —

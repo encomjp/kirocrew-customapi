@@ -377,6 +377,16 @@ should stay clean as long as the dormant seam (comments referencing `ACP_BACKEND
 - Upstream: https://github.com/kirodotdev/KiroCrew
 - License: [Apache 2.0](LICENSE)
 
+## Provider settings
+
+Point the app at your own router — Claude Code (Anthropic endpoint) or
+OpenCode (OpenAI-compatible endpoint), with presets for the popular gateways
+(Ollama Cloud, OpenCode Zen/Go, commandcode.ai, 9router, CLIProxyAPI, OpenRouter,
+xAI, Mistral, DeepSeek, Together, Groq, OpenAI …), a connection test, and a
+model allowlist so the picker only shows the models you actually use.
+
+![Provider settings](assets/provider-selection.png)
+
 ## Updating from the fork
 
 This fork updates from **its own repo** (`encomjp/kirocrew-customapi`), never

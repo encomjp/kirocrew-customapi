@@ -183,7 +183,7 @@ interface SettingsInputProps {
    *  interactive static element. */
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>
   placeholder?: string
-  type?: 'text' | 'number'
+  type?: 'text' | 'number' | 'password'
   min?: number
   max?: number
   step?: number

@@ -1,9 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { SettingsSection, SettingsCard, SettingsToggle, SettingsSelect, SettingsInput, SettingsButtonGroup } from '../../components/settings'
+import { Btn } from '../../components/ui'
 import { loadChatConfig, saveChatConfig, type ChatConfig, type ContentWidth, type DashboardConfig, type SendMode } from '../chat/ChatSettings'
 import { api } from '../../api/client'
 import { useAvailableModels } from '../../hooks/useAvailableModels'
+import { useProvider } from '../../providers'
+import { BACKEND_OPTIONS, PROVIDER_PRESETS, type AgentBackend } from './providerPresets'
+import { modelListRefetchInterval } from '../../providers/modelListHealth'
 import { EFFORT_LEVELS, effortLabel, modelSupportsEffort } from '../../lib/effort'
 import { isMac } from '../../utils/platform'
 import { capRoleOther, clampRoleOther } from '../../lib/userProfile'
@@ -153,6 +157,11 @@ export function ChatPanel() {
     session?: { autocompact_pct?: number }
     session_summary?: { enabled?: boolean }
     agent?: {
+      provider?: string
+      provider_base_url?: string
+      provider_api_key?: string
+      provider_api_format?: string
+      model_whitelist?: string[]
       model?: string
       role_models?: { background?: string; subagent?: string }
       role_efforts?: { background?: string; subagent?: string }
@@ -285,6 +294,99 @@ export function ChatPanel() {
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_default_model')),
   })
 
+  // ── Provider (agent backend + router URL/key) ──
+  // The section edits a DRAFT that only becomes config on Save: the backend
+  // switch, preset prefill and URL/key inputs never write anything on their
+  // own. A draft overrides the loaded config until saved or the user edits
+  // something else; kiro-native (acp) manages its router itself.
+  const [draft, setDraft] = useState<{ backend: AgentBackend; preset: string; url: string; key: string; format?: 'anthropic' | 'openai' } | null>(null)
+  const [providerSaving, setProviderSaving] = useState(false)
+  const [providerSaveError, setProviderSaveError] = useState('')
+  const [providerTesting, setProviderTesting] = useState(false)
+  const [providerTestResult, setProviderTestResult] = useState<{ ok: boolean; message: string; models?: string[] } | null>(null)
+  const [modelSel, setModelSel] = useState<string[]>([])
+  useEffect(() => {
+    if (mcCfg?.agent?.model_whitelist) setModelSel(mcCfg.agent.model_whitelist)
+  }, [mcCfg])
+  const savedWhitelist = mcCfg?.agent?.model_whitelist ?? []
+  const whitelistChanged = modelSel.length !== savedWhitelist.length || modelSel.some((m, i) => m !== savedWhitelist[i])
+
+  const effBackend: AgentBackend = draft?.backend ??
+    (mcCfg?.agent?.provider === 'claude_code' || mcCfg?.agent?.provider === 'opencode'
+      ? mcCfg.agent.provider
+      : 'acp')
+  const effUrl = draft?.url ?? mcCfg?.agent?.provider_base_url ?? ''
+  const effPreset = draft?.preset ?? 'custom'
+  const effFormat: 'anthropic' | 'openai' = (draft?.format ??
+    (effBackend === 'opencode'
+      ? (mcCfg?.agent?.provider_api_format ?? 'openai')
+      : 'anthropic')) as 'anthropic' | 'openai'
+  const hasStoredKey = !!mcCfg?.agent?.provider_api_key
+  const providerPresets = effBackend === 'acp' ? [] : PROVIDER_PRESETS[effBackend]
+
+  const applyPreset = (value: string) => {
+    const preset = providerPresets.find(p => p.value === value)
+    setDraft(prev => ({
+      backend: effBackend,
+      preset: value,
+      url: preset ? preset.url : '',
+      key: prev?.key ?? '',
+      format: preset?.format ?? (effBackend === 'opencode' ? 'openai' : 'anthropic'),
+    }))
+  }
+
+  const switchBackend = (value: AgentBackend) => {
+    // Switching backend resets the draft to a clean custom entry — preset
+    // URLs are backend-specific.
+    setDraft({ backend: value, preset: 'custom', url: '', key: '', format: value === 'opencode' ? 'openai' : 'anthropic' })
+    setProviderTestResult(null)
+  }
+
+  const providerTest = async () => {
+    setProviderTesting(true)
+    setProviderTestResult(null)
+    try {
+      const res = await api.providerTest({ url: effUrl, api_key: draft?.key || undefined, format: effFormat })
+      setProviderTestResult(res)
+    } catch {
+      setProviderTestResult({ ok: false, message: 'request failed' })
+    } finally {
+      setProviderTesting(false)
+    }
+  }
+
+  const toggleWhitelistModel = (id: string) => {
+    setModelSel(cur => (cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]))
+  }
+
+  const providerSave = async () => {
+    setProviderSaving(true)
+    setProviderSaveError('')
+    try {
+      if (draft?.backend && draft.backend !== (mcCfg?.agent?.provider ?? 'acp')) {
+        await api.patchConfig('agent.provider', draft.backend)
+      }
+      if (draft?.url !== undefined && draft.url !== (mcCfg?.agent?.provider_base_url ?? '')) {
+        await api.patchConfig('agent.provider_base_url', draft.url)
+      }
+      if (draft?.key) {
+        await api.patchConfig('agent.provider_api_key', draft.key)
+      }
+      if (draft?.format && draft.format !== (mcCfg?.agent?.provider_api_format ?? (draft.backend === 'opencode' ? 'openai' : 'anthropic'))) {
+        await api.patchConfig('agent.provider_api_format', draft.format)
+      }
+      if (modelSel.length !== savedWhitelist.length || modelSel.some((m, i) => m !== savedWhitelist[i])) {
+        await api.patchConfig('agent.model_whitelist', modelSel)
+      }
+      qc.invalidateQueries({ queryKey: ['kirocrewConfig'] })
+      setDraft(null)
+    } catch {
+      setProviderSaveError(i18nT('pages.settings.chatPanel.failed_to_save_provider'))
+    } finally {
+      setProviderSaving(false)
+    }
+  }
+
   const defaultEffort = mcCfg?.agent?.reasoning_effort ?? ''
   // Effort is only meaningful on reasoning-capable models. Rather than hide the
   // row (which would make the setting look absent), keep it visible and
@@ -372,6 +474,88 @@ export function ChatPanel() {
           <button className="underline cursor-pointer bg-transparent border-none text-danger" onClick={() => mcQ.refetch()}>{i18nT('pages.settings.chatPanel.retry')}</button>
         </div>
       )}
+
+      <SettingsSection title={i18nT('pages.settings.chatPanel.provider')}>
+        <SettingsCard>
+          {/* Agent backend switch — each option carries its format subheader. */}
+          <div className="flex flex-wrap gap-1.5">
+            {BACKEND_OPTIONS.map(o => (
+              <button
+                key={o.value}
+                type="button"
+                aria-pressed={effBackend === o.value}
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg border text-[13px] cursor-pointer transition-colors ${
+                  effBackend === o.value
+                    ? 'bg-bg-elevated text-text-strong border-border-strong shadow-sm font-semibold'
+                    : 'bg-transparent text-muted border-border font-medium hover:text-text-strong'
+                }`}
+                onClick={() => switchBackend(o.value)}
+              >
+                <span>{o.label}</span>
+                <span className={`text-[11px] font-normal ${effBackend === o.value ? 'text-muted' : 'text-muted/70'}`}>{o.sub}</span>
+              </button>
+            ))}
+          </div>
+
+          {effBackend === 'acp' ? (
+            <p className="mt-3 text-[13px] text-muted">{i18nT('pages.settings.chatPanel.provider_managed_by_kiro_cli')}</p>
+          ) : (
+            <>
+              <SettingsSelect
+                label={i18nT('pages.settings.chatPanel.provider_preset')}
+                value={effPreset}
+                options={providerPresets.map(p => p.value)}
+                optionLabels={providerPresets.map(p => p.label)}
+                onChange={applyPreset}
+              />
+              <SettingsInput
+                label={i18nT('pages.settings.chatPanel.provider_url')}
+                aria-label={i18nT('pages.settings.chatPanel.provider_url')}
+                value={effUrl}
+                onChange={v => setDraft(prev => ({ backend: effBackend, preset: effPreset, url: v, key: prev?.key ?? '', format: prev?.format ?? effFormat }))}
+                placeholder="https://…"
+              />
+              <SettingsInput
+                label={i18nT('pages.settings.chatPanel.provider_api_key')}
+                aria-label={i18nT('pages.settings.chatPanel.provider_api_key')}
+                type="password"
+                value={draft?.key ?? ''}
+                placeholder={hasStoredKey ? i18nT('pages.settings.chatPanel.provider_api_key_saved') : ''}
+                onChange={v => setDraft(prev => ({ backend: effBackend, preset: effPreset, url: prev?.url ?? effUrl, key: v, format: prev?.format ?? effFormat }))}
+              />
+              <div className="mt-3 flex items-center gap-2">
+                <Btn onClick={providerTest} disabled={providerTesting || !effUrl}>
+                  {providerTesting ? '…' : i18nT('pages.settings.chatPanel.provider_test')}
+                </Btn>
+                <Btn primary onClick={providerSave} disabled={providerSaving || (!draft && !whitelistChanged)}>
+                  {i18nT('pages.settings.chatPanel.provider_save')}
+                </Btn>
+                {providerSaveError && <span className="text-[13px] text-danger">{providerSaveError}</span>}
+              </div>
+              {providerTestResult && (
+                <div className={`mt-2 text-[13px] ${providerTestResult.ok ? 'text-accent' : 'text-danger'}`}>
+                  {providerTestResult.ok
+                    ? `${i18nT('pages.settings.chatPanel.provider_test_ok')} (${providerTestResult.models?.length ?? 0})`
+                    : `${i18nT('pages.settings.chatPanel.provider_test_failed')}: ${providerTestResult.message}`}
+                </div>
+              )}
+              {(providerTestResult?.models?.length || savedWhitelist.length > 0) && (
+                <div className="mt-3">
+                  <div className="text-[13px] font-semibold text-text-strong mb-1">{i18nT('pages.settings.chatPanel.provider_models')}</div>
+                  <div className="max-h-40 overflow-y-auto rounded border border-border p-2 grid grid-cols-1 gap-1">
+                    {(providerTestResult?.models ?? savedWhitelist).map(id => (
+                      <label key={id} className="flex items-center gap-2 text-[13px] cursor-pointer">
+                        <input type="checkbox" checked={modelSel.includes(id)} onChange={() => toggleWhitelistModel(id)} className="accent-accent" />
+                        <span className="font-mono text-text truncate">{id}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </SettingsCard>
+      </SettingsSection>
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.model')}>
         {/* Grouped by role so each block reads as "which model + how hard it

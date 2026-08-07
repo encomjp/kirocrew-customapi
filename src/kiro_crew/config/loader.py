@@ -1309,7 +1309,7 @@ class AgentConfig:
             "LLM provider backend. 'acp' drives kiro-cli; 'claude_code' drives "
             "claude-agent-acp (Claude Code over ACP, pointing at any "
             "ANTHROPIC_BASE_URL — e.g. a local router).",
-            enum=["acp", "claude_code"],
+            enum=["acp", "claude_code", "opencode"],
         ),
     )
     provider_base_url: str = field(
@@ -1351,9 +1351,27 @@ class AgentConfig:
         default="",
         metadata=_meta(
             "ACP Backend",
-            "Which ACP agent to drive: '' = kiro-cli (default), 'kas' = kiro-agent. "
+            "Which ACP agent to drive: '' = kiro-cli (default), 'kas' = kiro-agent, "
+            "'opencode' = OpenCode ACP (fork). "
             "KAS runs chat but has no native subagent progress reporting yet.",
-            enum=["", "kas"],
+            enum=["", "kas", "opencode"],
+        ),
+    )
+    provider_api_format: str = field(
+        default="",
+        metadata=_meta(
+            "Provider API Format",
+            "Wire format for the opencode backend ('anthropic' or 'openai'). "
+            "Empty defaults to openai.",
+            enum=["anthropic", "openai"],
+        ),
+    )
+    model_whitelist: list[str] = field(
+        default_factory=list,
+        metadata=_meta(
+            "Model Whitelist",
+            "Optional allowlist of model ids shown in the picker. Empty = all "
+            "advertised/curated models.",
         ),
     )
     image_redirect: str = field(
@@ -6393,6 +6411,8 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
                 acp_backend=_normalize_acp_backend(agent_data.get("acp_backend")),
                 provider_base_url=agent_data.get("provider_base_url", ""),
                 provider_api_key=agent_data.get("provider_api_key", ""),
+                provider_api_format=agent_data.get("provider_api_format", ""),
+                model_whitelist=list(agent_data.get("model_whitelist") or []),
                 image_redirect=agent_data.get("image_redirect", "subagent"),
                 vision_fallback_model=agent_data.get(
                     "vision_fallback_model", "cmc/mimo-v2.5"
@@ -7458,7 +7478,9 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
         # Fork: with a custom base URL (router), "auto" cannot resolve — the
         # adapter would fall back to its Bedrock default (claude-opus-5[1m]),
         # which the router rejects. Fall back to the global config model.
-        provider_backend = "claude" if self.agent.provider == "claude_code" else ""
+        provider_backend = "claude" if self.agent.provider == "claude_code" else (
+            "opencode" if self.agent.provider == "opencode" else ""
+        )
         if (
             provider_backend == "claude"
             and (self.agent.provider_base_url or "").strip()
@@ -7590,11 +7612,11 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
             _eff = reasoning_effort_override or base_effort
             if m and _eff and is_valid_effort(_eff) and model_supports_effort(m):
                 _eff_per_model[m] = _eff
-            # Fork: thread the claude_code backend + ANTHROPIC_* config into
-            # the provider. extra_env wins over config values.
+            # Fork: thread the claude_code / opencode backends + ANTHROPIC_*
+            # config into the provider. extra_env wins over config values.
             _backend = provider_backend
             _env: dict[str, str] = dict(extra_env or {})
-            if provider_backend == "claude":
+            if provider_backend in ("claude", "opencode"):
                 if provider_base_url and not _env.get("ANTHROPIC_BASE_URL"):
                     _env["ANTHROPIC_BASE_URL"] = provider_base_url
                 if not _env.get("ANTHROPIC_API_KEY"):
@@ -7611,6 +7633,16 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
                     )
                     if api_key:
                         _env["ANTHROPIC_API_KEY"] = api_key
+                if provider_backend == "opencode":
+                    # Wire format for the opencode custom provider — the ACP
+                    # client maps it to the AI-SDK adapter (npm package).
+                    _env.setdefault(
+                        "OPENCODE_API_FORMAT", self.agent.provider_api_format or "openai"
+                    )
+                # Permanent guard: the ACP client falls back to this default
+                # when a requested model is not advertised by the provider.
+                if self.agent.model and self.agent.model not in ("", "auto", DEFAULT_MODEL):
+                    _env.setdefault("KIROCREW_DEFAULT_MODEL", self.agent.model)
             return AcpProvider(
                 work_dir=wdir,
                 model=m,
