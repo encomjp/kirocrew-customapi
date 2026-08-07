@@ -113,10 +113,11 @@ fi
 # they are ONE app on two update lanes (the in-app channel switcher moves
 # between them), so they keep the package.json defaults. Derivation mirrors
 # auto-update.js channelForVersion: only a "-nightly." stamp changes
-# identity; unstamped dev builds and insider/stable stamps build "KiroCrew".
+# identity; unstamped dev builds and insider/stable stamps build
+# "kirocrew-customapi" (the fork's productName).
 case "$KC_VERSION" in
   *-nightly.*) PRODUCT_NAME="KiroCrew Nightly" ;;
-  *)           PRODUCT_NAME="KiroCrew" ;;
+  *)           PRODUCT_NAME="kirocrew-customapi" ;;
 esac
 
 log() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
