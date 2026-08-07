@@ -644,10 +644,10 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
   if [ "$OS" = "darwin" ]; then
     EB_ARGS+=( --mac )
     [ "$UNIVERSAL" = "1" ] && EB_ARGS+=( --universal )
-    eb_run "${EB_ARGS[@]}"
+    eb_run "${EB_ARGS[@]}" --publish never
   elif [ "$OS" = "windows" ]; then
     EB_ARGS+=( --win )
-    eb_run "${EB_ARGS[@]}"
+    eb_run "${EB_ARGS[@]}" --publish never
   else
     # One invocation PER FORMAT, each preceded by its own beacon stamp, so the
     # AppImage and the deb do not both claim the label of whichever was built
@@ -658,7 +658,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
       target="${pair%%:*}"; dist="${pair##*:}"
       log "Packaging Linux ${target} (dist=${dist})…"
       restamp_backends "$dist"
-      eb_run "${EB_ARGS[@]}" --linux "$target"
+      eb_run "${EB_ARGS[@]}" --linux "$target" --publish never
     done
   fi
 )
