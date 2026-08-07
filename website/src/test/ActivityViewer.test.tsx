@@ -154,8 +154,9 @@ describe('ActivityViewer', () => {
     const store = configureStore({
       reducer: { chat: chatReducer, dashboard: dashboardReducer, notifications: notificationsReducer },
     })
-    store.dispatch(openActivityToTab('links'))
-    const prUrl = 'https://github.com/kirodotdev/KiroCrew/pull/42'
+    // Files tab is the default
+    store.dispatch(openActivityToTab('files'))
+    const prUrl = 'https://github.com/encomjp/kirocrew-customapi/pull/42'
     render(
       <Provider store={store}>
         <QueryClientProvider client={qc}>

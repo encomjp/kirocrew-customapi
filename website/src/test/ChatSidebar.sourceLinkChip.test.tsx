@@ -61,10 +61,7 @@ import ChatSidebar from '../pages/ChatSidebar'
 import type { ChatSlot } from '../types'
 import type { RootState } from '../store'
 
-const PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/634'
-const ISSUE_URL = 'https://github.com/kirodotdev/KiroCrew/issues/701'
-/** The chip on the session that is ALREADY active. */
-const ACTIVE_PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/12'
+const PR_URL = 'https://github.com/encomjp/kirocrew-customapi/pull/634'
 
 const slots = [
   {
@@ -249,7 +246,7 @@ describe('ChatSidebar – PR chip', () => {
  * control live in one table.
  */
 describe('ChatSidebar – terminal PR chips suppress CI', () => {
-  const url = (n: number) => `https://github.com/kirodotdev/KiroCrew/pull/${n}`
+  const url = (n: number) => `https://github.com/encomjp/kirocrew-customapi/pull/${n}`
 
   function stateRows(): ChatSlot[] {
     return [

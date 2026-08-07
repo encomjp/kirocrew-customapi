@@ -13,7 +13,7 @@ export const TIPS_SETTINGS_PATH = '/settings?tab=chat'
 
 // Tip docs live in the repo at src/kiro_crew/docs/ (same base the Security and
 // Discord settings panels link to).
-const DOCS_BASE = 'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs'
+const DOCS_BASE = 'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs'
 // Tips can be LLM-generated: only link a doc value shaped like a plain
 // markdown filename so an invented value can't produce a weird URL.
 const DOC_FILENAME_RE = /^[a-z0-9][a-z0-9._-]*\.md$/i
