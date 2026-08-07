@@ -492,6 +492,16 @@ class AcpSessionProvider(LLMProvider):
         """
         advertised = advertised_model_ids(self._handle.available_models)
         if model_is_unusable(model_id, advertised):
+            # PERMANENT guard: a model the active backend does not advertise
+            # must never reach the wire — whatever leaked it (a persisted slot
+            # from a previous provider, a stale picker value, a resumed chat).
+            # Fall back to 'auto' (the backend's own advertised default) so a
+            # new session runs instead of erroring. Only raise when 'auto'
+            # itself is unusable (a genuinely broken entitlement).
+            if "auto" in advertised:
+                model_id = "auto"
+                await self._guarded(self._handle.set_model("auto"))
+                return
             raise AcpModelUnavailable(model_id, advertised)
         await self._guarded(self._handle.set_model(model_id))
 
