@@ -1596,11 +1596,13 @@ _EDITABLE_CONFIG: dict[str, dict] = {
     # fixed list: the real vocabulary is whatever the live kiro-cli advertises
     # (/api/models spawns it to find out), and it spans both canonical registry
     # keys ("opus-4.8-1m") and kiro's own ids ("claude-opus-4.8"). So this is a
-    # grammar check instead — model-id charset only, no separators or shell
-    # metacharacters — and an unknown-but-well-formed id is rejected downstream
-    # by kiro itself rather than silently accepted here. "auto"/"" = defer to
-    # the agent config / kiro's own default.
-    "agent.model": {"type": "str", "max_len": 64, "pattern": r"^[A-Za-z0-9._\-\[\]]*$"},
+    # grammar check instead — model-id charset only, no shell metacharacters —
+    # and an unknown-but-well-formed id is rejected downstream by kiro itself
+    # rather than silently accepted here. "auto"/"" = defer to the agent config
+    # / kiro's own default. The charset admits "/" and ":" because the fork's
+    # CLIProxyAPI routing uses prefixed ids ("cmc/…", "oc/…", "cx/…") and
+    # provider:model forms; "@"/"+" cover router-catalog naming.
+    "agent.model": {"type": "str", "max_len": 64, "pattern": r"^(?!.*\.\.)[A-Za-z0-9._\-/:@+\[\]]*$"},
     # Per-task-class model overrides. Same grammar as agent.model (the real
     # vocabulary is whatever the backend advertises). "" / "auto" defers to the
     # chat default. `validate_fn` additionally rejects a well-formed id the
@@ -1608,13 +1610,13 @@ _EDITABLE_CONFIG: dict[str, dict] = {
     "agent.role_models.background": {
         "type": "str",
         "max_len": 64,
-        "pattern": r"^[A-Za-z0-9._\-\[\]]*$",
+        "pattern": r"^(?!.*\.\.)[A-Za-z0-9._\-/:@+\[\]]*$",
         "validate_fn": _validate_role_model,
     },
     "agent.role_models.subagent": {
         "type": "str",
         "max_len": 64,
-        "pattern": r"^[A-Za-z0-9._\-\[\]]*$",
+        "pattern": r"^(?!.*\.\.)[A-Za-z0-9._\-/:@+\[\]]*$",
         "validate_fn": _validate_role_model,
     },
     "agent.reasoning_effort": {"type": "enum", "values": ["", *EFFORT_LEVELS]},
