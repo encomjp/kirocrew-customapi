@@ -95,6 +95,7 @@ ACP_CLIENT_CAPABILITIES: dict = {
 # ── ACP Backend Identifiers ──
 
 ACP_BACKEND_CLAUDE = "claude"
+ACP_BACKEND_OPENCODE = "opencode"
 
 # ── Claude backend permission modes ──
 # Values an edition writes into a per-session settings.local.json

@@ -8266,6 +8266,18 @@
         "status_unavailable": "状态不可用"
       },
       "chatPanel": {
+        "provider_test": "Test connection",
+        "provider_test_ok": "Connected — models found",
+        "provider_test_failed": "Connection failed",
+        "provider_models": "Select models to show in the picker (empty = all)",
+        "provider": "Provider",
+        "provider_preset": "Preset",
+        "provider_url": "Base URL",
+        "provider_api_key": "API key",
+        "provider_api_key_saved": "••• saved (leave empty to keep)",
+        "provider_save": "Save provider",
+        "provider_managed_by_kiro_cli": "Managed by kiro-cli — the router, models and credentials are configured there.",
+        "failed_to_save_provider": "Failed to save provider settings",
         "click_a_suggested_reply_to_send_it_instantly": "点击建议回复即可立即发送。{{mod}}+点击可多选。",
         "link_previews": "链接预览",
         "maximum_characters_retained_in_the_completion_ev": "应用截断模式后，完成事件中保留的最大字符数。0 表示完全不截断。默认 {{n}}。",

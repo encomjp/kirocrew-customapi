@@ -105,7 +105,7 @@ interface SettingsInputProps {
   onChange: (value: string) => void
   onBlur?: () => void
   placeholder?: string
-  type?: 'text' | 'number'
+  type?: 'text' | 'number' | 'password'
   min?: number
   max?: number
   step?: number

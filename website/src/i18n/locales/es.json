@@ -8440,6 +8440,18 @@
         "status_unavailable": "Estado no disponible"
       },
       "chatPanel": {
+        "provider_test": "Test connection",
+        "provider_test_ok": "Connected — models found",
+        "provider_test_failed": "Connection failed",
+        "provider_models": "Select models to show in the picker (empty = all)",
+        "provider": "Provider",
+        "provider_preset": "Preset",
+        "provider_url": "Base URL",
+        "provider_api_key": "API key",
+        "provider_api_key_saved": "••• saved (leave empty to keep)",
+        "provider_save": "Save provider",
+        "provider_managed_by_kiro_cli": "Managed by kiro-cli — the router, models and credentials are configured there.",
+        "failed_to_save_provider": "Failed to save provider settings",
         "click_a_suggested_reply_to_send_it_instantly": "Haz clic en una respuesta sugerida para enviarla al instante. {{mod}}+clic para seleccionar varias.",
         "link_previews": "Vistas previas de enlaces",
         "maximum_characters_retained_in_the_completion_ev": "Cantidad máxima de caracteres que se conservan en el evento de finalización después de aplicar el modo de truncamiento. 0 desactiva el truncamiento por completo. Predeterminado: {{n}}.",

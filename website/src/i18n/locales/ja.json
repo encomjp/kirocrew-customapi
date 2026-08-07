@@ -8346,6 +8346,18 @@
         "status_unavailable": "ステータスが利用不可"
       },
       "chatPanel": {
+        "provider_test": "Test connection",
+        "provider_test_ok": "Connected — models found",
+        "provider_test_failed": "Connection failed",
+        "provider_models": "Select models to show in the picker (empty = all)",
+        "provider": "Provider",
+        "provider_preset": "Preset",
+        "provider_url": "Base URL",
+        "provider_api_key": "API key",
+        "provider_api_key_saved": "••• saved (leave empty to keep)",
+        "provider_save": "Save provider",
+        "provider_managed_by_kiro_cli": "Managed by kiro-cli — the router, models and credentials are configured there.",
+        "failed_to_save_provider": "Failed to save provider settings",
         "power": "電源",
         "prevent_sleep_while_running": "実行中はスリープを防止",
         "keep_your_computer_awake_while_a_task_is_running": "タスクの実行中はコンピューターをスリープさせません",

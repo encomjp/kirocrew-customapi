@@ -8440,6 +8440,18 @@
         "status_unavailable": "Statut indisponible"
       },
       "chatPanel": {
+        "provider_test": "Test connection",
+        "provider_test_ok": "Connected — models found",
+        "provider_test_failed": "Connection failed",
+        "provider_models": "Select models to show in the picker (empty = all)",
+        "provider": "Provider",
+        "provider_preset": "Preset",
+        "provider_url": "Base URL",
+        "provider_api_key": "API key",
+        "provider_api_key_saved": "••• saved (leave empty to keep)",
+        "provider_save": "Save provider",
+        "provider_managed_by_kiro_cli": "Managed by kiro-cli — the router, models and credentials are configured there.",
+        "failed_to_save_provider": "Failed to save provider settings",
         "click_a_suggested_reply_to_send_it_instantly": "Clique sur une réponse suggérée pour l’envoyer immédiatement. {{mod}}+Clic pour en sélectionner plusieurs.",
         "link_previews": "Aperçus de liens",
         "maximum_characters_retained_in_the_completion_ev": "Nombre maximal de caractères conservés dans l’événement de fin après application du mode de troncature. 0 désactive complètement la troncature. Par défaut : {{n}}.",

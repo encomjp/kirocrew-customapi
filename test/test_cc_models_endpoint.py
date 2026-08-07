@@ -276,3 +276,129 @@ class TestRouterModelWhitelistMerge:
         names = {m["model_name"] for m in payload}
         assert "cmc/meta/muse-spark-1.2-contributor" in names
         assert "oc/deepseek-v4-flash" in names
+
+
+class _FakeResp:
+    def __init__(self, data):
+        self.status = 200
+        self._data = data
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def json(self):
+        return self._data
+
+
+class _FakeSession:
+    def __init__(self, *a, **k):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    def get(self, url, headers=None):
+        if self._fail:
+            raise _Boom("offline")
+        return _FakeResp(
+            {
+                "data": [
+                    {"id": "deepseek-v4-flash", "display_name": "DeepSeek V4 Flash"},
+                    {"id": "gpt-5.6-sol", "display_name": "GPT 5.6 Sol"},
+                ]
+            }
+        )
+
+
+class _Boom(Exception):
+    pass
+
+
+def _opencode_config(monkeypatch):
+    from kiro_crew.config.loader import KiroCrewConfig
+
+    cfg = KiroCrewConfig()
+    cfg.agent = SimpleNamespace(
+        provider="opencode",
+        provider_base_url="http://localhost:8317",
+        provider_api_key="sk-x",
+        provider_api_format="openai",
+        model_whitelist=[],
+    )
+    monkeypatch.setattr("kiro_crew.dashboard.handlers.agents.KiroCrewConfig.load", lambda: cfg)
+    return cfg
+
+
+def test_opencode_models_response_uses_provider_catalog(monkeypatch):
+    """opencode backend: /api/models serves the provider's /v1/models rows."""
+    import aiohttp
+
+    from kiro_crew.dashboard.handlers.agents import _opencode_models_response
+
+    _opencode_config(monkeypatch)
+    session = _FakeSession()
+    session._fail = False
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda *a, **k: session)
+
+    async def run():
+        return await _opencode_models_response(MagicMock())
+
+    resp = _run_async(run())
+    rows = json.loads(resp.text)
+    ids = [r["model_id"] for r in rows]
+    assert "deepseek-v4-flash" in ids
+    assert "gpt-5.6-sol" in ids
+    by_id = {r["model_id"]: r for r in rows}
+    assert by_id["deepseek-v4-flash"]["context_window_tokens"] > 0
+
+
+def test_opencode_models_response_falls_back_to_whitelist(monkeypatch):
+    """Unreachable provider endpoint still yields the curated whitelist."""
+    import aiohttp
+
+    from kiro_crew.dashboard.handlers.agents import _opencode_models_response
+
+    _opencode_config(monkeypatch)
+    session = _FakeSession()
+    session._fail = True
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda *a, **k: session)
+
+    async def run():
+        return await _opencode_models_response(MagicMock())
+
+    resp = _run_async(run())
+    rows = json.loads(resp.text)
+    assert len(rows) > 0
+
+
+def _run_async(coro):
+    import asyncio
+
+    return asyncio.get_event_loop().run_until_complete(coro)
+
+
+def test_opencode_models_response_filters_to_whitelist(monkeypatch):
+    """The user model allowlist narrows the provider catalog."""
+    import aiohttp
+
+    from kiro_crew.dashboard.handlers.agents import _opencode_models_response
+
+    cfg = _opencode_config(monkeypatch)
+    cfg.agent.model_whitelist = ["gpt-5.6-sol"]
+    session = _FakeSession()
+    session._fail = False
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda *a, **k: session)
+
+    async def run():
+        return await _opencode_models_response(MagicMock())
+
+    resp = _run_async(run())
+    rows = json.loads(resp.text)
+    ids = [r["model_id"] for r in rows]
+    assert ids == ["gpt-5.6-sol"]

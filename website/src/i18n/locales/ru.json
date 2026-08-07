@@ -8527,6 +8527,18 @@
         "status_unavailable": "Статус недоступен"
       },
       "chatPanel": {
+        "provider_test": "Test connection",
+        "provider_test_ok": "Connected — models found",
+        "provider_test_failed": "Connection failed",
+        "provider_models": "Select models to show in the picker (empty = all)",
+        "provider": "Provider",
+        "provider_preset": "Preset",
+        "provider_url": "Base URL",
+        "provider_api_key": "API key",
+        "provider_api_key_saved": "••• saved (leave empty to keep)",
+        "provider_save": "Save provider",
+        "provider_managed_by_kiro_cli": "Managed by kiro-cli — the router, models and credentials are configured there.",
+        "failed_to_save_provider": "Failed to save provider settings",
         "click_a_suggested_reply_to_send_it_instantly": "Нажми предложенный ответ, чтобы отправить его сразу. {{mod}}+Click — выбрать несколько.",
         "link_previews": "Предпросмотр ссылок",
         "maximum_characters_retained_in_the_completion_ev": "Максимум символов, сохраняемых в событии завершения после применения режима обрезки. 0 полностью отключает обрезку. По умолчанию {{n}}.",

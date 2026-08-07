@@ -45,6 +45,7 @@ from kiro_crew.acp.liveness import VERDICT_UNKNOWN, VERDICT_WORKING, LivenessOra
 from kiro_crew.acp.prompt_blocks import build_prompt_blocks
 from kiro_crew.acp.types import (
     ACP_BACKEND_CLAUDE,
+    ACP_BACKEND_OPENCODE,
     ACP_CLIENT_CAPABILITIES,
     EVENT_AGENT_SWITCHED,
     EVENT_CLEAR_STATUS,
@@ -464,6 +465,23 @@ def _resolve_claude_acp_bin() -> list[str] | None:
         if node_on_path:
             return [node_on_path, resolved]
 
+    return None
+
+
+def _resolve_opencode_bin() -> list[str] | None:
+    """Find the ``opencode`` CLI entry script and return argv.
+
+    Resolution order:
+      1. ``OPENCODE_BIN`` env override (explicit path).
+      2. Augmented PATH (includes mise shims, nvm, fnm, volta, npm -g).
+    """
+    override = os.environ.get("OPENCODE_BIN")
+    if override and Path(override).is_file():
+        return [override]
+    search_path = augmented_path(os.environ.get("PATH", ""))
+    on_path = shutil.which("opencode", path=search_path)
+    if on_path:
+        return [on_path]
     return None
 
 
@@ -2061,6 +2079,46 @@ class AcpClient:
     def _is_claude(self) -> bool:
         return self.backend == ACP_BACKEND_CLAUDE
 
+    def _write_opencode_provider_config(self) -> None:
+        """Seed ~/.config/opencode/opencode.json with the fork's custom provider.
+
+        baseURL / apiKey come from the spawn ``extra_env`` (set from
+        ``agent.provider_base_url`` / ``agent.provider_api_key`` by the
+        provider factory); ``format: "openai"`` lets OpenCode translate the
+        OpenAI-compatible endpoint to its internal Anthropic calls. Existing
+        OpenCode config is preserved; the fork-owned provider entry is
+        replaced wholesale.
+        """
+        home = os.path.expanduser("~")
+        cfg_dir = os.path.join(home, ".config", "opencode")
+        os.makedirs(cfg_dir, exist_ok=True)
+        path = os.path.join(cfg_dir, "opencode.json")
+        existing: dict = {}
+        try:
+            with open(path, encoding="utf-8") as fh:
+                existing = json.load(fh)
+        except (OSError, ValueError):
+            existing = {}
+        if not isinstance(existing, dict):
+            existing = {}
+        base_url = (self._extra_env or {}).get("ANTHROPIC_BASE_URL", "")
+        api_key = (self._extra_env or {}).get("ANTHROPIC_API_KEY", "")
+        api_format = (self._extra_env or {}).get("OPENCODE_API_FORMAT", "") or "openai"
+        # OpenCode selects the wire format via the AI-SDK adapter (npm package),
+        # not via an options flag: anthropic -> @ai-sdk/anthropic,
+        # openai -> @ai-sdk/openai-compatible.
+        npm = "@ai-sdk/anthropic" if api_format == "anthropic" else "@ai-sdk/openai-compatible"
+        options: dict[str, object] = {"baseURL": base_url}
+        if api_key:
+            options["apiKey"] = api_key
+        providers = existing.get("provider")
+        if not isinstance(providers, dict):
+            providers = {}
+            existing["provider"] = providers
+        providers["kirocrew"] = {"npm": npm, "options": options}
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(existing, fh, indent=2)
+
     def _pooled_mcp_servers(self) -> list[dict[str, Any]]:
         """Broker-stub ``mcpServers`` entries for this session's ``session/new``.
 
@@ -2257,10 +2315,25 @@ class AcpClient:
         # instead of calling into here — otherwise the same stale setting that is
         # quietly withheld on a cold start would raise and kill a warm claim,
         # making the outcome depend on whether a pooled process happened to exist.
+        # PERMANENT guard: a model the active backend does not advertise must
+        # never reach the wire. Whatever leaked it — a persisted slot model
+        # from a previous provider, a stale picker value, a resumed chat —
+        # fall back to the configured default model, then 'auto'. A stale id
+        # errors the chat instead of running; the fallback makes it run on a
+        # usable model. Only raise when even the default is unusable (a
+        # genuinely broken entitlement).
         if not self._is_claude and self._model_is_unusable(model_id):
-            _rejected_log, _ = redact_exfiltration_urls(str(model_id))
-            _rejected_log, _ = redact_credentials(_rejected_log)
-            raise AcpModelUnavailable(_rejected_log, self._advertised_model_ids())
+            fallback = self._usable_fallback_model()
+            if not fallback:
+                _rejected_log, _ = redact_exfiltration_urls(str(model_id))
+                _rejected_log, _ = redact_credentials(_rejected_log)
+                raise AcpModelUnavailable(_rejected_log, self._advertised_model_ids())
+            logger.info(
+                "model %r not advertised by this provider — falling back to %r",
+                model_id,
+                fallback,
+            )
+            model_id = fallback
         if self._is_claude:
             if not getattr(self, "_model_via_env", False):
                 await self.set_config_option("model", model_id)
@@ -2471,6 +2544,20 @@ class AcpClient:
                 ids.append(model_id)
         return ids
 
+    def _usable_fallback_model(self) -> str:
+        """A model the active backend CAN run: the configured default, else 'auto'.
+
+        Returns "" when neither is advertised (a genuinely broken entitlement,
+        which the caller reports as a hard unavailable error). The default comes
+        from the spawn extra_env ``KIROCREW_DEFAULT_MODEL`` (set by the provider
+        factory from ``agent.model``); 'auto' is the backend's own default.
+        """
+        default = (self._extra_env or {}).get("KIROCREW_DEFAULT_MODEL", "") or ""
+        for candidate in (default, "auto"):
+            if candidate and not self._model_is_unusable(candidate):
+                return candidate
+        return ""
+
     def _model_is_unusable(self, model_id: str) -> bool:
         """Whether this session's advertised set excludes *model_id*.
 
@@ -2679,6 +2766,19 @@ class AcpClient:
                     f"script."
                 )
             argv: list[str] = claude_argv
+        elif self.backend == ACP_BACKEND_OPENCODE:
+            # OpenCode backend: seed ~/.config/opencode/opencode.json with the
+            # fork's custom provider (baseURL + apiKey + openai format), then
+            # spawn `opencode acp` over stdio — same ACP JSON-RPC contract as
+            # the claude backend. OpenCode translates OpenAI↔Anthropic itself.
+            await asyncio.to_thread(self._write_opencode_provider_config)
+            opencode_argv = await asyncio.to_thread(_resolve_opencode_bin)
+            if not opencode_argv:
+                raise AcpError(
+                    "opencode not found. Install it with 'npm i -g opencode-ai' "
+                    "(or set OPENCODE_BIN to its entry script)."
+                )
+            argv = [*opencode_argv, "acp"]
         else:
             try:
                 kiro_bin = await _resolve_kiro_bin_for_spawn()

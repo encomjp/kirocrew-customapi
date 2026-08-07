@@ -8353,6 +8353,18 @@
         "status_unavailable": "অবস্থা জানা যাচ্ছে না"
       },
       "chatPanel": {
+        "provider_test": "Test connection",
+        "provider_test_ok": "Connected — models found",
+        "provider_test_failed": "Connection failed",
+        "provider_models": "Select models to show in the picker (empty = all)",
+        "provider": "Provider",
+        "provider_preset": "Preset",
+        "provider_url": "Base URL",
+        "provider_api_key": "API key",
+        "provider_api_key_saved": "••• saved (leave empty to keep)",
+        "provider_save": "Save provider",
+        "provider_managed_by_kiro_cli": "Managed by kiro-cli — the router, models and credentials are configured there.",
+        "failed_to_save_provider": "Failed to save provider settings",
         "click_a_suggested_reply_to_send_it_instantly": "প্রস্তাবিত উত্তরে ক্লিক করলেই তা সঙ্গে সঙ্গে পাঠানো হবে। একাধিক বেছে নিতে {{mod}}+ক্লিক করো।",
         "link_previews": "লিঙ্ক প্রিভিউ",
         "maximum_characters_retained_in_the_completion_ev": "সংক্ষিপ্তকরণ মোড প্রয়োগের পরে কমপ্লিশন ইভেন্টে সর্বোচ্চ কত ক্যারেক্টার রাখা হবে। 0 দিলে সংক্ষিপ্তকরণ পুরোপুরি বন্ধ। ডিফল্ট {{n}}।",

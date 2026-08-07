@@ -8353,6 +8353,18 @@
         "status_unavailable": "स्थिति उपलब्ध नहीं"
       },
       "chatPanel": {
+        "provider_test": "Test connection",
+        "provider_test_ok": "Connected — models found",
+        "provider_test_failed": "Connection failed",
+        "provider_models": "Select models to show in the picker (empty = all)",
+        "provider": "Provider",
+        "provider_preset": "Preset",
+        "provider_url": "Base URL",
+        "provider_api_key": "API key",
+        "provider_api_key_saved": "••• saved (leave empty to keep)",
+        "provider_save": "Save provider",
+        "provider_managed_by_kiro_cli": "Managed by kiro-cli — the router, models and credentials are configured there.",
+        "failed_to_save_provider": "Failed to save provider settings",
         "click_a_suggested_reply_to_send_it_instantly": "सुझाए गए जवाब पर क्लिक करने से वह तुरंत भेज दिया जाता है। एक से ज़्यादा चुनने के लिए {{mod}}+क्लिक करो।",
         "link_previews": "लिंक प्रीव्यू",
         "maximum_characters_retained_in_the_completion_ev": "ट्रंकेशन मोड लागू करने के बाद कंप्लीशन इवेंट में रखे जाने वाले अधिकतम वर्ण। 0 से ट्रंकेशन पूरी तरह बंद हो जाता है। डिफ़ॉल्ट {{n}}।",
