@@ -273,7 +273,8 @@ def detect_provider_switch(session_map: "SessionMap", session_key: str, new_prov
     stored_provider = session_map.get_provider(session_key) or PROVIDER_LABEL_DEFAULT
     if stored_provider == new_provider:
         return False
-    # Only counts as a switch if there's actually a stored SID to discard    stored_sid = session_map.get(session_key)
+    # Only counts as a switch if there's actually a stored SID to discard
+    stored_sid = session_map.get(session_key)
     if not stored_sid:
         return False
     sel().log_tool_invocation(
