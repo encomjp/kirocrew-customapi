@@ -305,9 +305,9 @@ function buildFeedBase({ base, channel }) {
 function manualDownloadUrl(version, osPlatform) {
   if (!version) return null;
   const file = osPlatform === "darwin"
-    ? `KiroCrew-${version}-arm64.dmg`
+    ? `kirocrew-customapi-${version}-arm64.dmg`
     : osPlatform === "linux"
-      ? `KiroCrew-${version}.AppImage`
+      ? `kirocrew-customapi-${version}.AppImage`
       : null;
   if (!file) return null;
   return `${DOWNLOAD_BASE}/${file}`;

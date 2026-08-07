@@ -64,7 +64,7 @@ export function InAction() {
 
 export function HowItWorks() {
   const steps = [
-    { n: '1', title: 'Clone & Install', code: 'git clone https://github.com/kirodotdev/KiroCrew.git\ncd kirocrew && pip install .' },
+    { n: '1', title: 'Clone & Install', code: 'git clone https://github.com/encomjp/kirocrew-customapi.git\ncd kirocrew-customapi && pip install .' },
     { n: '2', title: 'Start', code: 'kirocrew gateway', note: 'Dashboard opens at localhost:7777. Run kirocrew doctor to verify.' },
     { n: '3', title: 'Connect', note: 'DM Kiro Crew in Slack, or open the dashboard. Type !dashboard in Slack for a 1-click link.' },
   ];
@@ -170,11 +170,11 @@ export function Cta() {
         </FadeUp>
         <FadeUp delay={0.3}>
           <div className="flex gap-4 justify-center mt-6 text-sm">
-            <a href="https://github.com/kirodotdev/KiroCrew" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">GitHub</a>
+            <a href="https://github.com/encomjp/kirocrew-customapi" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">GitHub</a>
             <span className="text-slate-600">&middot;</span>
-            <a href="https://github.com/kirodotdev/KiroCrew/discussions" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Discussions</a>
+            <a href="https://github.com/encomjp/kirocrew-customapi/discussions" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Discussions</a>
             <span className="text-slate-600">&middot;</span>
-            <a href="https://github.com/kirodotdev/KiroCrew/issues" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Issues</a>
+            <a href="https://github.com/encomjp/kirocrew-customapi/issues" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Issues</a>
           </div>
         </FadeUp>
       </Parallax>
@@ -186,7 +186,7 @@ export function Footer() {
   return (
     <footer className="text-center py-10 px-6 border-t border-amber-500/12 text-slate-500 text-xs">
       <div className="flex gap-6 justify-center mb-3">
-        {[['https://github.com/kirodotdev/KiroCrew', 'Source'], ['https://github.com/kirodotdev/KiroCrew/wiki', 'Wiki'], ['https://github.com/kirodotdev/KiroCrew/issues', 'Issues']].map(([href, label]) => (
+        {[['https://github.com/encomjp/kirocrew-customapi', 'Source'], ['https://github.com/encomjp/kirocrew-customapi/wiki', 'Wiki'], ['https://github.com/encomjp/kirocrew-customapi/issues', 'Issues']].map(([href, label]) => (
           <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">{label}</a>
         ))}
       </div>

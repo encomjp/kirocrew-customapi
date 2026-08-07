@@ -5,8 +5,6 @@
       "rate_limited_by_the_tunnel_edge_http_429_too_man": "Rate limited by the tunnel edge (HTTP 429) — too many requests in a burst. The dashboard retries automatically; if this persists, wait a few seconds and reload.",
       "session_expired": "Session expired.",
       "session_expired_sign_in_again": "Session expired. Run kirocrew token in a terminal, then paste the URL into the banner at the top of this page to sign back in.",
-      "stale_owner_session": "This session predates the configured owner. Sign in again.",
-      "stale_owner_session_sign_in_again": "This session predates the configured owner (it was signed in before KIROCREW_OWNER_ID was set). Run kirocrew token in a terminal, then paste the URL into the banner at the top of this page to sign back in.",
       "stream_ended_without_completion": "Stream ended without completion",
       "unexpected_server_response": "Unexpected server response"
     }
@@ -41,7 +39,7 @@
     "view_full_changelog": "▸ View Full Changelog",
     "star_us": "Star us",
     "report_issue": "Report issue",
-    "star_kirocrew_on_github": "Star Kiro Crew on GitHub",
+    "star_kirocrew_on_github": "Star kirocrew-customapi on GitHub",
     "click_to_collapse_readouts": "click to collapse readouts",
     "click_to_expand_readouts": "click to expand readouts",
     "gateway_offline_reconnecting": "Gateway offline — reconnecting",
@@ -294,8 +292,7 @@
       "workspace": {
         "selected_issue_hidden_by_filters": "The selected issue is hidden by the active filters.",
         "selected_change_hidden_by_filters": "The selected {{subject}} is hidden by the active filters.",
-        "clear_filters": "Clear filters",
-        "select_a_work_item_to_see_its_details": "Select a work item to see its details."
+        "clear_filters": "Clear filters"
       },
       "components": {
         "agentSessionButton": {
@@ -333,14 +330,7 @@
         },
         "issueList": {
           "closed_issues_are_capped_at_the_100_most_recentl": "Closed issues are capped at the 100 most recently updated",
-          "loading_the_rest": "Loading the rest…",
-          "re_fetch_issues_and_labels_from": "Re-fetch issues + labels from {{provider}}",
-          "time_since_issue_list_last_fetched_from": "Time since the issue list was last fetched from {{provider}}",
-          "search": "Search {{label}}…",
-          "search_2": "Search {{label}}",
-          "tracked_items_are_project_scoped": "Work items belong to the whole {{project}} project, so every repository in it shows this same list.",
-          "work_item_one": "{{count}} work item",
-          "work_item_other": "{{count}} work items"
+          "loading_the_rest": "Loading the rest…"
         },
         "labelPalette": {
           "no_labels_match_query": "No labels match “{{query}}”."
@@ -383,8 +373,7 @@
           "resolved_by_github_search_across_the_whole_repo": "Resolved by GitHub search across the whole repo — not limited to the 100 most recent",
           "resolved_by_github_search_capped": "Resolved by GitHub search across the whole repo, capped at the {{n}} most recently updated matches",
           "search": "Search {{label}}…",
-          "search_2": "Search {{label}}",
-          "time_since_list_last_fetched_from": "Time since the {{label}} list was last fetched from {{provider}}"
+          "search_2": "Search {{label}}"
         },
         "providerBadge": {
           "self_managed_instance": "Self-managed instance: {{host}}"
@@ -429,9 +418,6 @@
         "reviewButton": {
           "open_ai_code_review_session_for_this": "Open an AI code-review chat session for this {{label}}",
           "resume_ai_code_review_session_for_this": "Resume the AI code-review chat session for this {{label}}"
-        },
-        "readOnlyTag": {
-          "read_only_repo_needs_triage_or_push_access": "Read-only repo — needs triage or push access"
         }
       },
       "connectPanel": {
@@ -439,10 +425,7 @@
         "last_contribution": "Your last contribution: {{when}}",
         "most_recent_activity": "most recent activity",
         "no_contributions_in_the_last_month_paste_a_url_b": "No contributions in the last month — paste a URL below instead.",
-        "select": "Select {{name}}",
-        "repositories_in_your_organization": "Repositories in your organization",
-        "no_repositories_in_your_organization_paste_a_url": "No repositories in your organization. Paste a URL below to connect one.",
-        "azure_also_needs_the_devops_extension": "Azure DevOps also needs its own CLI extension, installed once with the command below."
+        "select": "Select {{name}}"
       },
       "connectRepoModal": {
         "connecting": "Connecting {{done}} of {{total}}…"
@@ -467,8 +450,7 @@
           "unanswered": "Unanswered",
           "unassigned": "Unassigned",
           "untriaged": "Untriaged",
-          "untriaged_2": "untriaged",
-          "re_fetch_issues_and_labels_from": "Re-fetch issues + labels from {{provider}}"
+          "untriaged_2": "untriaged"
         },
         "settings": {
           "repoSettings": {
@@ -483,7 +465,7 @@
             "proposing_new_labels_for_this_repo_now_lives_on": "Proposing NEW labels for this repo now lives on the Tagging dashboard, next to the untagged issues those labels get applied to.",
             "re_fetch_issues_and_labels_from": "Re-fetch this repo's issues + labels from {{provider}}",
             "sign_in_no_extra_credentials_no_webhook": "sign-in (no\n          extra credentials, no {{provider}} webhook).",
-            "watch_this_repo_in_the_background_and_post_a_kir": "Watch this repo in the background and post a {{productName}} notification whenever a new issue is opened.",
+            "watch_this_repo_in_the_background_and_post_a_kir": "Watch this repo in the background and post a kirocrew-customapi notification whenever a new issue is opened.",
             "which_labels_mark_newcomer_friendly_work_so_issu": "Which labels mark newcomer-friendly work, so Issue Radar can surface issues to route to first-time contributors.",
             "which_labels_mean_an_issue_still_needs_triage_dr": "Which labels mean an issue still needs triage. Drives the Overview's “Untriaged” count and the needs-attention queue.",
             "role_admin": "Admin",
@@ -522,20 +504,19 @@
             "couldn_t_read_this_repo_s_labels_retry_with_the": "Couldn't read this repo's labels — retry with the refresh button.",
             "create": "Create",
             "create_the_label_on_github": "Create the {{name}} label on GitHub",
+            "create_this_label_on_github": "Create this label on GitHub",
             "creating": "Creating…",
             "read_only_repo_needs_triage_push_access": "Read-only repo — needs triage/push access",
             "suggest_again": "Suggest again",
-            "suggest_new_labels": "Suggest new labels",
-            "re_fetch_this_repo_s_labels_from": "Re-fetch this repo's labels from {{provider}}",
-            "create_this_label_on": "Create this label on {{provider}}"
+            "suggest_new_labels": "Suggest new labels"
           },
           "untaggedIssueCard": {
             "add_labels_to": "Add labels to #{{number}}",
+            "add_these_labels_on_github": "Add these labels on GitHub",
             "click_to_remove": "Click to remove",
             "click_to_remove_2": "{{reason}} — click to remove",
             "read_only_repo_needs_triage_or_push_access": "Read-only repo — needs triage or push access",
-            "select_issue": "Select issue #{{number}}",
-            "add_these_labels_on": "Add these labels on {{provider}}"
+            "select_issue": "Select issue #{{number}}"
           }
         },
         "taggingView": {
@@ -548,7 +529,7 @@
           "select_all": "Select all",
           "suggest_again": "Suggest again ({{n}})",
           "suggest_labels_next": "Suggest labels (next {{n}})",
-          "write_every_staged_label_to": "Write every staged label to {{provider}}"
+          "write_every_staged_label_to_github": "Write every staged label to GitHub"
         },
         "registry": {
           "overview": "Overview",
@@ -719,11 +700,6 @@
           "crew_sort_status": "Status",
           "crew_sort_name": "Name",
           "crew_sort_created": "Created"
-        },
-        "links": {
-          "read_only_here_apply_in_provider": "Read-only here — {{provider}} repositories can't be changed from {{productName}}; apply the change in {{provider}}",
-          "tracked_items_work_items": "Work Items",
-          "tracked_items_issues": "Issues"
         }
       },
       "welcomeCarousel": {
@@ -1168,6 +1144,7 @@
       "group_apps": "Apps",
       "group_commands": "Commands",
       "group_settings": "Settings",
+      "keep_typing": "Type at least {{min}} characters",
       "leave_scope": "Back to all commands",
       "no_matches": "No matches",
       "no_sessions": "No sessions match",
@@ -1181,28 +1158,11 @@
       "cmd_toggle_theme": "Toggle Theme",
       "search_failed": "Search failed",
       "retry": "Retry",
-      "action_enter": "Open View",
-      "action_ask": "Ask",
-      "group_attention": "Needs You",
-      "ask_agent": "Ask the agent: “{{query}}”",
-      "action_open": "Open",
-      "action_open_app": "Open App Page",
-      "action_open_session": "Open Session",
-      "action_run": "Run",
-      "action_search_sessions": "Search Sessions",
-      "action_show_recent": "Show Recent",
-      "no_match_show_recent": "No sessions match “{{query}}” — show recent instead",
       "kind": {
         "app": "App",
         "command": "Command",
         "setting": "Setting",
         "view": "View"
-      }
-    },
-    "papyrus": {
-      "workspace": {
-        "co_author_conflict_discard_button": "Discard edits",
-        "co_author_conflict_discard_title": "Discard unsaved edits?"
       }
     }
   },
@@ -1214,12 +1174,6 @@
       "resume_named": "Resume {{name}}",
       "run_named_now": "Run {{name}} now",
       "running": "running"
-    },
-    "tailnetMobile": {
-      "automatic_https": "After HTTPS is enabled for this tailnet, Tailscale creates and renews the private certificate automatically.",
-      "setting_up": "Setting up phone access…",
-      "setup_action": "Set up & show QR",
-      "setup_timeout": "Phone access did not reach a ready state. Re-check the setup, then try again."
     },
     "filePickerMenu": {
       "no_matches_ctrl_enter_sends": "No matching files — Ctrl+Enter sends the message",
@@ -1247,38 +1201,33 @@
       "import_all_your_supported_work_or_handpick_what": "Import all your supported work or handpick what to bring over.",
       "import_complete": "Import complete",
       "import_selected": "Import selected",
-      "kiro_crew_found_agent_setup_on_this_gateway_host": "{{productName}} found agent setup on this gateway host. Select the sources to review.",
+      "kiro_crew_found_agent_setup_on_this_gateway_host": "kirocrew-customapi found agent setup on this gateway host. Select the sources to review.",
       "review_import": "Review import",
-      "review_the_merge_before_kiro_crew_changes_local": "Review the merge before {{productName}} changes local setup.",
+      "review_the_merge_before_kiro_crew_changes_local": "Review the merge before kirocrew-customapi changes local setup.",
       "select_items_to_import": "Select items to import",
       "the_gateway_returned_an_unexpected_error": "The gateway returned an unexpected error.",
       "the_import_did_not_finish_please_try_again": "The import did not finish. Please try again.",
-      "your_selected_setup_is_ready_in_kiro_crew": "Your selected setup is ready in {{productName}}."
+      "your_selected_setup_is_ready_in_kiro_crew": "Your selected setup is ready in kirocrew-customapi."
     },
     "appHost": {
       "not_installed": "\"{{name}}\" is not installed"
     },
-    "approvalCard": {
-      "approval_no_longer_pending": "This approval has expired or was already decided — the agent is no longer waiting on it.",
-      "decision_failed": "This decision may not have been recorded — the request failed.",
-      "decision_not_recorded_error": "This decision wasn't recorded: {{error}}"
-    },
     "approvalModePicker": {
       "approval_mode_aria": "Approval mode: {{mode}}",
       "normal_label": "Normal",
-      "normal_tooltip": "{{productName}} asks you before doing anything",
-      "normal_desc": "{{productName}} checks with you before doing anything",
+      "normal_tooltip": "kirocrew-customapi asks you before doing anything",
+      "normal_desc": "kirocrew-customapi checks with you before doing anything",
       "reads_label": "Reads",
-      "reads_tooltip": "{{productName}} looks things up on its own, but asks before making changes",
-      "reads_desc": "{{productName}} looks things up on its own, but asks before making any changes",
+      "reads_tooltip": "kirocrew-customapi looks things up on its own, but asks before making changes",
+      "reads_desc": "kirocrew-customapi looks things up on its own, but asks before making any changes",
       "trust_label": "Trust",
-      "trust_tooltip": "In this chat, {{productName}} works without asking you first",
-      "trust_desc": "In this chat, {{productName}} works without asking you first",
+      "trust_tooltip": "In this chat, kirocrew-customapi works without asking you first",
+      "trust_desc": "In this chat, kirocrew-customapi works without asking you first",
       "yolo_label": "YOLO",
-      "yolo_tooltip": "In every chat, {{productName}} works without asking you first",
-      "yolo_desc": "In every chat, {{productName}} works without asking you first",
+      "yolo_tooltip": "In every chat, kirocrew-customapi works without asking you first",
+      "yolo_desc": "In every chat, kirocrew-customapi works without asking you first",
       "configure_duration": "Configure duration",
-      "yolo_expiration_until_shutdown": "Stays on until Kiro Crew restarts — no timed expiry.",
+      "yolo_expiration_until_shutdown": "Stays on until kirocrew-customapi restarts — no timed expiry.",
       "yolo_expiration_timed": "Turns itself off after {{duration}}, then asks again."
     },
     "appstore": {
@@ -1286,7 +1235,7 @@
         "all_apps": "All apps"
       },
       "installedAppCard": {
-        "app_cannot_be_opened_kirocrew_is_running_in_a_he": "App cannot be opened — {{productName}} is running in a headless environment.",
+        "app_cannot_be_opened_kirocrew_is_running_in_a_he": "App cannot be opened — kirocrew-customapi is running in a headless environment.",
         "collapse_details": "Collapse details",
         "disable": "Disable",
         "disabled": "Disabled",
@@ -1302,7 +1251,7 @@
       },
       "types": {
         "built_in": "Built-in",
-        "kirocrew_registry": "{{productName}} registry"
+        "kirocrew_registry": "kirocrew-customapi registry"
       },
       "categories": {
         "agents_automation": "Agents & Automation",
@@ -1364,14 +1313,6 @@
       "terminal": "Terminal"
     },
     "chatInput": {
-      "send_a_message_or_tap_the_mic_for_voice": "Send a message, or tap the mic for voice",
-      "release_to_transcribe": "Release to transcribe",
-      "hold_to_talk": "Hold to talk",
-      "release_to_cancel": "Release to cancel",
-      "slide_up_to_cancel": "Slide up to cancel",
-      "switch_to_keyboard": "Switch to keyboard",
-      "switch_to_voice": "Switch to voice",
-      "drop_to_attach": "Drop to attach",
       "agent": "Agent: {{name}}",
       "approve_sub_agent": "Approve sub-agent: {{name}}",
       "branch": "Branch: {{branch}}",
@@ -1402,7 +1343,6 @@
       "stop_the_current_response_to_switch_agents": "Stop the current response to switch agents",
       "stop_the_current_response_to_switch_model": "Stop the current response to switch model",
       "stop_the_current_response_to_switch_project": "Stop the current response to switch project",
-      "switch_not_confirmed": "Switch not confirmed yet — it will apply if the connection recovers.",
       "that_approval_expired_the_turn_it_belonged_to_is": "This approval request expired because the associated turn is no longer awaiting approval.",
       "that_request_already_timed_out_and_was_denied": "That {{source}} request already timed out and was denied — the job is no longer waiting. Check the approvals feed for the record.",
       "transcribing": "Transcribing…",
@@ -1410,9 +1350,7 @@
       "voice_input": "Voice input",
       "queue": "Queue",
       "queue_run_after_the_current_work_finishes_desc": "Run after the current work finishes",
-      "steer_act_on_this_right_away_desc": "Act on this right away",
-      "finishing": "Finishing…",
-      "keep_holding_to_record": "Keep holding to record"
+      "steer_act_on_this_right_away_desc": "Act on this right away"
     },
     "chatPane": {
       "earlier_messages_load_failed": "Couldn't load earlier messages. Scroll to the top of the session to try again.",
@@ -1469,7 +1407,7 @@
           "developer": "Developer",
           "explore": "Explore",
           "hooks": "Hooks",
-          "kirocrew_agents": "{{productName}} Agents",
+          "kirocrew_agents": "kirocrew-customapi Agents",
           "logs": "Logs",
           "pages": "Pages",
           "remote_crew": "Remote Crew",
@@ -1668,8 +1606,7 @@
       "stopped": "stopped",
       "pin_crew": "Pin {{name}} to the header",
       "unpin_crew": "Unpin {{name}} from the header",
-      "pinned_no_room": "pinned, no room in the header",
-      "keep_tab_order_fixed": "Keep tab order fixed"
+      "pinned_no_room": "pinned, no room in the header"
     },
     "issuePanel": {
       "add_to_chat": "Add to chat",
@@ -1681,7 +1618,7 @@
       "due": "Due {{time}}",
       "issue_sections": "Issue sections",
       "issues": "Issues",
-      "kiro_crew_uses_your_local_provider_cli_to_load_i": "{{productName}} uses your local provider CLI to load issues.",
+      "kiro_crew_uses_your_local_provider_cli_to_load_i": "kirocrew-customapi uses your local provider CLI to load issues.",
       "linked": "Linked",
       "loading_issue": "Loading issue",
       "locked": "Locked",
@@ -1735,8 +1672,7 @@
     },
     "kiroPrerequisiteGate": {
       "agent_specs_missing": "Agent specs missing",
-      "agent_specs_rejected": "Agent specs rejected",
-      "another_sandbox_already_confines_kiro_crew_so_it": "Another sandbox already confines {{productName}}, so its own sandbox cannot nest inside it. This host's sandbox is not broken.",
+      "another_sandbox_already_confines_kiro_crew_so_it": "Another sandbox already confines kirocrew-customapi, so its own sandbox cannot nest inside it. This host's sandbox is not broken.",
       "copied": "Copied",
       "copy_command": "Copy command",
       "get_kiro_cli": "Get Kiro CLI",
@@ -1749,16 +1685,14 @@
       "kiro_cli_is_required_on_the_gateway_host": "Kiro CLI is required on the {{platform}} gateway host.",
       "kiro_cli_s_reason": "Why it was refused",
       "kiro_cli_was_found_on_this_host": "Kiro CLI was found on this host.",
-      "kiro_cli_will_not_load_kiro_crew_s_agent_specs": "Kiro CLI will not load {{productName}}'s agent specs",
-      "kiro_crew_installs_the_agent_specs_kiro_cli_load": "{{productName}} installs the agent specs Kiro CLI loads before it can answer anything.",
-      "kiro_crew_isolates_the_agent_in_an_os_level_sand": "{{productName}} isolates the agent in an OS-level sandbox before it runs anything.",
-      "kiro_crew_s_agent_specs_are_not_installed": "{{productName}}'s agent specs are not installed",
-      "kiro_crew_writes_its_own_agent_specs_where_kiro": "{{productName}} writes its own agent specs where Kiro CLI reads them. Without them Kiro CLI cannot resolve the agent, so every message fails. Check again rewrites the specs and reports what went wrong.",
+      "kiro_crew_installs_the_agent_specs_kiro_cli_load": "kirocrew-customapi installs the agent specs Kiro CLI loads before it can answer anything.",
+      "kiro_crew_isolates_the_agent_in_an_os_level_sand": "kirocrew-customapi isolates the agent in an OS-level sandbox before it runs anything.",
+      "kiro_crew_s_agent_specs_are_not_installed": "kirocrew-customapi's agent specs are not installed",
+      "kiro_crew_writes_its_own_agent_specs_where_kiro": "kirocrew-customapi writes its own agent specs where Kiro CLI reads them. Without them Kiro CLI cannot resolve the agent, so every message fails. Check again rewrites the specs and reports what went wrong.",
       "linux_sandbox_guide": "Linux sandbox guide",
       "missing": "Missing",
       "open_kiro_cli_setup": "Open Kiro CLI setup",
-      "rejected": "Rejected",
-      "remedy_apparmor_service_install": "Install {{productName}} as a service. It also writes a narrow AppArmor profile (kirocrew-userns) that grants only the user-namespace permission, to the {{productName}} service alone — nothing else on the machine is loosened.",
+      "remedy_apparmor_service_install": "Install kirocrew-customapi as a service. It also writes a narrow AppArmor profile (kirocrew-userns) that grants only the user-namespace permission, to the kirocrew-customapi service alone — nothing else on the machine is loosened.",
       "remedy_max_user_namespaces": "User namespace creation hit the per-user cap, which usually means user.max_user_namespaces is 0 on a hardened host. Raise it, and persist the value in /etc/sysctl.d/ so it survives a reboot.",
       "remedy_no_user_ns": "This kernel was built without user-namespace support (CONFIG_USER_NS), so there is no setting to change. A different kernel is the only fix.",
       "remedy_spec_rejected_rewrite": "Rewrite the specs from scratch on the gateway host. This discards {{productName}}'s own MCP tool selections and rebuilds them from defaults.",
@@ -1768,10 +1702,8 @@
       "required": "Required",
       "run_kirocrew_doctor_on_the_gateway_host_for_a_ful": "Run this on the gateway host for a full prerequisite report, including which sandbox step failed.",
       "sandbox_unavailable": "Sandbox unavailable",
-      "sign_in_again_to_continue": "Sign in again to continue.",
       "sign_in_method_note": "Both open a browser to finish signing in. Pick the one that matches your plan — the sign-in page offers a personal Builder ID alongside organization SSO, and a Builder ID carries a smaller set of models.",
       "sign_in_personal_label": "Personal account — Builder ID, Google, or GitHub",
-      "sign_in_required": "Sign in required",
       "sign_in_sso_hint": "Prompts for your organization's start URL and region.",
       "sign_in_sso_label": "Organization SSO — IAM Identity Center",
       "sign_in_with_kiro_cli_on_the_gateway_host": "Sign in with Kiro CLI on the gateway host, then check again. Kiro CLI manages the sign-in and keeps the credentials.",
@@ -1781,8 +1713,8 @@
       "the_gateway_returned_an_unexpected_error": "The gateway returned an unexpected error.",
       "the_gateway_returned_no_prerequisite_status": "The gateway returned no prerequisite status.",
       "the_repair_attempt_failed": "The repair attempt failed",
-      "this_host_allows_user_namespaces_but_the_kernel_d": "This host allows user namespaces, but the kernel then denied the mount namespace — the signature of Ubuntu 23.10 and newer, which moves any process that creates a user namespace into a restricted AppArmor profile. {{productName}} refuses to run the agent unisolated rather than expose your credentials, so it stays blocked until the profile is in place.",
-      "this_host_provides_no_os_level_sandbox_so_kiro_c": "This host provides no OS-level sandbox, so {{productName}} cannot isolate the agent. It refuses to run the agent unsandboxed rather than expose your credentials.",
+      "this_host_allows_user_namespaces_but_the_kernel_d": "This host allows user namespaces, but the kernel then denied the mount namespace — the signature of Ubuntu 23.10 and newer, which moves any process that creates a user namespace into a restricted AppArmor profile. kirocrew-customapi refuses to run the agent unisolated rather than expose your credentials, so it stays blocked until the profile is in place.",
+      "this_host_provides_no_os_level_sandbox_so_kiro_c": "This host provides no OS-level sandbox, so kirocrew-customapi cannot isolate the agent. It refuses to run the agent unsandboxed rather than expose your credentials.",
       "this_kiro_cli_is_signed_in": "This Kiro CLI is signed in.",
       "this_page_detects_kiro_cli_automatically": "Leave this page open. It checks the gateway host and continues on its own once Kiro CLI is installed.",
       "waiting": "Waiting"
@@ -1807,7 +1739,6 @@
       "adding_2": "Adding...",
       "already_in_library": "Already in Library",
       "cannot_read_file": "Cannot read file",
-      "discard_changes_button": "Discard changes",
       "download_failed": "Download failed",
       "edit": "Edit",
       "failed_to_add_source": "Failed to add source",
@@ -1878,7 +1809,7 @@
       "view_raw": "view raw"
     },
     "migrationBanner": {
-      "install_app_from_apps": "Install \"{{app}}\" from Apps before the next {{productName}} update to keep using it."
+      "install_app_from_apps": "Install \"{{app}}\" from Apps before the next kirocrew-customapi update to keep using it."
     },
     "monacoCodeBlock": {
       "copied": "Copied!",
@@ -1918,7 +1849,7 @@
       "saving": "Saving…",
       "set_your_look_and_tell_kiro_about_you_so_respons": "Set your look and tell Kiro about you so responses fit the way you work.",
       "pop_apps_body": "Install purpose-built tools that unlock new capabilities and workflows.",
-      "pop_apps_title": "Extend what you can do with {{productName}}",
+      "pop_apps_title": "Extend what you can do with kirocrew-customapi",
       "pop_chat_body": "Ask a question, assign a task, or just say hi — your agent is ready.",
       "pop_chat_title": "Start your first session",
       "pop_schedule_body": "Set tasks to run automatically so things happen without you lifting a finger.",
@@ -2174,11 +2105,9 @@
       "up": "up {{time}}"
     },
     "updateModal": {
-      "restart_update": "Install Update & Restart App",
-      "install_restart_timing": "Installing may take several minutes. The app will close and relaunch automatically when the update is complete.",
-      "windows_installer_handoff": "A Windows installation window will show progress.",
+      "restart_update": "Restart & Update",
       "installing_update": "Installing update…",
-      "installing_update_body": "{{productName}} is stopping the local gateway and installing the update. This can take several minutes. It will relaunch automatically.",
+      "installing_update_body": "{{productName}} is stopping the local gateway and installing the update. This can take a minute — don’t quit the app; it will relaunch itself.",
       "install_failed": "Update failed to install",
       "install_failed_body": "The update could not be applied. {{productName}} is restoring the local gateway — you can keep using this version and retry from Settings > About.",
       "back_to_dashboard": "Back to dashboard",
@@ -2308,7 +2237,6 @@
       "desc_model": "Show or switch the current model",
       "desc_onboarding": "Replay setup import and the welcome tour",
       "desc_paste": "Paste an image from the clipboard",
-      "desc_plain": "Where things stand - or add a topic",
       "desc_prompts": "List or invoke saved prompts & agent SOPs",
       "desc_quit": "Quit the chat session",
       "desc_reply": "Reply to the last assistant message",
@@ -2323,7 +2251,7 @@
     "privacyChapter": {
       "continue": "Continue",
       "eyebrow": "Privacy",
-      "subtitle": "The five anonymous fields {{productName}} sends, and how to turn them off.",
+      "subtitle": "The five anonymous fields kirocrew-customapi sends, and how to turn them off.",
       "title": "Privacy"
     },
     "micSourceMenu": {
@@ -2338,7 +2266,7 @@
     "askAgent": {
       "ask_the_agent": "Ask the agent",
       "open_a_chat_with_this_error_s_context_attached": "Open a chat with this error's full context attached",
-      "prompt_lead": "This error just came up in the {{productName}} dashboard. Diagnose the root cause and fix it."
+      "prompt_lead": "This error just came up in the kirocrew-customapi dashboard. Diagnose the root cause and fix it."
     },
     "errorNotice": {
       "dismiss": "Dismiss"
@@ -2366,7 +2294,6 @@
     },
     "trustDropdown": {
       "trust_all_base": "Trust all <mono>{{base}}</mono> commands",
-      "trust_all_tools_channel": "Trust all tools in this channel — persists across restarts",
       "trust_this_command": "Trust “<mono>{{cmd}}</mono>”"
     },
     "searchableSelect": {
@@ -2403,30 +2330,9 @@
       "stat_unknown": "Unknown",
       "tag_shared": "Shared",
       "unsaved_changes": "Unsaved changes",
-      "webhook_unbound_short": "No tokens bound",
+      "webhook_unbound_reason": "Webhook tokens carry no crew binding yet, so any token can wake any crew.",
+      "webhook_unbound_short": "Not bound to a crew",
       "wire_what_it_works_with": "What it works with"
-    },
-    "confirmDialog": {
-      "cancel": "Cancel"
-    },
-    "crewWebhookSection": {
-      "could_not_load_webhooks": "Could not load webhooks, so what wakes this crew is unknown right now.",
-      "inbound_webhooks_are_switched_off": "Inbound webhooks are switched off, so nothing can call in — bound tokens included.",
-      "last_used_ago": "used {{time}}",
-      "no_tokens_are_bound_to_this_crew": "No webhook tokens are bound to this crew.",
-      "off": "Off",
-      "open_webhooks": "Open Webhooks",
-      "outside_systems_holding_one_of_these_credentials": "Outside systems holding one of these tokens can start a turn as this crew. Create and revoke them on the Webhooks page.",
-      "retry": "Retry",
-      "signed": "Signed",
-      "unbound_tokens_can_wake_any_crew_one": "{{count}} token without a crew binding also exists; it can wake any crew, this one included.",
-      "unbound_tokens_can_wake_any_crew_other": "{{count}} tokens without a crew binding also exist; they can wake any crew, this one included.",
-      "webhook": "Webhook",
-      "webhooks_that_wake_this_crew": "Webhooks that wake this crew"
-    },
-    "shortcutsModal": {
-      "panel_toggles": "Panel toggles",
-      "unset": "Not set"
     }
   },
   "hooks": {
@@ -2474,10 +2380,7 @@
       "walk_back_mru_history": "Walk back MRU history",
       "stop_speaking": "Stop speaking",
       "toggle_focus_mode": "Toggle focus mode",
-      "jump_to_chat_letters": "Jump to chat 10 and beyond (letters follow the badge shown on each row)",
-      "toggle_left_sidebar": "Toggle left sidebar",
-      "toggle_session_panel": "Toggle session panel",
-      "toggle_side_panel": "Toggle side panel"
+      "jump_to_chat_letters": "Jump to chat 10 and beyond (letters follow the badge shown on each row)"
     },
     "useSceneInteraction": {
       "all_slots_are_occupied": "All slots are occupied",
@@ -2591,6 +2494,8 @@
       "failed_to_uninstall": "Failed to uninstall",
       "open_screenshot": "Open screenshot {{n}}",
       "screenshot": "Screenshot {{n}}",
+      "third_party_blocked": "Apps that did not ship with kirocrew-customapi are not allowed to run their own code yet, so this one cannot start. You can allow it in Settings → Security.",
+      "open_security_settings": "Open Security settings",
       "install_complete": "Install complete",
       "install_failed": "Install failed",
       "installed_version": "Installed (v{{version}})",
@@ -2610,7 +2515,7 @@
       "find_apps_in_the_discover_tab_or_install_from_a": "Find apps in the Discover tab, or install from a local path via the sources gear above.",
       "hidden_you_can_re_enable_it_from_the_discover_ta": "Disabled. You can re-enable it from the Discover tab.",
       "keep_dependency": "Keep dependency {{name}}",
-      "kirocrew_registry": "{{productName}} registry",
+      "kirocrew_registry": "kirocrew-customapi registry",
       "library": "Library",
       "no_apps_installed_yet": "No apps installed yet",
       "removing": "Removing…",
@@ -2618,10 +2523,8 @@
       "try_a_different_search_term": "Try a different search term",
       "update_all": "Update All",
       "the_app_itself_is_managed_externally": "The app itself is managed externally.",
-      "this_app_could_not_be_displayed": "This app could not be displayed.",
-      "this_section_could_not_be_displayed": "This section could not be displayed.",
-      "uninstall_removes_metadata_and_source": "Installed from Apps — {{productName}} metadata and the downloaded source code will be removed.",
-      "uninstall_removes_metadata_secret_and_source": "Installed from Apps — {{productName}} metadata, the app secret, and the downloaded source code will be removed.",
+      "uninstall_removes_metadata_and_source": "Installed from Apps — kirocrew-customapi metadata and the downloaded source code will be removed.",
+      "uninstall_removes_metadata_secret_and_source": "Installed from Apps — kirocrew-customapi metadata, the app secret, and the downloaded source code will be removed.",
       "updating_progress": "Updating {{done}}/{{total}}…"
     },
     "artifactDeployPage": {
@@ -2637,7 +2540,7 @@
       "make_the_default_profile": "Make {{name}} the default profile",
       "pending_confirmations_count": "Pending confirmations ({{count}})",
       "ready_to_deploy_count": "Ready to deploy ({{count}})",
-      "aws_profiles_tip": "Every deploy runs as a registered profile. Register your existing AWS CLI profiles or create new ones — {{productName}} stores only the name, never credentials.",
+      "aws_profiles_tip": "Every deploy runs as a registered profile. Register your existing AWS CLI profiles or create new ones — kirocrew-customapi stores only the name, never credentials.",
       "ready_to_deploy_tip": "Webapp artifacts that haven't been deployed yet. Deploy opens a skill-loaded chat session that adapts the app and ships it.",
       "deployments_tip": "All deployed assets — static sites published from artifacts and full-stack webapp deployments. Recall = reversible takedown; Destroy = permanent infra removal.",
       "confirm_deploy": "Confirm Deploy",
@@ -2660,13 +2563,7 @@
       "unknown_2": "(unknown)",
       "update_failed": "update failed",
       "public_by_link_warning": "Published URLs are public-by-link: anyone with the link can view the content — it is served on the public internet with no authentication.",
-      "random_domain_note": "Content is served at a random *.cloudfront.net domain — don't publish anything you wouldn't put on the open internet.",
-      "recall_title": "Recall site?",
-      "recall_button": "Recall site",
-      "destroy_title": "Destroy site?",
-      "destroy_button": "Destroy site",
-      "remove_profile_title": "Remove profile?",
-      "remove_profile_button": "Remove profile"
+      "random_domain_note": "Content is served at a random *.cloudfront.net domain — don't publish anything you wouldn't put on the open internet."
     },
     "artifactDetailPage": {
       "agent_chat": "Agent chat",
@@ -2681,7 +2578,6 @@
       "comment_resolved": "Comment resolved",
       "copy_failed": "Copy failed",
       "could_not_overwrite": "Could not overwrite.",
-      "discard_changes_button": "Discard changes",
       "document_type": "Document type",
       "edit": "Edit",
       "edited": "Edited",
@@ -2718,7 +2614,7 @@
     },
     "artifactPopoutFrame": {
       "artifact": "Artifact",
-      "window_title": "{{label}} — {{productName}}"
+      "window_title": "{{label}} — kirocrew-customapi"
     },
     "artifactsPage": {
       "actions_for_folder": "Actions for folder {{name}}",
@@ -2840,8 +2736,6 @@
         "stopped": "Stopped",
         "subagent": "Subagent {{label}}",
         "subagents": "Subagents",
-        "model_label": "Model: {{model}}",
-        "model_downgraded": "Requested {{requested}}, served {{resolved}}",
         "workflows": "Workflows",
         "workspace_empty": "No files in this workspace yet",
         "workspace_truncated": "Large workspace — showing the first 10,000 files"
@@ -3051,7 +2945,6 @@
         "all_files": "All files",
         "changed": "Changed",
         "close_search": "Close search",
-        "ctx_add_to_chat": "Add to chat",
         "filter_placeholder": "Filter files…",
         "refresh": "Refresh",
         "resize": "Resize file browser",
@@ -3679,14 +3572,11 @@
       "stub_failed": "Could not apply the change. It may already be saved without being live — the switches below now show the stored state.",
       "stub_not_live": "Saved, but the change is not live yet — the gateway could not start. The switch shows what is stored, not what is running.",
       "stub_restart_required": "Saved. Restart the gateway for this to take effect. Sessions already running keep the servers they started with.",
-      "stubbed_of_total": "{{stubbed}} of {{total}} opted in to stubbing",
+      "stubbed_of_total": "{{stubbed}} of {{total}} stubbed",
       "unsupported_platform": "Backend sharing needs Unix-domain sockets, so it is unavailable on this platform.",
       "view_assessment": "Sharing assessment",
       "view_servers": "Servers",
-      "views_aria": "MCP management views",
-      "state_direct_env": "direct (env)",
-      "state_direct_env_reason": "Not stubbed, but your opt-in stays saved.",
-      "state_direct_env_legend": "direct (env) — the server declares an environment key a shared backend would withhold, so {{productName}} does not stub it at all: the session launches it directly, with no shared backend and no server-authored UI."
+      "views_aria": "MCP management views"
     },
     "migrationPage": {
       "clean_up_old_entry": "Clean up old entry",
@@ -3703,7 +3593,7 @@
     "overview": {
       "agentCfgTab": {
         "agent_config_file": "Agent Config ({{file}})",
-        "agent_config_tip": "The {{process}} agent definition — prompt, tools, MCP servers, model settings. This is the execution layer config, separate from {{productName}}'s operational bindings.",
+        "agent_config_tip": "The {{process}} agent definition — prompt, tools, MCP servers, model settings. This is the execution layer config, separate from kirocrew-customapi's operational bindings.",
         "save": "Save"
       },
       "kiroCrewCfgTab": {
@@ -3738,11 +3628,11 @@
         "pending_enable_click_to_revert": "Pending: enable (click to revert)",
         "pending_uninstall": "{{label}} — pending uninstall",
         "unknown": "Unknown",
-        "servers_scope_tip": "MCP servers across Kiro Crew and your interactive {{provider}}/Kiro globals. The Kiro Crew badge shows if it'll load in Kiro Crew sessions; the Globals badge shows if it's shared to your interactive Kiro global. Click to toggle, then Apply."
+        "servers_scope_tip": "MCP servers across kirocrew-customapi and your interactive {{provider}}/Kiro globals. The kirocrew-customapi badge shows if it'll load in kirocrew-customapi sessions; the Globals badge shows if it's shared to your interactive Kiro global. Click to toggle, then Apply."
       },
       "memoryGraphTab": {
         "all_count": "All ({{count}})",
-        "gpu_rendered_visualization_of_all_kirocrew_memor": "GPU-rendered visualization of all Kiro Crew memory. Nodes are color-coded by type. Zoom in to reveal labels, click a node to inspect, use filters to focus.",
+        "gpu_rendered_visualization_of_all_kirocrew_memor": "GPU-rendered visualization of all kirocrew-customapi memory. Nodes are color-coded by type. Zoom in to reveal labels, click a node to inspect, use filters to focus.",
         "group_history_count": "History ({{count}})",
         "group_lessons_count": "Lessons ({{count}})",
         "group_preferences_count": "Preferences ({{count}})",
@@ -3753,9 +3643,6 @@
         "consolidated_sessions_failed": "Consolidated {{succeeded}}/{{total}} sessions ({{failed}} failed)",
         "controls_how_conversation_history_is_consolidate": "Controls how conversation history is consolidated into memory.",
         "learned_user_preferences_coding_style_tools_work": "Learned user preferences (coding style, tools, workflows). Auto-updated by memory consolidation.",
-        "lesson_already_covered": "An existing lesson already covers this ({{reason}}). Reword it to add something new.",
-        "lesson_already_stored": "This lesson is already stored.",
-        "lesson_not_saved": "Lesson not saved ({{reason}}). Edit it and try again.",
         "persistent_lessons_injected_into_every_session_a": "Persistent lessons injected into every session. Auto-extracted from task runner failures. Add manually via 'kirocrew learn add'. When vector memory is active, lessons are managed in the Semantic tab as lesson.* entries.",
         "save": "Save"
       },
@@ -3779,7 +3666,7 @@
         "select": "Select {{name}}",
         "skills_count": "Skills ({{count}})",
         "skills_from_read_only": "Skills from {{name}} — read-only",
-        "skills_tip": "On-demand skills loaded when the agent determines they're relevant. Skills with the 'auto' badge are always injected into every session. Skills are discovered from Kiro Crew, kiro-cli (~/.kiro/skills), and AIM packages.",
+        "skills_tip": "On-demand skills loaded when the agent determines they're relevant. Skills with the 'auto' badge are always injected into every session. Skills are discovered from kirocrew-customapi, kiro-cli (~/.kiro/skills), and AIM packages.",
         "auto_generated_skill_candidates_awaiting_your_ap": "Auto-generated skill candidates awaiting your approval. Click Review to inspect the SKILL.md and any bundled script before approving. Approve makes the skill live (and marks scripts executable); dismiss discards it. Nothing goes live until you approve it.",
         "hide": "Hide",
         "linked_candidate_no_longer_pending": "That skill candidate is no longer awaiting review. It was approved or dismissed.",
@@ -3897,7 +3784,7 @@
     },
     "popoutFrame": {
       "session": "Session",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — kirocrew-customapi"
     },
     "projectDetailPage": {
       "export_yaml": "Export YAML",
@@ -4040,31 +3927,12 @@
       "script_source_failed": "Could not load the script source.",
       "script_source_truncated": "Truncated — the script is larger than the preview limit."
     },
-    "servicesTab": {
-      "channels": "Channels",
-      "connect_error": "Connection error",
-      "discord": "Discord",
-      "imessage": "iMessage",
-      "teams": "Microsoft Teams",
-      "telegram": "Telegram",
-      "webex": "Webex",
-      "wecom": "WeCom",
-      "weixin": "WeChat",
-      "whatsapp": "WhatsApp",
-      "feishu": "Feishu"
-    },
     "sessionArchive": {
       "no_matches_for_query": "No matches for \"{{query}}\".",
       "truncated_showing_first_200kb": "… truncated (showing first 200KB) …"
     },
     "settings": {
       "aboutPanel": {
-        "diverged": "Diverged",
-        "checkout_diverged_from_upstream": "This checkout has diverged from its upstream ({{distance}}). Rebase or merge to update — nothing is applied automatically, so your local commits are safe.",
-        "commits_ahead_one": "{{count}} commit ahead",
-        "commits_ahead_other": "{{count}} commits ahead",
-        "commits_behind_one": "{{count}} commit behind",
-        "commits_behind_other": "{{count}} commits behind",
         "updates_managed_by_policy": "Updates for this install are managed by an operator-defined update policy. New versions arrive through the mechanism it defines.",
         "updates_managed_externally": "Updates for this install are managed by an external package manager. Use that package manager to get new versions.",
         "updates_managed_externally_by": "Updates for this install are managed by {{managedBy}}. Use it to get new versions.",
@@ -4076,8 +3944,7 @@
         "download_failed": "Download failed",
         "download_the_latest_version": "download the latest version",
         "install_failed": "Couldn’t install the update",
-        "install_update_restart_app": "Install Update & Restart App",
-        "installing_quiet_note": "Installing — this can take several minutes. {{productName}} will reopen automatically when the update is complete.",
+        "installing_quiet_note": "Installing — kirocrew-customapi will go quiet for a minute or two, then restart itself.",
         "manual_install_fallback": "If updating doesn't work, you can {{link}} and reinstall over this copy. Your settings, chats, and files are kept.",
         "published": "published {{when}}",
         "restarting": "Restarting...",
@@ -4142,7 +4009,7 @@
         "macos_only": "macOS only",
         "not_applicable": "Not applicable",
         "not_detected": "Not detected",
-        "not_detected_does_not_always_mean_unavailable_ma": "Not detected does not always mean unavailable — macOS attributes a permission grant to the process that launched Kiro Crew, not to Kiro Crew itself.",
+        "not_detected_does_not_always_mean_unavailable_ma": "Not detected does not always mean unavailable — macOS attributes a permission grant to the process that launched kirocrew-customapi, not to kirocrew-customapi itself.",
         "open_system_settings_for": "Open System Settings for {{label}}",
         "takes_focus_and_cursor": "Focus + cursor",
         "on_windows_keystrokes_take_your_keyboard_focus": "On Windows, keystrokes take your keyboard focus and coordinate clicks move your real cursor — there is no per-app input route on this platform.",
@@ -4155,7 +4022,7 @@
         "no_matches_for_query": "No matches for “{{query}}”."
       },
       "slackPanel": {
-        "create_the_slack_app_from_the_manifest": "Create the Slack app from the pre-filled manifest below (Socket Mode and permissions\n            included, named KiroCrew-{{alias}}). Install it to your\n            workspace, then paste the bot token and app-level token here.",
+        "create_the_slack_app_from_the_manifest": "Create the Slack app from the pre-filled manifest below (Socket Mode and permissions\n            included, named kirocrew-customapi-{{alias}}). Install it to your\n            workspace, then paste the bot token and app-level token here.",
         "connected": "Connected",
         "copy_manifest_yaml": "Copy manifest YAML",
         "needs_setup": "Needs setup",
@@ -4185,7 +4052,6 @@
         "saved": "Saved.",
         "saved_restart_the_gateway_to_apply": "Saved. Restart the gateway to apply.",
         "saving": "Saving…",
-        "shared_channels": "Shared channels",
         "soft_context_threshold_must_be_a_number_between": "Soft context threshold must be a number between 1 and 100",
         "start_the_channel_at_gateway_startup": "Start the {{channel}} channel at gateway startup (requires a bot token).",
         "verified_with_channel_and_saved": "Verified with {{channel}} and saved. Restart the gateway to connect.",
@@ -4211,13 +4077,13 @@
         "role_subagents": "Sub-agents",
         "background_effort": "Background Effort",
         "subagent_effort": "Subagent Effort",
-        "role_effort_hint": "Applies only on reasoning-capable models. 'Model default' applies no override — this work does not inherit your Default Reasoning Effort.",
+        "role_effort_hint": "Applies only on reasoning-capable models; empty inherits the chat default effort.",
         "failed_to_save_role_effort": "Failed to save role effort",
         "background_model": "Background Model",
         "subagent_model": "Subagent Model",
         "model_for_background_lite_heartbeat_work": "Model for background work — title generation, history compaction, and heartbeat polling.",
         "model_for_spawned_sub_agents": "Model for spawned sub-agents.",
-        "role_model_auto_hint": "'Auto' lets the provider pick — it does not inherit your Default Model. Pin a model to run this work on it.",
+        "role_model_auto_hint": "'Default' lets the provider pick — it does not inherit your chat model. Pin a model to run this work on it.",
         "failed_to_save_role_model": "Failed to save role model",
         "disabled_by_instance_config_tips_enabled_false": "Disabled by instance config (tips_enabled: false)",
         "enter_for_newline": "Enter for newline",
@@ -4263,16 +4129,7 @@
         "failed_to_save_knowledge_setting": "Failed to save knowledge setting",
         "session_summaries": "Session summaries",
         "summarize_each_session_by_intent_in_the_right_pa": "Summarize each session by intent. Uses tokens on turns that change the session.",
-        "failed_to_save_session_summaries": "Failed to save session summaries setting",
-        "role_model_auto": "Auto (provider picks)",
-        "effort_needs_reasoning_model": "Applies only on reasoning-capable models, so it has no effect on the model selected above.",
-        "throttle_fallback": "Rate-limit fallback",
-        "fallback_model": "Fallback model",
-        "model_tried_when_your_current_model_stays_rate_li": "Model tried when your current model stays rate-limited past its retry budget.",
-        "fallback_auto_hint": "Auto (default) lets the backend route to an available model. A fallback swap is announced in chat and sticks until your model recovers. Disabled turns fallback off.",
-        "fallback_disabled": "Disabled",
-        "fallback_auto": "Auto (recommended)",
-        "failed_to_save_fallback_model": "Failed to save fallback model"
+        "failed_to_save_session_summaries": "Failed to save session summaries setting"
       },
       "displayPanel": {
         "color": "Color {{n}}",
@@ -4383,13 +4240,7 @@
         "floor": "Floor: {{n}}",
         "other_surfaces_have_their_own_profiles": "A surface with its own profile can allow what the host cannot: {{surfaces}}.",
         "disabled_for_this_surface": "Disabled for the host surface",
-        "profile_unusable_title": "Fallback profile in effect",
-        "profile_unusable_body": "A profile named below could not be loaded, so its surface is held at the policy fallback ceiling — deny-all unless a looser fallback is declared. Correct the file in the profiles folder of your Kiro Crew data home — it is reloaded automatically.",
-        "profile_unusable_detail": "The file was unreadable, failed to parse, or extends a profile that is missing. A restart is only needed if the file is already valid for a newer build than the one running.",
-        "profile_unusable_which": "Affected: {{profiles}}.",
-        "unknown_scopes_title": "Profile scopes not in this build",
-        "unknown_scopes_tip": "These profiles name capability scopes this build does not register — typically scopes a companion edition adds, though a misspelled scope key lands here too. They are skipped and have no effect in this build.",
-        "disabling_all_built_in_denies_removes_kirocrew_s": "Disabling all built-in denies removes Kiro Crew’s protection against destructive and credential-exfiltration commands. Some commands may stay blocked by independent defense-in-depth controls (sensitive paths, IMDS, git-publish).",
+        "disabling_all_built_in_denies_removes_kirocrew_s": "Disabling all built-in denies removes kirocrew-customapi’s protection against destructive and credential-exfiltration commands. Some commands may stay blocked by independent defense-in-depth controls (sensitive paths, IMDS, git-publish).",
         "enabled": "Enabled",
         "expand_category_rules": "Expand {{category}} rules",
         "hide_pattern": "Hide pattern",
@@ -4423,7 +4274,7 @@
         "feature_sel_audit": "SEL Audit Logging",
         "feature_sel_audit_description": "Immutable, HMAC-chained security event trail with credential redaction before forwarding",
         "feature_sensitive_paths": "Sensitive Path Blocking",
-        "feature_sensitive_paths_description": "Credential directories and Kiro Crew trust roots blocked at the hook layer before tool execution",
+        "feature_sensitive_paths_description": "Credential directories and kirocrew-customapi trust roots blocked at the hook layer before tool execution",
         "feature_suspicious_patterns": "Suspicious Bash Patterns",
         "feature_suspicious_patterns_description": "Detects deletion, exfiltration, and pipe-execution attack shapes in shell commands",
         "feature_token_auth": "Dashboard Token Auth",
@@ -4466,17 +4317,20 @@
         "yolo_duration_6h": "6 hours",
         "yolo_duration_12h": "12 hours",
         "yolo_duration_24h": "24 hours",
-        "yolo_duration_until_shutdown": "Until Kiro Crew restarts",
+        "yolo_duration_until_shutdown": "Until kirocrew-customapi restarts",
         "yolo_duration_locked": "Disabled by your organization's policy",
         "yolo_duration_next_activation_note": "Applies the next time you turn auto-approve on.",
         "failed_to_save_yolo_duration": "Could not save the duration.",
-        "yolo_active_until_restart": "Auto-approve is on and stays on until Kiro Crew restarts.",
+        "yolo_active_until_restart": "Auto-approve is on and stays on until kirocrew-customapi restarts.",
         "yolo_active_expires_at": "Auto-approve is on until {{time}}.",
         "third_party_apps_section": "Third-party apps",
         "third_party_apps_state_unknown": "Unavailable",
         "third_party_apps_unavailable": "Could not read the current setting, so it cannot be shown or changed here. If it was already on, third-party apps stay allowed — reload the page to try again.",
-        "third_party_apps_on_warning": "This trusts every third-party app, including ones you install later — not just the one you were trying to start. A trusted app runs with the same access Kiro Crew has: your files, your saved credentials, and the internet.",
-        "third_party_apps_scope_note": "Takes effect immediately. Switching it back off also stops the apps it was admitting — their shutdown hooks run, their backends are stopped, and anything that could not be stopped is reported back to you.",
+        "third_party_apps_title": "Let third-party apps run their own code",
+        "third_party_apps_desc": "Apps that did not ship with kirocrew-customapi cannot run their own code until you allow it. Leave this off and such an app will install but refuse to start.",
+        "third_party_apps_tip": "Applies to any app that is not built into kirocrew-customapi. Built-in apps are unaffected and keep working either way.",
+        "third_party_apps_on_warning": "This trusts every third-party app, including ones you install later — not just the one you were trying to start. A trusted app runs with the same access kirocrew-customapi has: your files, your saved credentials, and the internet.",
+        "third_party_apps_scope_note": "Takes effect the next time an app's code is loaded. Turning it back off stops kirocrew-customapi admitting that code again; an app already running stays up until it is switched off or kirocrew-customapi restarts.",
         "third_party_apps_save_failed": "Could not save this setting.",
         "section_group_status": "Status",
         "section_group_your_settings": "Your settings",
@@ -4567,13 +4421,8 @@
         "voice_input_remote_instance_note": "Voice input on a remote instance requires microphone permission delegation across the iframe boundary. If the mic doesn't respond here, use the local (parent) dashboard instead."
       },
       "teamsPanel": {
-        "active": "Active",
-        "jwt_required": "<strong>Microsoft Teams needs the PyJWT dependency.</strong> Inbound Bot Framework requests carry a signed token that has to be validated, so the channel refuses to start without it. Run <mono>pip install \"kirocrew[teams]\"</mono> in the environment that runs the gateway, then restart it.",
         "microsoft_app_id": "Microsoft App ID",
-        "needs_setup": "Needs setup",
-        "not_active": "Not active",
         "save_failed_is_the_gateway_running": "Save failed. Is the gateway running?",
-        "save_rejected": "The gateway rejected these settings ({{code}}).",
         "save_teams_settings": "Save Teams settings",
         "saved": "Saved.",
         "saved_restart_the_gateway_to_apply": "Saved. Restart the gateway to apply.",
@@ -4642,24 +4491,7 @@
         "saving": "Saving…",
         "settings_are_saved_but_the_channel_is_not_runnin": "Settings are saved but the channel is not running. Restart the gateway to connect.",
         "verified_with_webex_and_saved_restart_the_gatewa": "Verified with Webex and saved. Restart the gateway to connect.",
-        "where_to_find_the_bot_token": "Where to find the bot token",
-        "empty_allowlist_hint": "No allowed emails: the bot rejects every message. Add your Webex account email below.",
-        "soft_threshold_must_be_1_to_100": "Soft context threshold must be a whole number between 1 and 100.",
-        "hard_threshold_must_be_1_to_100": "Hard context threshold must be a whole number between 1 and 100.",
-        "soft_threshold_must_not_exceed_hard": "Soft context threshold must not be higher than the hard one — the hard threshold is checked first, so a higher soft value would never be reached.",
-        "allow_group_spaces": "Answer in group spaces",
-        "allow_group_spaces_desc": "Off by default. A reply in a space is visible to everyone in it, including people not on the allowed-emails list.",
-        "allowed_room_ids": "Allowed space IDs",
-        "allowed_room_ids_desc": "Empty means no space is answered, so turning the switch on alone grants nothing. The sender must also be on the allowed-emails list. A space ID is an opaque string — list yours with:\ncurl -H \"Authorization: Bearer $WEBEX_BOT_TOKEN\" https://webexapis.com/v1/rooms",
-        "allowed_room_ids_empty_hint": "No space is answered yet. Add the bot to the space, then paste that space's ID here.",
-        "room_id_placeholder": "Y2lzY29zcGFyazovL3VzL1JPT00v…",
-        "behaviour": "Behavior",
-        "reply_in_thread": "Reply in thread",
-        "reply_in_thread_desc": "Reply under the message's own thread when it has one, which keeps a busy space readable.",
-        "soft_context_threshold": "Soft context threshold %",
-        "soft_context_threshold_desc": "When a conversation's context passes this, suggest /compact or /new instead of compacting automatically.",
-        "hard_context_threshold": "Hard context threshold %",
-        "hard_context_threshold_desc": "Compact automatically at this point, even without a decision, so the context window never overflows."
+        "where_to_find_the_bot_token": "Where to find the bot token"
       },
       "weixinPanel": {
         "connect_via_qr": "Connect via QR",
@@ -4670,99 +4502,20 @@
         "sign_in_again": "Sign in again",
         "waiting_for_scan": "Waiting for scan…"
       },
-      "whatsAppPanel": {
-        "status_unavailable": "Status unavailable",
-        "setup_guide": "Setup guide",
-        "whatsapp": "WhatsApp",
-        "connected": "Connected",
-        "not_signed_in": "Not paired",
-        "pair_with_whatsapp": "Pair with WhatsApp",
-        "scan_the_code_from_linked_devices": "Scan the code with WhatsApp on your phone: Settings, Linked devices, Link a device.",
-        "signed_in_restart_the_gateway_to_start_receiving": "Paired. Restart the gateway to start receiving messages.",
-        "talk_to_your_agent_from_your_own_whatsapp": "Talk to your agent from your own WhatsApp account, paired as a linked device. Messages the agent sends come from your number.",
-        "waiting_for_a_code": "Waiting for a code...",
-        "waiting_for_scan": "Waiting for the scan...",
-        "scanned_confirm_on_your_phone": "Scanned. Confirm on your phone.",
-        "the_code_expired_try_again": "The code expired. Try again.",
-        "could_not_start_pairing": "Could not start pairing.",
-        "could_not_start_the_login_flow": "Could not start the pairing flow.",
-        "whatsapp_pairing_qr_code": "WhatsApp pairing QR code",
-        "enable_the_whatsapp_channel": "Enable the WhatsApp channel",
-        "who_can_message_the_bot": "Who can message the agent",
-        "only_me_the_default": "Only me (my own messages)",
-        "me_plus_allowed_numbers": "Me, plus allowed numbers",
-        "nobody_ignore_all_messages": "Nobody (ignore all messages)",
-        "anyone_who_messages_you": "Anyone who messages you",
-        "allowed_wa_ids": "Allowed numbers",
-        "allowed_numbers_empty_adds_nobody": "Phone numbers (digits with country code, no plus sign) that may also chat with the agent. Empty adds nobody beyond you.",
-        "phone_number_placeholder": "447700900000",
-        "created_for_you_when_you_turn_this_on_if_it_does": "Created for you when you turn this on, if it does not already exist.",
-        "group_participation_is_opt_in_per_group": "Group participation is opt-in per group: mention mode replies only when tagged; rules mode can also help unprompted, with a cooldown. Uses the unofficial WhatsApp Web protocol; keep usage personal-scale.",
-        "waiting_to_be_paired": "Waiting to be paired",
-        "the_link_was_revoked": "The link was revoked",
-        "blocked_by_whatsapp": "Blocked by WhatsApp",
-        "paired_but_not_connected": "Paired, but not connected",
-        "whatsapp_did_not_connect": "WhatsApp did not connect: {{error}}",
-        "the_channel_is_enabled_but_not_running": "The channel is enabled but not running. Restart the gateway.",
-        "show_pairing_code": "Show pairing code",
-        "already_paired_unlink_then_restart": "Already paired. To pair a different device, unlink this one below, then restart the gateway.",
-        "the_link_was_revoked_restart_to_pair_again": "The link was revoked. Restart the gateway to pair a device again.",
-        "blocked_number_cannot_pair": "WhatsApp has blocked this number, so pairing cannot start.",
-        "pairing_starts_when_the_channel_starts": "A pairing code exists only while the channel is pairing, and pairing begins when the channel starts. Enable the channel below, then restart the gateway.",
-        "the_channel_is_not_running_enable_and_restart": "The WhatsApp channel is not running. Enable it below, then restart the gateway.",
-        "unlink_this_device": "Unlink this device",
-        "revokes_the_linked_device_on_your_account": "Revokes this linked device on your WhatsApp account and deletes the local session. The agent stops reading and sending until a device is paired again.",
-        "confirm_unlink": "Confirm unlink",
-        "unlinked_restart_to_pair_again": "Unlinked. Restart the gateway to pair a device again.",
-        "unlinked_but_the_session_file_was_kept": "Unlinked from WhatsApp, but the local session file could not be removed. Delete it under the data home before pairing again.",
-        "whatsapp_refused_the_unlink_still_linked": "WhatsApp refused the unlink, so the device is still linked and the local session was kept. Try again, or revoke the device from your phone under Linked devices.",
-        "channel_not_running_so_nothing_was_unlinked": "The channel is not running, so nothing was unlinked. A linked device stays linked: revoke it from your phone under Linked devices.",
-        "could_not_unlink_the_device": "Could not unlink the device.",
-        "groups": "Groups",
-        "the_agent_ignores_every_group_not_listed": "The agent ignores every group that is not listed here.",
-        "add_a_group": "Add a group",
-        "your_groups_load_once_the_channel_is_connected": "Your groups appear here once the channel is connected.",
-        "every_group_you_joined_is_already_listed": "Every group you have joined is already listed.",
-        "how_the_agent_joins_in": "How the agent joins in",
-        "mode_only_when_mentioned": "Only when mentioned or quoted",
-        "mode_also_when_the_rules_apply": "Also when its rules apply",
-        "mode_off_keeping_the_entry": "Off, keeping the entry",
-        "when_the_agent_may_speak": "When the agent may speak",
-        "the_agent_stays_silent_unless_these_apply": "Free text. The agent stays silent unless these rules clearly apply.",
-        "rules_example_placeholder": "Answer questions about 3D printing",
-        "seconds_between_unprompted_replies": "Seconds between unprompted replies",
-        "remove_name_from_the_group_list": "Remove {{name}} from the group list",
-        "unofficial_protocol_ban_risk": "Unofficial protocol: WhatsApp may ban the linked number. Don't link a number you can't afford to lose."
-      },
       "channels": {
         "get_your_bot_credentials": "Get your bot credentials",
-        "hard_below_soft_error": "Hard context threshold must be at or above the soft context threshold",
-        "hard_threshold_description": "Compact automatically at this percentage, even without a reply, so the context window never overflows.",
-        "hard_threshold_label": "Hard context threshold %",
-        "hard_threshold_range_error": "Hard context threshold must be a number between 1 and 100",
         "threshold_description": "Prompt to {{compact}} or {{new}} when the session context passes this percentage."
       },
       "discordPanel": {
-        "allowed_server_channel_ids": "Allowed server channel IDs",
         "allowed_server_thread_ids": "Allowed server thread IDs",
-        "allowlist_description": "Discord user IDs permitted to run the agent in DMs, approved threads, or allowed channels. Empty = deny all (fail closed).",
-        "auto_thread_description": "A message in an allowed channel opens a fresh public thread, and the turn runs there instead of in the shared channel.",
-        "auto_thread_label": "Answer in a new thread",
-        "auto_thread_off_hint": "Auto-thread is off, so messages in the channels above are ignored. {{productName}} never answers in a shared channel itself.",
-        "channel_allowlist_description": "Optional. Approved users may also run the agent from these shared server channels. Empty = no shared channels.",
-        "channel_help": "With Developer Mode on, right-click the channel → <mono>Copy Channel ID</mono>. Use the channel's own ID, not the ID of a thread inside it.",
-        "channel_warning": "A shared channel is a wider disclosure boundary than a thread: everyone who can see the channel, and everyone who can open the public thread a turn runs in, can read what the agent writes and what its tools print. Only add a channel whose entire membership may see that.",
-        "description": "Talk to your agent from Discord DMs, approved server threads, or allowed server channels over the Gateway WebSocket. Every other server channel is ignored.",
+        "allowlist_description": "Discord user IDs permitted to run the agent in DMs or approved threads. Empty = deny all (fail closed).",
+        "description": "Talk to your agent from Discord DMs or explicitly approved server threads over the Gateway WebSocket. Normal server channels are always ignored.",
         "empty_allowlist_hint": "No allowed user IDs: the bot rejects every message (fail closed). Add your Discord user ID below.",
-        "guide_body": "Create an app in the Discord Developer Portal, then copy the token from the <mono>Bot</mono> page. For DMs only, leave privileged intents off. For server threads, enable <mono>Message Content Intent</mono> and install with the <mono>bot</mono> and <mono>applications.commands</mono> scopes plus View Channel, Read Message History, and Send Messages in Threads. Enable Discord Developer Mode, then right-click your name to copy your numeric user ID.",
+        "guide_body": "Create an app in the Discord Developer Portal, then copy the token from the <mono>Bot</mono> page. For DMs only, leave privileged intents off. For server threads, enable <mono>Message Content Intent</mono> and install with the <mono>bot</mono> scope plus View Channel, Read Message History, and Send Messages in Threads. Enable Discord Developer Mode, then right-click your name to copy your numeric user ID.",
         "open_developer_portal": "Open Developer Portal",
-        "reactions_description": "Mark your message with an emoji for the phase the agent is in (queued → thinking → coding → done). Off leaves your message unmarked.",
-        "reactions_label": "Phase reactions",
-        "thinking_description": "Post a preview of the model's reasoning as its own subtext note above the answer. Off keeps the channel to the answer alone.",
-        "thinking_label": "Show thinking",
         "thread_allowlist_description": "Optional. Approved users may run the agent only in these exact Discord threads. Empty = DMs only.",
         "thread_help": "With Developer Mode on, right-click the thread → <mono>Copy Channel ID</mono>. Use the thread's ID, not its parent channel ID.",
-        "thread_warning": "Thread mode enables Discord's global Message Content intent. Discord delivers content from every server channel the bot can see; Kiro Crew discards traffic outside approved threads. Everyone who can view an approved thread can read agent replies and tool output.",
+        "thread_warning": "Thread mode enables Discord's global Message Content intent. Discord delivers content from every server channel the bot can see; kirocrew-customapi discards traffic outside approved threads. Everyone who can view an approved thread can read agent replies and tool output.",
         "threshold_description": "Prompt to !compact or !new when the session context passes this percentage.",
         "token_description": "From the Developer Portal's Bot page (Reset Token to view it once).",
         "token_placeholder": "Paste Discord bot token"
@@ -4771,12 +4524,6 @@
         "allowlist_description": "Numeric Telegram user IDs permitted to DM the bot. Empty = deny all (fail closed): a Telegram bot is globally reachable by @username.",
         "description": "Talk to your agent from Telegram over the Bot API (long-polling — no webhook or public address needed). Add allowed user IDs so the bot can respond.",
         "empty_allowlist_hint": "No allowed user IDs: the bot rejects every message (fail closed). Add your numeric Telegram user ID below.",
-        "forum_activation_always": "Every message",
-        "forum_activation_description": "When the bot replies inside an allow-listed topic. A direct message is always answered, whichever option is selected here.",
-        "forum_activation_hint": "Choose Only when addressed to hold a conversation with other people in the same topic — the bot then answers only when its @handle is used, or when one of its own messages is replied to.",
-        "forum_activation_label": "Answer in topics",
-        "forum_activation_mention": "Only when addressed",
-        "forum_activation_off": "Never",
         "forum_allowlist_description": "Numeric supergroup chat_ids permitted to run forum-topic sessions. These are negative (e.g. -1001234567890) — find one by adding a bot like @getidsbot to the group. Empty = deny all groups (fail closed).",
         "forum_allowlist_label": "Allowed supergroup chat IDs",
         "forum_empty_hint": "Forum enabled but no allow-listed chats: all forum traffic is denied. Add your supergroup chat_id (a negative number like -100…).",
@@ -4784,12 +4531,8 @@
         "forum_toggle_label": "Serve forum Topics as per-Topic sessions",
         "guide_body": "Message `@BotFather` on Telegram, send `/newbot`, and follow the prompts. BotFather replies with a bot token — paste it below. To find your numeric user ID, message `@userinfobot`.",
         "guide_link_label": "Open @BotFather",
-        "show_thinking_description": "After each answer, post the reasoning as a collapsed quote you can expand. Off by default: Telegram's rate limit is per chat and shared with the streaming edits the answer already spends, so this costs one extra message per turn.",
-        "show_thinking_label": "Post the model's reasoning",
         "token_description": "From @BotFather after creating your bot (looks like 110201543:AAHdqT…).",
-        "token_placeholder": "Paste Telegram bot token (123456:ABC-…)",
-        "voice_replies_description": "Send each answer as a voice message as well as text, using your voice_reply provider settings. Off by default: it costs a second message per turn against Telegram's per-chat rate budget, and text-to-speech may not be installed. Short answers are never spoken, and the text reply always lands first. Use /voice on or /voice off to change one conversation.",
-        "voice_replies_label": "Speak the answers"
+        "token_placeholder": "Paste Telegram bot token (123456:ABC-…)"
       },
       "weComPanel": {
         "allow_all_bypass_note": "Allow-all is on: the userid list above is bypassed. It is kept for when you switch back.",
@@ -4813,9 +4556,7 @@
         "preset_custom": "Custom",
         "record_prompt": "Press keys…",
         "custom_hint": "Use at least one modifier key.",
-        "turn_keyboard_shortcuts_on_or_off_globally": "Turn keyboard shortcuts on or off globally — {{mod}} + K (this reference) always works",
-        "clear_shortcut": "Clear",
-        "panel_toggles": "Panel toggles"
+        "turn_keyboard_shortcuts_on_or_off_globally": "Turn keyboard shortcuts on or off globally — {{mod}} + K (this reference) always works"
       },
       "reportProblemCard": {
         "support": "Support",
@@ -4853,6 +4594,61 @@
     "worldsPopout": {
       "hide_controls": "Hide controls",
       "show_controls": "Show controls"
+    },
+    "aidlc": {
+      "taskDetailPanel": {
+        "depend_on_task": "Depend on Task {{n}}: {{title}}",
+        "requires_approval_before_execution_2": "Requires approval before execution.",
+        "save_failed_try_again": "Save failed — try again",
+        "task_with_title": "Task {{n}} ({{title}})",
+        "this_gate_blocks_force_approval_true": "This gate blocks. force_approval=true."
+      },
+      "dagView": {
+        "cancelling": "Cancelling",
+        "done": "Done",
+        "needs_approval": "Needs Approval",
+        "paused": "Paused",
+        "pausing": "Pausing",
+        "pending": "Pending",
+        "reviewing": "Reviewing",
+        "running": "Running"
+      }
+    },
+    "developerPage": {
+      "tabs": {
+        "archive": {
+          "description": "Rotated/compacted session history (7-day retention)",
+          "label": "Archive"
+        },
+        "config": {
+          "description": "kirocrew-customapi and agent configuration viewers (read-only)",
+          "label": "Config"
+        },
+        "logs": {
+          "description": "Live log viewer with level filtering and search",
+          "label": "Logs"
+        },
+        "mcpPool": {
+          "description": "Shared MCP gateway and poolable server configuration",
+          "label": "MCP Pool"
+        },
+        "memory": {
+          "description": "Memory graph, embedding provider, and vector store internals",
+          "label": "Memory"
+        },
+        "storage": {
+          "description": "localStorage usage, quotas, and garbage collection",
+          "label": "Storage"
+        },
+        "system": {
+          "description": "CPU, memory, network, and process metrics",
+          "label": "System"
+        },
+        "telemetry": {
+          "description": "Credit spend, context cost, and session startup latency",
+          "label": "Telemetry"
+        }
+      }
     }
   },
   "privacyDisclosure": {
@@ -4873,8 +4669,8 @@
     "notSendingUnreadableHome": "No heartbeat is being sent: the data directory could not be read.",
     "overlayOverrideNote": "A telemetry.beacon_enabled entry in config.local.json overrides this setting. Remove it there to manage telemetry here.",
     "governanceOverrideNote": "Your administrator's security policy turns this off. It can't be changed here.",
-    "installReceiptBody": "After a successful install or update from Kiro Crew's official catalog, one anonymous receipt is sent. External registries, local apps, and self-registered apps are never reported.",
-    "installReceiptFields": "Official app slug · per-app anonymous token (not linkable across apps) · fresh/update flag · Kiro Crew version",
+    "installReceiptBody": "After a successful install or update from kirocrew-customapi's official catalog, one anonymous receipt is sent. External registries, local apps, and self-registered apps are never reported.",
+    "installReceiptFields": "Official app slug · per-app anonymous token (not linkable across apps) · fresh/update flag · kirocrew-customapi version",
     "installReceiptTitle": "Official app install receipts",
     "payloadFields": "Random installation ID · app version · Python minor version · install channel · first-run flag",
     "settingsDescription": "Telemetry, local data, and privacy controls",
@@ -4893,7 +4689,7 @@
         "auto": "Auto",
         "description": "Language for the dashboard interface.",
         "label": "Language",
-        "sync_failed": "Couldn't save this to your Kiro Crew config — the language applies in this browser only and may reset on reload."
+        "sync_failed": "Couldn't save this to your kirocrew-customapi config — the language applies in this browser only and may reset on reload."
       }
     },
     "groups": {
@@ -4910,7 +4706,7 @@
         "label": "Browser"
       },
       "channels": {
-        "description": "Chat platforms the agent can send and receive on",
+        "description": "Chat platforms the agent can send and receive on — Slack, Discord, Telegram, Webex, WeCom, Microsoft Teams, WeChat",
         "label": "Channels"
       },
       "chat": {
@@ -4930,7 +4726,7 @@
         "label": "Display"
       },
       "imports": {
-        "description": "Bring data from another AI agent, and back up or restore Kiro Crew configuration",
+        "description": "Bring data from another AI agent, and back up or restore kirocrew-customapi configuration",
         "label": "Import / Export"
       },
       "instances": {

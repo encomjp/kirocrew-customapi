@@ -8,7 +8,7 @@ function makeDeps(overrides = {}) {
   const record = (name) => () => calls.push(name);
   const deps = {
     isMac: true,
-    appName: "Kiro Crew",
+    appName: "kirocrew-customapi",
     openSettings: record("openSettings"),
     openAbout: record("openAbout"),
     reload: record("reload"),
@@ -48,14 +48,14 @@ const topLabels = (template) => template.map((i) => i.label || i.role);
 test("mac: app menu is first, labeled with the app name", () => {
   const { deps } = makeDeps({ isMac: true });
   const template = buildMenuTemplate(deps);
-  assert.strictEqual(template[0].label, "Kiro Crew");
+  assert.strictEqual(template[0].label, "kirocrew-customapi");
   assert.ok(Array.isArray(template[0].submenu));
 });
 
 test("mac: app menu carries About, Settings…, and the standard roles", () => {
   const { deps } = makeDeps({ isMac: true });
   const appMenu = buildMenuTemplate(deps)[0].submenu;
-  assert.strictEqual(appMenu[0].label, "About Kiro Crew");
+  assert.strictEqual(appMenu[0].label, "About kirocrew-customapi");
   const settings = appMenu.find((i) => i.label === "Settings…");
   assert.ok(settings, "Settings… present in app menu");
   assert.strictEqual(settings.accelerator, "CmdOrCtrl+,");
@@ -89,7 +89,7 @@ test("win/linux: Help menu is last with About", () => {
   const template = buildMenuTemplate(deps);
   const help = template[template.length - 1];
   assert.strictEqual(help.label, "Help");
-  assert.strictEqual(help.submenu[0].label, "About Kiro Crew");
+  assert.strictEqual(help.submenu[0].label, "About kirocrew-customapi");
 });
 
 test("win/linux: every custom-titlebar menu has a stable native menu id", () => {
@@ -153,7 +153,7 @@ for (const isMac of [true, false]) {
     const { deps, calls } = makeDeps({ isMac });
     const template = buildMenuTemplate(deps);
     findItem(template, (i) => i.label === "Settings…").click();
-    findItem(template, (i) => i.label === "About Kiro Crew").click();
+    findItem(template, (i) => i.label === "About kirocrew-customapi").click();
     assert.deepStrictEqual(calls, ["openSettings", "openAbout"]);
   });
 

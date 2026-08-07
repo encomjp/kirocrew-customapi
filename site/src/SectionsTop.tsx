@@ -43,7 +43,7 @@ export function Nav() {
         {[['#features', 'Features'], ['#in-action', 'Demo'], ['#how-it-works', 'Setup']].map(([href, label]) => (
           <a key={href} href={href} className="hidden md:block px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 no-underline transition-all">{label}</a>
         ))}
-        <a href="https://github.com/kirodotdev/KiroCrew" target="_blank" rel="noopener noreferrer" className="hidden md:block px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 no-underline transition-all">Source</a>
+        <a href="https://github.com/encomjp/kirocrew-customapi" target="_blank" rel="noopener noreferrer" className="hidden md:block px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 no-underline transition-all">Source</a>
         <button onClick={toggle} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all" aria-label="Toggle theme">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -77,7 +77,7 @@ export function Hero() {
       </motion.p>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }} className="flex gap-3 justify-center flex-wrap">
         <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_24px_rgba(245,158,11,0.35),0_4px_16px_rgba(0,0,0,0.4)] hover:-translate-y-0.5 hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] transition-all no-underline font-space">Install in 3 Minutes</a>
-        <a href="https://github.com/kirodotdev/KiroCrew" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-amber-500/15 hover:bg-slate-200 dark:hover:bg-white/8 hover:border-amber-500/30 hover:-translate-y-0.5 transition-all no-underline font-space">View Source</a>
+        <a href="https://github.com/encomjp/kirocrew-customapi" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-amber-500/15 hover:bg-slate-200 dark:hover:bg-white/8 hover:border-amber-500/30 hover:-translate-y-0.5 transition-all no-underline font-space">View Source</a>
       </motion.div>
     </motion.section>
     <AppPreview />

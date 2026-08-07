@@ -1,14 +1,13 @@
 {
-  "name": "kirocrew-desktop",
-  "version": "0.4.1",
-  "description": "Kiro Crew \u2014 AI agent desktop app",
+  "name": "kirocrew-customapi",
+  "version": "0.2.0-customapi.2",
+  "description": "kirocrew-customapi \u2014 AI agent desktop app (fork of Kiro Crew)",
   "homepage": "https://github.com/encomjp/kirocrew-customapi",
   "desktopName": "kirocrew-desktop.desktop",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.js mochi/test/*.test.js crew-companion/test/*.test.js",
-    "postinstall": "node scripts/patch-nsis-template.js",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux"
@@ -20,15 +19,15 @@
   "devDependencies": {
     "@electron/notarize": "^3.1.1",
     "electron": "^43.2.0",
-    "electron-builder": "26.15.3"
+    "electron-builder": "^26.15.3"
   },
   "overrides": {
     "fast-uri": "3.1.5",
     "js-yaml": "4.3.1"
   },
   "build": {
-    "appId": "com.amazon.kiro.crew",
-    "productName": "KiroCrew",
+    "appId": "com.kirocrew.customapi",
+    "productName": "kirocrew-customapi",
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "icon.icns",
@@ -43,16 +42,16 @@
       "notarize": false,
       "x64ArchFiles": "{**/backend-dist/**,**/backend-dist/**/.*/**}",
       "extendInfo": {
-        "CFBundleDisplayName": "Kiro Crew",
-        "NSMicrophoneUsageDescription": "Kiro Crew uses the microphone for voice input and dictation in chat. Audio is captured only while you hold or toggle the mic button.",
-        "NSLocalNetworkUsageDescription": "Kiro Crew connects to devices on your local network so agent commands can reach your own servers, NAS, containers, and dev machines. Only the addresses a command names are contacted."
+        "CFBundleDisplayName": "kirocrew-customapi",
+        "NSMicrophoneUsageDescription": "kirocrew-customapi uses the microphone for voice input and dictation in chat. Audio is captured only while you hold or toggle the mic button."
       }
     },
     "afterSign": "scripts/notarize.js",
     "linux": {
       "category": "Development",
-      "icon": "build/icons",
-      "executableName": "kirocrew-desktop",
+      "icon": "icon.png",
+      "synopsis": "kirocrew-customapi \u2014 AI agent desktop app",
+      "description": "kirocrew-customapi is an open source development workspace (fork of Kiro Crew) that runs locally or remotely on your hardware. This fork re-enables the claude_code provider for custom LLM routers.",
       "maintainer": "Adrian Kozlowski <encomjp@users.noreply.github.com>",
       "synopsis": "Persistent AI agent workspace with memory, schedules, and unattended work",
       "description": "Kiro Crew fork with the claude_code provider re-enabled for self-hosted LLM routers (9router, any Anthropic-compatible endpoint).",
@@ -141,7 +140,6 @@
       "instance-guard.js",
       "context-menu.js",
       "find-bin.js",
-      "gateway-env.js",
       "mac-env.js",
       "bundle-integrity.js",
       "data-home.js",
@@ -150,9 +148,7 @@
       "bundle-location.js",
       "gateway-auth-hint.js",
       "blocking-prompt.js",
-      "splash-history.js",
       "hide-to-tray.js",
-      "html-fullscreen.js",
       "gateway-stop.js",
       "gateway-wait.js",
       "sandbox-profile.js",
@@ -167,7 +163,6 @@
       "gateway-liveness.js",
       "gateway-recovery.js",
       "renderer-recovery.js",
-    "pierre-perf-log.js",
       "pyspy-dump.js",
       "perf-metrics.js",
       "host-config.js",
@@ -217,7 +212,9 @@
         "from": "backend-dist",
         "to": "backend-dist",
         "filter": [
-          "**/*"
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
         ]
       }
     ],

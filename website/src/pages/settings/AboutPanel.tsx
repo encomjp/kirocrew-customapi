@@ -15,9 +15,8 @@ import { api, ApiError } from '../../api/client'
 import { copyToClipboard } from '../../utils/clipboard'
 
 import { i18nT } from '../../i18n/t'
-import { fmtDateTimeNumeric, fmtList } from '../../i18n/format'
+import { fmtDateTimeNumeric } from '../../i18n/format'
 import type { UpdateState } from '../../hooks/useUpdateSubscription'
-import { foldStableStamp } from '../../utils/displayVersion'
 
 /** Human-readable transfer rate for the progress label. */
 function formatRate(bps: number): string {
@@ -124,12 +123,6 @@ type UpdateInfo = {
   stampedChannel?: string | null
   channelSwitchable?: boolean
   channelPreference?: string
-  /**
-   * Whether a discovered update downloads without a click. ON by default in the
-   * desktop shell; `undefined` from a shell that predates the preference, which
-   * is why the toggle reads it as `!== false` rather than truthy.
-   */
-  autoDownload?: boolean
   platform?: string
   /** Manual-reinstall permalink from the main process; absent when no lane. */
   downloadUrl?: string | null
@@ -147,9 +140,6 @@ type UpdateAPI = {
   install: () => Promise<unknown>
   getInfo: () => Promise<UpdateInfo>
   setChannel?: (channel: string) => Promise<{ ok: boolean; error?: string }>
-  // Optional so the panel still renders against an older desktop shell whose
-  // preload has no such bridge: the toggle is hidden rather than throwing.
-  setAutoDownload?: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>
 }
 
 function getUpdateApi(): UpdateAPI | undefined {
@@ -297,11 +287,6 @@ export function AboutPanel() {
     s => s.dashboard.status?.update_check_status
   ) === 'succeeded'
   const statusCommand = useAppSelector(s => s.dashboard.status?.update_command) || ''
-  // The background check's commit distance, from the status push. What lets
-  // the hero badge tell a diverged checkout from a current one on first
-  // visit, before any manual check has populated the local counts.
-  const statusAhead = useAppSelector(s => s.dashboard.status?.update_commits_ahead) || 0
-  const statusBehind = useAppSelector(s => s.dashboard.status?.update_commits_behind) || 0
   const queryClient = useQueryClient()
   const desktopApi = getUpdateApi()
   const isDesktop = !!desktopApi
@@ -337,7 +322,7 @@ export function AboutPanel() {
   // as the install is DISPATCHED, and on macOS the platform installer then works
   // for several more seconds before the app quits. Keying `disabled` on
   // isPending alone lets the button re-arm during that window, so the user sees
-  // a clickable install-and-restart action followed by an unexplained quit -- which reads
+  // a clickable "Restart & Update" followed by an unexplained quit -- which reads
   // as a crash.
   const installDispatched = installMutation.isPending || installMutation.isSuccess
   // Channel switcher (stable ⇄ insider opt-in). Switching persists the
@@ -348,24 +333,8 @@ export function AboutPanel() {
     mutationFn: (next: string) => desktopApi!.setChannel!(next),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['update-info'] }),
   })
-  // Auto-download opt-out. The toggle renders from info.autoDownload, so the
-  // invalidate is what moves it -- there is no local optimistic state to roll
-  // back, and a failed write simply leaves the switch where it was.
-  const autoDownloadMutation = useMutation({
-    mutationFn: (next: boolean) => desktopApi!.setAutoDownload!(next),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['update-info'] }),
-  })
 
-  // The version chip's DISPLAY text. For a gateway install the fold is the
-  // backend's (`version_display`, raw `version` fallback for a gateway that
-  // predates the field); for a desktop build it is computed locally, because
-  // the Electron-reported version never crosses the gateway. Every functional
-  // reader (`versionLooksPrerelease`, the updater compare gate, the SPA's
-  // reload-on-upgrade comparison) keeps its raw source.
-  const gatewayVersionDisplay = useAppSelector(s => s.dashboard.status?.version_display) || ''
-  const versionDisplay = info?.version
-    ? foldStableStamp(info.version, info.channel)
-    : (gatewayVersionDisplay || gatewayVersion || '—')
+  const version = info?.version || gatewayVersion || '—'
   const channel = info?.channel
   const updatesDisabled = info?.disabled
   // An externally-managed install (a distro/enterprise package) has no channel
@@ -446,7 +415,6 @@ export function AboutPanel() {
   const showUpdateCard = !checking && (cardState === 'found' || cardState === 'available' || cardState === 'downloading' || cardState === 'downloaded' || cardFailed)
   const cardBusy = cardState === 'available' || cardState === 'downloading'
   const cardReady = cardState === 'downloaded'
-  const showsWindowsInstaller = updateState?.installHandoff === 'windows-installer'
   // Determinate only once a progress event has arrived; before that the label
   // stays indeterminate, since `percent` is optional in the emit.
   const cardPercent = cardState === 'downloading' && typeof updateState?.percent === 'number'
@@ -465,7 +433,7 @@ export function AboutPanel() {
         <div className="flex flex-col gap-0.5 min-w-0">
           <span className="text-[13px] font-medium text-text flex items-center gap-1.5">
             <ArrowUp size={13} className="lucide-inline text-accent" />
-            {botName || 'Kiro Crew'} {updateState?.version || i18nT('pages.settings.aboutPanel.update_noun')}
+            {botName || 'kirocrew-customapi'} {updateState?.version || i18nT('pages.settings.aboutPanel.update_noun')}
           </span>
           <span className="text-[12px] text-muted">
             {channel ? `${channel} channel` : i18nT('pages.settings.aboutPanel.update_noun')}
@@ -477,7 +445,7 @@ export function AboutPanel() {
             <Btn primary onClick={() => installMutation.mutate()} disabled={installDispatched}>
               <RefreshCw size={13} className={`lucide-inline ${installDispatched ? 'animate-spin' : ''}`} /> {installMutation.isSuccess
                 ? i18nT('pages.settings.aboutPanel.restarting')
-                : i18nT('pages.settings.aboutPanel.install_update_restart_app')}
+                : i18nT('pages.settings.aboutPanel.restart_update')}
             </Btn>
           ) : (
             <Btn primary onClick={() => downloadMutation.mutate()} disabled={cardBusy || downloadMutation.isPending}>
@@ -513,12 +481,11 @@ export function AboutPanel() {
       {cardReady && (
         <span className="text-[12px] text-muted">
           {/* Once dispatched, the gateway goes down ON PURPOSE and the dashboard
-              disconnects during the platform installer handoff. This line is the
-              last thing the card says, so it must explain what happens next. */}
+              disconnects for the ~1-2 min Squirrel handoff. This line is the last
+              thing the card says, so it must explain the coming silence. */}
           {installDispatched
             ? i18nT('pages.settings.aboutPanel.installing_quiet_note')
             : i18nT('pages.settings.aboutPanel.downloaded_and_verified_the_app_restarts_to_fini')}
-          {showsWindowsInstaller && ` ${i18nT('components.updateModal.windows_installer_handoff')}`}
         </span>
       )}
       {showManualFallback && (
@@ -557,14 +524,7 @@ export function AboutPanel() {
   // changelog confirm because applying restarts the gateway.
   const [gwChanges, setGwChanges] = useState('')
   const [gwTarget, setGwTarget] = useState('')
-  // Display-only sibling of gwTarget, folded to the clean release version on
-  // stable. Never fed to InAppUpdateFlow or /api/update/arm.
-  const [gwTargetDisplay, setGwTargetDisplay] = useState('')
   const [gwFound, setGwFound] = useState(false)
-  // Commit distance from the tracked upstream, straight from the check payload.
-  // Only a git checkout ever reports non-zero values; both stay 0 elsewhere.
-  const [gwAhead, setGwAhead] = useState(0)
-  const [gwBehind, setGwBehind] = useState(0)
   // The honesty trio, straight from /api/update/check.
   //
   // `gwChecked` is what licenses the "you're on the latest version" line. It used
@@ -599,25 +559,18 @@ export function AboutPanel() {
   }, [mcCfg])
   const gwCheck = useMutation({
     mutationFn: () => api.checkUpdate(),
-    onSuccess: (d) => {
+    onSuccess: (d: any) => {
       setGwChanges(d?.changes || '')
       // `latest_version` is the field the gateway actually emits; `version` is
       // read as a fallback only because it is what some older payloads carried.
       const target = d?.latest_version || d?.version
       if (target) setGwTarget(String(target))
-      // Same contract as the channel-switch handler below: adopt the
-      // display-only folded sibling (empty when the gateway predates it).
-      setGwTargetDisplay(typeof d?.latest_version_display === 'string' ? d.latest_version_display : '')
       // Derive availability from the check response itself, not only the redux
       // status flag (which refreshes on a slower WS status push). Otherwise a
       // check that finds an update could still show "You're on the latest
       // version" until the flag catches up.
       setGwFound(d?.update_available === true)
       setGwChecked(d?.check_status === 'succeeded')
-      // Adopted unconditionally (0 when absent) so one check's divergence can
-      // never survive into the next check's verdict.
-      setGwAhead(typeof d?.commits_ahead === 'number' ? d.commits_ahead : 0)
-      setGwBehind(typeof d?.commits_behind === 'number' ? d.commits_behind : 0)
       // A DEFERRAL is not a failure: a desktop bundle reporting "the app
       // updates itself" has not malfunctioned, and its reason has its own slot.
       // Only `error_code` may render as an error.
@@ -677,7 +630,7 @@ export function AboutPanel() {
       // one and fall back to the generic line when it did not.
       setGwChannelError(e instanceof ApiError ? (e.message || '') : '')
     },
-    onSuccess: (d) => {
+    onSuccess: (d: any) => {
       // The response is the re-run check against the new channel, so adopt it
       // wholesale rather than leaving the previous lane's verdict on screen.
       //
@@ -689,50 +642,17 @@ export function AboutPanel() {
       if (typeof d?.channel === 'string') setGwChannel(d.channel)
       setGwFound(d?.update_available === true)
       setGwChecked(d?.check_status === 'succeeded')
-      setGwAhead(typeof d?.commits_ahead === 'number' ? d.commits_ahead : 0)
-      setGwBehind(typeof d?.commits_behind === 'number' ? d.commits_behind : 0)
       // Only `error_code` may render as an error; a deferral is not a failure.
       setGwError(typeof d?.error_code === 'string' ? d.error_code : '')
       setGwCommand(typeof d?.update_command === 'string' ? d.update_command : '')
       setGwCommandCopied(false)
       setGwTarget(typeof d?.latest_version === 'string' ? d.latest_version : '')
-      setGwTargetDisplay(typeof d?.latest_version_display === 'string' ? d.latest_version_display : '')
       if (typeof d?.can_apply === 'boolean') setGwSelfUpdatable(d.can_apply)
     },
   })
-  // Diverged: local commits on top of a moved upstream. `update_available` is
-  // false there BY DESIGN (the apply path is a destructive reset), so this is
-  // derived from the counts rather than from any availability flag — it is the
-  // third verdict between "update available" and "up to date". Both counts come
-  // from the SAME check response, so this can never mix two checks' answers.
-  const gwDiverged = gwAhead > 0 && gwBehind > 0
-  // The badge's diverged verdict: a manual check's counts win once one has
-  // run (they are the newer read of the same backend cache); before that, the
-  // background check's counts from the status push carry the same fact, so a
-  // fresh visit to a diverged install is told the truth without clicking
-  // anything.
-  const heroDiverged = gwChecked ? gwDiverged : statusAhead > 0 && statusBehind > 0
   // Update is available if either the redux status flag or the latest check
-  // response says so — EXCEPT when the latest check said diverged. The redux
-  // flag refreshes on the slower WS status push, so for up to one push interval
-  // it can still carry `true` from a check that ran before the checkout gained
-  // local commits; letting it win would offer an Update button whose backend
-  // path is a bare `git pull` — a silent merge into the user's branch. A fresh
-  // diverged verdict therefore outranks the stale flag (fail-safe: withholding
-  // the button is recoverable, a surprise merge is not). `gwFound` needs no
-  // such guard: it is set from the same response as the counts, and a diverged
-  // check reports `update_available: false`.
-  const showUpdate = (updateAvailable && !gwDiverged) || gwFound
-  // Shared by the check-result line and the confirm modal, so the two surfaces
-  // cannot drift while describing the same verdict.
-  const gwDivergedText = gwDiverged
-    ? i18nT('pages.settings.aboutPanel.checkout_diverged_from_upstream', {
-        distance: fmtList([
-          i18nT('pages.settings.aboutPanel.commits_ahead', { count: gwAhead }),
-          i18nT('pages.settings.aboutPanel.commits_behind', { count: gwBehind }),
-        ]),
-      })
-    : ''
+  // response says so.
+  const showUpdate = updateAvailable || gwFound
   // Can this install apply the update itself? A fresh check wins; before one has
   // run, the redux status flag carries the same fact from the gateway's own boot
   // check. Defaulting to TRUE when neither is known preserves the historical
@@ -802,21 +722,9 @@ export function AboutPanel() {
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="text-[19px] font-extrabold tracking-tight text-text-strong">{botName || 'Kiro Crew'}</span>
-              <span className="text-[12px] font-mono font-semibold text-accent rounded-full px-2.5 py-0.5 border" style={ACCENT_TINT}>{i18nT('pages.settings.aboutPanel.v')}{versionDisplay}</span>
-              {!isDesktop && (heroDiverged
-                // Diverged outranks BOTH other verdicts: `update_available` is
-                // false here BY DESIGN (the no-auto-apply property), and a
-                // stale `true` from a check that predates the local commits
-                // must not paint "Update available" beside the divergence
-                // warning below — the exact half-truth the neutral branch's
-                // comment forbids. A manual check's counts win once one has
-                // run; the status push's counts cover the first visit.
-                ? <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold rounded-full px-2 py-0.5"
-                    style={{ color: 'var(--warn)', background: 'color-mix(in oklab, var(--warn) 14%, transparent)' }}
-                    data-testid="hero-diverged">
-                    <GitBranch size={11} className="lucide-inline" aria-hidden /> {i18nT('pages.settings.aboutPanel.diverged')}</span>
-                : updateAvailable
+              <span className="text-[19px] font-extrabold tracking-tight text-text-strong">{botName || 'kirocrew-customapi'}</span>
+              <span className="text-[12px] font-mono font-semibold text-accent rounded-full px-2.5 py-0.5 border" style={ACCENT_TINT}>{i18nT('pages.settings.aboutPanel.v')}{version}</span>
+              {!isDesktop && (updateAvailable
                 ? <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold rounded-full px-2 py-0.5"
                     style={{ color: 'var(--warn)', background: 'color-mix(in oklab, var(--warn) 14%, transparent)' }}>
                     <ArrowUp size={11} className="lucide-inline" /> {i18nT('pages.settings.aboutPanel.update_available')}</span>
@@ -1129,7 +1037,7 @@ export function AboutPanel() {
           ) : (
             <div className="flex flex-col gap-2.5">
               <p className="text-sm text-muted">
-                {botName || 'Kiro Crew'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}
+                {botName || 'kirocrew-customapi'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}
               </p>
               <div>
                 <Btn primary onClick={() => checkMutation.mutate()} disabled={checking}>
@@ -1138,23 +1046,6 @@ export function AboutPanel() {
               </div>
               {status && <div className="text-[13px]">{status}</div>}
               {updateCard}
-              {/* Auto-download opt-out. ON by default, so this row is the only
-                  place a user can decline the background download — it renders
-                  whenever the desktop bridge exposes the setter, and is absent
-                  on an older shell that does not. `autoDownload` comes from the
-                  updater's own getInfo(), not from a local copy of the store, so
-                  the switch reflects what the updater will actually do.
-                  Reuses the gateway row's label: on desktop the downloaded
-                  update installs on the next restart/quit, which is exactly what
-                  it says. */}
-              {desktopApi?.setAutoDownload && (
-                <div className="flex items-center justify-between pt-2.5 border-t border-border">
-                  <span className="text-sm text-text">{i18nT('pages.settings.aboutPanel.auto_update_on_restart')}</span>
-                  <Toggle checked={info?.autoDownload !== false}
-                    label={i18nT('pages.settings.aboutPanel.auto_update_on_restart')}
-                    onChange={next => autoDownloadMutation.mutate(next)} />
-                </div>
-              )}
             </div>
           )
         ) : (
@@ -1163,7 +1054,7 @@ export function AboutPanel() {
               <>
                 {showUpdate && (
                   <p className="text-sm text-muted flex items-center gap-1.5">
-                    <ArrowUp size={13} className="lucide-inline text-accent" /> {i18nT('pages.settings.aboutPanel.a_new_version')}{(gwTargetDisplay || gwTarget) ? ` (v${gwTargetDisplay || gwTarget})` : ''} {i18nT('pages.settings.aboutPanel.is_available')}
+                    <ArrowUp size={13} className="lucide-inline text-accent" /> {i18nT('pages.settings.aboutPanel.a_new_version')}{gwTarget ? ` (v${gwTarget})` : ''} {i18nT('pages.settings.aboutPanel.is_available')}
                   </p>
                 )}
                 {showManualUpdate ? (
@@ -1248,7 +1139,7 @@ export function AboutPanel() {
             ) : (
               <>
                 <p className="text-sm text-muted">
-                  {botName || 'Kiro Crew'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}
+                  {botName || 'kirocrew-customapi'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}
                 </p>
                 <div>
                   <Btn onClick={() => gwCheck.mutate()} disabled={gwCheck.isPending}>
@@ -1262,23 +1153,7 @@ export function AboutPanel() {
                     behind. An unrecognised error code still lands here (in the
                     error branch), never in the success branch. */}
                 {gwCheck.isSuccess && gwChecked && !gwError && !gwUnavailableReason && !showUpdate && (
-                  gwDiverged ? (
-                    /* The third verdict: diverged. "No update available" here is
-                       the no-auto-apply safety property doing its job, not
-                       currency, so saying "latest version" would be false in the
-                       other direction. Counts plus the manual next step, and
-                       deliberately NO apply button: this panel's Update button
-                       POSTs /api/update, whose git path is a bare `git pull` — an
-                       unrequested merge into the diverged branch (the unattended
-                       auto-update path is the `git reset --hard` that would
-                       discard the commits outright; both are wrong here). */
-                    <span className="text-warn text-[13px] flex items-start gap-1.5" role="status" data-testid="diverged">
-                      <GitBranch size={13} className="lucide-inline shrink-0 mt-0.5" aria-hidden />
-                      <span>{gwDivergedText}</span>
-                    </span>
-                  ) : (
-                    <span className="text-ok text-[13px] flex items-center gap-1.5" data-testid="up-to-date"><CheckCircle2 size={13} className="lucide-inline" /> {i18nT('pages.settings.aboutPanel.you_re_on_the_latest_version')}</span>
-                  )
+                  <span className="text-ok text-[13px] flex items-center gap-1.5" data-testid="up-to-date"><CheckCircle2 size={13} className="lucide-inline" /> {i18nT('pages.settings.aboutPanel.you_re_on_the_latest_version')}</span>
                 )}
                 {gwCheck.isSuccess && !!gwUnavailableReason && (
                   <span className="text-muted text-[13px] flex items-center gap-1.5" data-testid="check-not-applicable"><Package size={13} className="lucide-inline" /> {gwCheckErrorText(gwUnavailableReason)}</span>
@@ -1376,22 +1251,11 @@ export function AboutPanel() {
              onClick={() => { if (!gwApply.isPending && !restarting) setShowConfirm(false) }}>
           <div role="document" className="bg-card border border-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              {/* Whole-sentence key, not "Update" + " to vX": the version does
-                  not follow the verb in every language. Diverged drops the
-                  version — there is nothing to update to. */}
-              <div className="text-sm font-bold text-text-strong flex items-center gap-1.5"><Package size={15} className="lucide-inline" /> {gwTarget && !gwDiverged
-                ? i18nT('pages.settings.aboutPanel.update_to_version', { version: gwTarget })
-                : i18nT('pages.settings.aboutPanel.update')}</div>
+              <div className="text-sm font-bold text-text-strong flex items-center gap-1.5"><Package size={15} className="lucide-inline" /> {i18nT('pages.settings.aboutPanel.update')}{gwTarget ? ` to v${gwTarget}` : ''}</div>
               <button aria-label={i18nT('pages.settings.aboutPanel.close')} className="text-muted hover:text-text cursor-pointer bg-transparent border-none disabled:opacity-40 disabled:cursor-default" disabled={gwApply.isPending || restarting} onClick={() => { if (!gwApply.isPending && !restarting) setShowConfirm(false) }}><X size={15} /></button>
             </div>
             {gwCheck.isPending ? (
               <div className="text-[13px] text-muted flex items-center gap-1.5 mb-4"><RefreshCw size={13} className="lucide-inline animate-spin" /> {i18nT('pages.settings.aboutPanel.loading_changelog')}</div>
-            ) : gwDiverged ? (
-              /* The modal opened from a STALE update flag, and the check it
-                 fired came back diverged: there is nothing to apply, and the
-                 backend path behind the button below is a bare `git pull` — a
-                 silent merge into the user's branch. Say why instead. */
-              <p className="text-[13px] text-warn mb-4" data-testid="diverged-modal">{gwDivergedText}</p>
             ) : gwChanges ? (
               <>
                 <div className="text-[12px] font-medium text-muted uppercase tracking-wider mb-2">{i18nT('pages.settings.aboutPanel.what_s_new')}</div>
@@ -1400,30 +1264,12 @@ export function AboutPanel() {
             ) : (
               <p className="text-[13px] text-muted mb-4">{i18nT('pages.settings.aboutPanel.a_newer_version_is_available')}</p>
             )}
-            {/* The restart warning describes the apply below; a diverged modal
-                offers no apply, so warning about its restart would keep the
-                update promise the body just withdrew. */}
-            {!gwDiverged && (
-              <p className="text-[12px] text-muted mb-3">{i18nT('pages.settings.aboutPanel.updating_restarts_the_gateway_active_sessions_wi')}</p>
-            )}
+            <p className="text-[12px] text-muted mb-3">{i18nT('pages.settings.aboutPanel.updating_restarts_the_gateway_active_sessions_wi')}</p>
             {applyError && <div className="text-[13px] text-danger mb-3 flex items-center gap-1.5"><AlertCircle size={13} className="lucide-inline" /> {applyError}</div>}
             {restarting ? (
               <div className="text-[13px] text-accent flex items-center justify-center gap-1.5 py-2" role="status">
                 <RefreshCw size={13} className="lucide-inline animate-spin" /> {i18nT('pages.settings.aboutPanel.updating_gateway_restarting')}
               </div>
-            ) : gwCheck.isPending ? (
-              /* The pre-apply check is still running: its answer may be
-                 "diverged", so an enabled apply button here is a race the user
-                 can win against their own safety check. Hold the action until
-                 the verdict lands (the server enforces the same precondition,
-                 so this is honesty, not the only line of defense). */
-              <Btn className="w-full justify-center" disabled>
-                <RefreshCw size={13} className="lucide-inline animate-spin" /> {i18nT('pages.settings.aboutPanel.checking_for_updates')}
-              </Btn>
-            ) : gwDiverged ? (
-              <Btn className="w-full justify-center" data-testid="diverged-modal-close" onClick={() => setShowConfirm(false)}>
-                {i18nT('pages.settings.aboutPanel.close')}
-              </Btn>
             ) : (
               <Btn primary className="w-full justify-center" disabled={gwApply.isPending} onClick={() => gwApply.mutate()}>
                 {gwApply.isPending ? <><RefreshCw size={13} className="lucide-inline animate-spin" /> {i18nT('pages.settings.aboutPanel.updating')}</> : i18nT('pages.settings.aboutPanel.update_now')}
