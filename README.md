@@ -376,3 +376,27 @@ should stay clean as long as the dormant seam (comments referencing `ACP_BACKEND
 
 - Upstream: https://github.com/kirodotdev/KiroCrew
 - License: [Apache 2.0](LICENSE)
+
+## Updating from the fork
+
+This fork updates from **its own repo** (`encomjp/kirocrew-customapi`), never
+from upstream `kirodotdev/KiroCrew`.
+
+- **Desktop app:** updates come from this repo's GitHub Releases (single
+  `stable` lane). The release workflow attaches `latest-mac.yml` /
+  `latest-linux.yml` automatically.
+- **Gateway (git install):** the update check, the dashboard Update button,
+  and the boot auto-update all follow whatever remote the current branch
+  tracks. In this repo `origin` is the fork itself, so `main` tracks
+  `origin/main` by default — verify once:
+
+  ```bash
+  git branch --set-upstream-to=origin/main main
+  ```
+
+  Boot auto-update runs **only on branch `main`** (`git reset --hard
+  <remote>/main`), so keep feature/`testing` branches off `main` if you don't
+  want them reset.
+
+- Every release must bump `__version__` in `src/kiro_crew/__init__.py`, or the
+  version comparison won't detect the update.
