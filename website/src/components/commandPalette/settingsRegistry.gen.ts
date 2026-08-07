@@ -86,6 +86,22 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
+    "id": "chat.auto-add-documents",
+    "label": "Auto-Add Documents",
+    "description": "Let the agent add documents it reads while working to your knowledge library, so they stay searchable later. It reads them with its own tools under your approval — kirocrew-customapi fetches nothing itself. Added documents appear in one “Auto-added” source you can remove in a click.",
+    "tab": "chat",
+    "type": "toggle",
+    "occurrence": 1
+  },
+  {
+    "id": "chat.auto-add-saved-artifacts",
+    "label": "Auto-Add Saved Artifacts",
+    "description": "Mirror documents you save as artifacts into the library, keep them in sync as you edit, and remove them when you delete the artifact.",
+    "tab": "chat",
+    "type": "toggle",
+    "occurrence": 1
+  },
+  {
     "id": "chat.auto-compact-threshold",
     "label": "Auto-Compact Threshold",
     "labelKey": "pages.settings.chatPanel.auto_compact_threshold",
@@ -567,8 +583,7 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
   {
     "id": "display.highlight-recent-sessions",
     "label": "Highlight recent sessions",
-    "labelKey": "pages.settings.displayPanel.highlight_recent_sessions",
-    "description": "Highlight the N most-recently-active sessions with a graded accent stripe (0 = off). Saved to your Kiro Crew config.",
+    "description": "Highlight the N most-recently-active sessions with a graded accent stripe (0 = off). Saved to your kirocrew-customapi config.",
     "tab": "display",
     "type": "stepper",
     "occurrence": 1

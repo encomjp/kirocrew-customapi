@@ -415,7 +415,7 @@ In the `Rename artifacts with release tag` step, after the `.deb` copy block (ar
 
 - [ ] **Step 3: Validate the workflow YAML parses**
 
-Run: `cd /home/eupepe/kirocrew-fork && python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/build-desktop-fork.yml')); print('yaml ok')"`
+Run: `cd <repo-root> && python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/build-desktop-fork.yml')); print('yaml ok')"`
 Expected: prints `yaml ok`.
 
 - [ ] **Step 4: Commit (ask user first)**
@@ -484,7 +484,7 @@ Add to `test/test_slack_gateway.py` in `TestAutoApplyUpdateResetPath` (after `te
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/eupepe/kirocrew-fork && pytest test/test_slack_gateway.py::TestAutoApplyUpdateResetPath::test_fetch_and_reset_use_the_tracked_remote -q`
+Run: `cd <repo-root> && pytest test/test_slack_gateway.py::TestAutoApplyUpdateResetPath::test_fetch_and_reset_use_the_tracked_remote -q`
 Expected: FAIL — current code fetches `origin main` and resets `origin/main`.
 
 - [ ] **Step 3: Implement**
@@ -551,7 +551,7 @@ b) The four `_fake_exec` tests that drive past branch detection — `test_fetch_
 
 - [ ] **Step 5: Run the gateway tests**
 
-Run: `cd /home/eupepe/kirocrew-fork && pytest test/test_slack_gateway.py -q`
+Run: `cd <repo-root> && pytest test/test_slack_gateway.py -q`
 Expected: all pass (including the new tracked-remote test).
 
 - [ ] **Step 6: Commit (ask user first)**
@@ -602,7 +602,7 @@ from upstream `kirodotdev/KiroCrew`.
 
 - [ ] **Step 2: Verify**
 
-Run: `cd /home/eupepe/kirocrew-fork && git diff --stat README.md`
+Run: `cd <repo-root> && git diff --stat README.md`
 Expected: README.md shows one added section.
 
 - [ ] **Step 3: Commit (ask user first)**
@@ -625,12 +625,12 @@ Expected: all tests pass.
 
 - [ ] **Step 2: Gateway test suite**
 
-Run: `cd /home/eupepe/kirocrew-fork && pytest test/test_slack_gateway.py -q`
+Run: `cd <repo-root> && pytest test/test_slack_gateway.py -q`
 Expected: all pass.
 
 - [ ] **Step 3: Broader sanity (no regressions in update-adjacent code)**
 
-Run: `cd /home/eupepe/kirocrew-fork && pytest test/test_updates.py test/test_update_governance.py -q 2>/dev/null || echo "no such test files — run: pytest tests/ -q -k update"`
+Run: `cd <repo-root> && pytest test/test_updates.py test/test_update_governance.py -q 2>/dev/null || echo "no such test files — run: pytest tests/ -q -k update"`
 Expected: update-related tests pass or the fallback message prints.
 
 - [ ] **Step 4: Manual smoke (documented for the operator)**
