@@ -169,7 +169,7 @@ describe('LeftRail — collapsed strip', () => {
   it('shows the full owner/repo turned on its side and drops the accordion', () => {
     const { container } = render(<LeftRail width={48} collapsed />)
     // The org matters: two repos can share a name across owners.
-    const name = screen.getByText('encomjp/kirocrew-customapi')
+    const name = screen.getByText('kirodotdev/KiroCrew')
     expect(name.style.writingMode).toBe('vertical-rl')
     // The nav sections have no room in a 48px strip.
     expect(screen.queryByText('Dashboards')).toBeNull()
@@ -182,7 +182,7 @@ describe('LeftRail — collapsed strip', () => {
   it('repeats the owner/repo in the tooltip for a name too long to fit', async () => {
     render(<LeftRail width={48} collapsed />)
     const btn = screen.getByRole('button', { name: 'Expand sidebar' })
-    expect(btn.getAttribute('title')).toContain('encomjp/kirocrew-customapi')
+    expect(btn.getAttribute('title')).toContain('kirodotdev/KiroCrew')
   })
 
   it('keeps the app mark but not its name — no room at 48px', () => {
@@ -198,7 +198,7 @@ describe('LeftRail — collapsed strip', () => {
     ctx.value = { ...ctx.value, repos: [entry(false)] }
     render(<LeftRail width={48} collapsed />)
     const tag = screen.getByText('Read Only')
-    const name = screen.getByText('encomjp/kirocrew-customapi')
+    const name = screen.getByText('kirodotdev/KiroCrew')
     expect(tag.style.writingMode).toBe('vertical-rl')
     expect(name.parentElement).toBe(tag.parentElement)
     // DOCUMENT_POSITION_FOLLOWING — the tag comes after the name.
