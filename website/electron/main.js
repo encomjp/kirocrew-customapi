@@ -419,25 +419,18 @@ function fetchHealthInfo(healthUrl = `${BACKEND_URL}${HEALTH_IDENTITY_PATH}`) {
   });
 }
 
-// Is the answering gateway actually SERVING, or draining after /api/shutdown?
-// /api/status and /api/health both stay 200 through a graceful drain, so they
-// cannot make this call — /api/ready flips to 503 with `shutting_down: true`
-// the moment shutdown_event is set (see handlers/core.py api_ready). Resolves
-// to a classifyGatewayReadiness verdict; never rejects (probe failures map to
-// "unknown", which adopts — fail-open like every other ambiguity in the guard).
-function fetchGatewayReadiness(readyUrl = `${BACKEND_URL}${READY_PATH}`) {
+// /api/health can remain healthy after a Linux AppImage shell exits while its
+// backend survives under an unmounted /tmp/.mount_* path. Probe the dashboard
+// root too: that request touches the bundled static files and exposes the stale
+// mount as HTTP 500 before Electron decides to reuse the process.
+function checkDashboardRoot(rootUrl = `${BACKEND_URL}/`) {
   return new Promise((resolve) => {
-    const req = http.get(readyUrl, { timeout: 2000 }, (res) => {
-      let body = "";
-      res.on("data", (c) => { body += c; });
-      res.on("end", () => {
-        let payload = null;
-        try { payload = JSON.parse(body); } catch { /* non-JSON body — classify on status alone */ }
-        resolve(classifyGatewayReadiness(res.statusCode, payload));
-      });
+    const req = http.get(rootUrl, { timeout: 2000 }, (res) => {
+      res.resume();
+      resolve(res.statusCode < 500);
     });
-    req.on("error", () => resolve("unknown"));
-    req.on("timeout", () => { req.destroy(); resolve("unknown"); });
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => { req.destroy(); resolve(false); });
   });
 }
 
@@ -570,7 +563,8 @@ async function resolveGatewayConflict(rebindDepth = 0) {
     glog(`:${PORT} is a configured remote host (${remoteHost}) — holder treated as non-local`);
   }
   const localOwner = remoteHost ? "foreign" : await probeGatewayPortOwner(PORT);
-  const decision = decideGatewayAction(app.getVersion(), health, { localOwner });
+  const gatewayUsable = remoteHost ? true : await checkDashboardRoot();
+  const decision = decideGatewayAction(app.getVersion(), health, { localOwner, gatewayUsable });
   if (decision.action === "reuse") {
     // Adopt-or-wait: the /api/status probe that got us here stays 200 while the
     // backend DRAINS after POST /api/shutdown, so "answering" is not "serving".
@@ -651,6 +645,15 @@ async function resolveGatewayConflict(rebindDepth = 0) {
     // may immediately retract it. Keep the status neutral for that case.
     sendStatus(adoptedDraining ? "Connecting to the existing gateway…" : "Gateway already running ✓");
     return "reuse";
+  }
+  if (decision.action === "restart-local") {
+    glog(`gateway on :${PORT} is locally owned but unusable (${decision.reason}) — restarting it`);
+    const stopped = await forceStopGatewayPort(PORT);
+    if (!stopped.freed) {
+      glog(`local gateway restart failed: :${PORT} is still occupied`);
+      return "abort";
+    }
+    return "spawn";
   }
   const other = FAMILY_META[decision.otherFamily];
   glog(`gateway on :${PORT} is owned by ${other.appName} (${decision.otherVersion}) — prompting for takeover`);

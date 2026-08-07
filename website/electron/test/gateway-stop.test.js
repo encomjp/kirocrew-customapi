@@ -633,6 +633,15 @@ test("classifyPortOwner: a service-managed gateway (ppid 1) is 'service'", async
   assert.strictEqual(owner, "service");
 });
 
+test("classifyPortOwner: an orphaned AppImage backend remains app-owned", async () => {
+  const owner = await classifyPortOwner(5476, {
+    getListenPids: async () => [4242],
+    getCommand: async () => "/tmp/.mount_KiroCrDead/resources/backend-dist/kirocrew-backend/bin/python3.12 -m kiro_crew gateway",
+    getPpid: async () => "1",
+  });
+  assert.strictEqual(owner, "kirocrew");
+});
+
 test("classifyPortOwner: an app-spawned gateway (real ppid) stays 'kirocrew'", async () => {
   const owner = await classifyPortOwner(5476, {
     getListenPids: async () => [4242],

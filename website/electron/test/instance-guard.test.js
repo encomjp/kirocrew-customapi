@@ -35,6 +35,15 @@ test("same family reuses: nightly shell, nightly gateway (relaunch)", () => {
   assert.equal(d.action, "reuse");
 });
 
+test("same-family local gateway with a broken static root is restarted", () => {
+  const d = decideGatewayAction(
+    "0.2.0-customapi.3",
+    { ok: true, app: "kirocrew", version: "0.2.0-customapi.3" },
+    { localOwner: "kirocrew", gatewayUsable: false },
+  );
+  assert.deepEqual(d, { action: "restart-local", reason: "unusable-local-gateway" });
+});
+
 // A local KiroCrew LISTEN owner is what makes an eviction legitimate. Passing
 // it explicitly in the cross-family cases keeps those tests about FAMILY logic.
 const LOCAL = { localOwner: "kirocrew" };

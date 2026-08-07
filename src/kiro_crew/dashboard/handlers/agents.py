@@ -2137,10 +2137,11 @@ def _regen_conductor() -> None:
 async def api_provider_test(request: web.Request) -> web.Response:
     """POST /api/provider/test — probe a provider base URL + key.
 
-    Body: ``{url, api_key, format}``. Fetches ``{url}/v1/models`` with the
-    format-appropriate auth header and returns the advertised model ids on
-    success, or an error message. Used by the Provider settings "Test" button
-    (works on the unsaved draft, so it needs the values in the body).
+    Body: ``{url, api_key, format, use_stored}``. Fetches ``{url}/v1/models``
+    with the format-appropriate auth header and returns the advertised model
+    ids on success, or an error message. Used by the Provider settings "Test"
+    button. When ``use_stored`` is true and no ``api_key`` is provided, the
+    saved ``agent.provider_api_key`` is used.
     """
     import aiohttp
 
@@ -2153,6 +2154,9 @@ async def api_provider_test(request: web.Request) -> web.Response:
         return web.json_response({"ok": False, "error": "url required"}, status=400)
     api_format = str(body.get("format") or "openai")
     api_key = str(body.get("api_key") or "")
+    if not api_key and body.get("use_stored"):
+        cfg = KiroCrewConfig.load()
+        api_key = (cfg.agent.provider_api_key or "").strip()
     headers: dict[str, str] = {}
     if api_key:
         if api_format == "anthropic":

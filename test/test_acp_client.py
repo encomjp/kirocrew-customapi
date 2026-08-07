@@ -884,6 +884,53 @@ class TestAcpClientBackendSelection:
                 await client._spawn()
 
     @pytest.mark.asyncio
+    async def test_spawn_opencode_backend_is_not_wrapped_as_kiro_cli(self, tmp_path):
+        client = AcpClient(work_dir=tmp_path, acp_backend=ACP_BACKEND_OPENCODE)
+        client._write_opencode_provider_config = MagicMock()
+        with (
+            patch("kiro_crew.acp.client._resolve_opencode_bin", return_value=["/usr/bin/opencode"]),
+            patch("kiro_crew.acp.client.wrap_argv", return_value=(["/usr/bin/opencode", "acp"], None)) as wrap,
+            patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
+            patch("kiro_crew.session._track_pid"),
+            patch("kiro_crew.session._track_session_pid"),
+        ):
+            mock_proc = MagicMock()
+            mock_proc.pid = 12345
+            mock_proc.returncode = None
+            mock_proc.stderr = None
+            mock_exec.return_value = mock_proc
+
+            await client._spawn()
+
+        assert wrap.call_args.kwargs["is_kiro_cli"] is False
+
+    @pytest.mark.asyncio
+    async def test_spawn_opencode_backend_isolates_user_config(self, tmp_path):
+        """OpenCode spawn must set OPENCODE_CONFIG_CONTENT to suppress user
+        plugins and MCP servers that would stall the ACP session."""
+        client = AcpClient(work_dir=tmp_path, acp_backend=ACP_BACKEND_OPENCODE)
+        client._write_opencode_provider_config = MagicMock()
+        with (
+            patch("kiro_crew.acp.client._resolve_opencode_bin", return_value=["/usr/bin/opencode"]),
+            patch("kiro_crew.acp.client.wrap_argv", return_value=(["/usr/bin/opencode", "acp"], None)),
+            patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
+            patch("kiro_crew.session._track_pid"),
+            patch("kiro_crew.session._track_session_pid"),
+        ):
+            mock_proc = MagicMock()
+            mock_proc.pid = 12345
+            mock_proc.returncode = None
+            mock_proc.stderr = None
+            mock_exec.return_value = mock_proc
+
+            await client._spawn()
+
+        spawn_env = mock_exec.call_args.kwargs.get("env", {})
+        assert spawn_env.get("HOME", "").endswith("kirocrew-customapi/opencode-home"), (
+            "OpenCode spawn must set HOME to an isolated directory"
+        )
+
+    @pytest.mark.asyncio
     async def test_spawn_kiro_backend_unchanged(self, tmp_path):
         """Default (non-claude) backend still spawns `kiro-cli acp --agent <name>`."""
         client = AcpClient(work_dir=tmp_path)
@@ -913,7 +960,7 @@ class TestAcpClientBackendSelection:
 
     @pytest.mark.asyncio
     async def test_initialize_protocol_version_per_backend(self, tmp_path):
-        """kiro expects a date string; claude-agent-acp expects an integer."""
+        """Kiro expects a date string; Claude and OpenCode expect an integer."""
         from kiro_crew.acp.client import (
             PROTOCOL_VERSION,
             PROTOCOL_VERSION_CLAUDE,
@@ -922,6 +969,7 @@ class TestAcpClientBackendSelection:
         for backend, expected in (
             ("", PROTOCOL_VERSION),
             (ACP_BACKEND_CLAUDE, PROTOCOL_VERSION_CLAUDE),
+            (ACP_BACKEND_OPENCODE, PROTOCOL_VERSION_CLAUDE),
         ):
             client = AcpClient(work_dir=tmp_path, acp_backend=backend)
             client._session_id = "sess-1"  # short-circuit past the new-session call

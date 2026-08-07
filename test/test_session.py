@@ -3763,6 +3763,31 @@ class TestCloseAllPersistence:
             cwd="/tmp/test",
         )
 
+    @pytest.mark.asyncio
+    async def test_close_all_persists_opencode_provider_identity(self, cfg):
+        from kiro_crew.providers.acp import AcpProvider
+        from kiro_crew.session import _Session
+
+        mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
+        mock_provider = MagicMock(spec=AcpProvider)
+        mock_provider.shutdown = AsyncMock()
+        mock_provider.context_usage_pct = MagicMock(return_value=0.0)
+        mock_provider.cwd = "/tmp/test"
+        mock_provider.client = MagicMock()
+        mock_provider.client._session_id = "opencode-sid"
+        mock_provider.client.backend = "opencode"
+
+        mgr._sessions["dashboard:slot0"] = _Session(provider=mock_provider)
+        with patch.object(mgr._session_map, "set") as mock_set:
+            await mgr.close_all()
+
+        mock_set.assert_called_once_with(
+            "dashboard:slot0",
+            "opencode-sid",
+            provider="opencode",
+            cwd="/tmp/test",
+        )
+
 
 class TestRemove:
     """Tests for remove() — shutdown but preserve session_map."""
