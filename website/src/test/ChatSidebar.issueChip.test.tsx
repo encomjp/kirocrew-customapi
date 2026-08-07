@@ -44,10 +44,10 @@ import ChatSidebar from '../pages/ChatSidebar'
 import type { ChatSlot } from '../types'
 import type { RootState } from '../store'
 
-const ISSUE_URL = 'https://github.com/kirodotdev/KiroCrew/issues/701'
+const ISSUE_URL = 'https://github.com/encomjp/kirocrew-customapi/issues/701'
 const MR_ISSUE_URL = 'https://gitlab.com/acme/service/-/issues/8'
-const PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/634'
-const LEGACY_PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/500'
+const PR_URL = 'https://github.com/encomjp/kirocrew-customapi/pull/634'
+const LEGACY_PR_URL = 'https://github.com/encomjp/kirocrew-customapi/pull/500'
 
 const slots = [
   {

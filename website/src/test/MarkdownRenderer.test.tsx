@@ -209,7 +209,7 @@ describe('isPathCandidate — path chip pre-filter', () => {
 
   it('rejects other slash-separated identifiers that are not paths', () => {
     expect(isPathCandidate('owner/repo')).toBe(false)
-    expect(isPathCandidate('kirodotdev/KiroCrew')).toBe(false)
+    expect(isPathCandidate('encomjp/kirocrew-customapi')).toBe(false)
     expect(isPathCandidate('text/plain')).toBe(false)
     expect(isPathCandidate('@scope/pkg')).toBe(false)
     expect(isPathCandidate('2026/08/02')).toBe(false)

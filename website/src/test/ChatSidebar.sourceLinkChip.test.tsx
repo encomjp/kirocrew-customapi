@@ -54,7 +54,7 @@ import ChatSidebar from '../pages/ChatSidebar'
 import type { ChatSlot } from '../types'
 import type { RootState } from '../store'
 
-const PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/634'
+const PR_URL = 'https://github.com/encomjp/kirocrew-customapi/pull/634'
 
 const slots = [
   { key: 's1', title: 'Other', messages: 1, running: false, mode: '', created: '', last_ts: '2026-01-01T00:00:00Z' },
@@ -144,7 +144,7 @@ describe('ChatSidebar – PR chip link', () => {
  * control live in one table.
  */
 describe('ChatSidebar – terminal PR chips suppress CI', () => {
-  const url = (n: number) => `https://github.com/kirodotdev/KiroCrew/pull/${n}`
+  const url = (n: number) => `https://github.com/encomjp/kirocrew-customapi/pull/${n}`
 
   function stateRows(): ChatSlot[] {
     return [

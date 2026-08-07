@@ -156,7 +156,7 @@ describe('paths, routes and URLs are exempt', () => {
     "'/settings?tab=chat'",
     "'/run?id=' + rid",
     "'/-/merge_requests/'",
-    "'https://github.com/kirodotdev/KiroCrew/blob/main/README.md'",
+    "'https://github.com/encomjp/kirocrew-customapi/blob/main/README.md'",
     "'~/.kiro/steering'",
     "'./node_modules/@tailwindcss/browser/dist/index.global.js'",
   ]

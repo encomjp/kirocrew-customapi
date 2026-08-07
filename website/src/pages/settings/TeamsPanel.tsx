@@ -11,7 +11,7 @@ import { api, type TeamsConfigData, type TeamsConfigSave } from '../../api/clien
 import { i18nT } from '../../i18n/t'
 const AZURE_BOT_URL = 'https://portal.azure.com/#create/Microsoft.AzureBot'
 const SETUP_GUIDE =
-  'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs/teams-integration.md'
+  'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs/teams-integration.md'
 const WEBHOOK_PATH = '/api/messaging/teams'
 
 /** Accept an allow-list entry that is an email/UPN OR an AAD object id

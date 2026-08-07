@@ -156,7 +156,7 @@ describe('ActivityViewer', () => {
     })
     // Files tab is the default
     store.dispatch(openActivityToTab('files'))
-    const prUrl = 'https://github.com/kirodotdev/KiroCrew/pull/42'
+    const prUrl = 'https://github.com/encomjp/kirocrew-customapi/pull/42'
     render(
       <Provider store={store}>
         <QueryClientProvider client={qc}>

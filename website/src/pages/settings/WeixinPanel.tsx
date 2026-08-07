@@ -8,7 +8,7 @@ import { TagListEditor } from './SlackPanel'
 
 import { i18nT } from '../../i18n/t'
 const SETUP_GUIDE =
-  'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs/weixin-integration.md'
+  'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs/weixin-integration.md'
 
 /** How often we poll the QR scan status while a login session is open. */
 const POLL_MS = 1500

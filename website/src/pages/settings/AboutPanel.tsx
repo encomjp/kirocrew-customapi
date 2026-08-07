@@ -181,7 +181,7 @@ const HERO_BG: React.CSSProperties = {
  * feature-request flow, and a rename or a redirect to an in-app form there must
  * not silently retarget this link.
  */
-const REPORT_ISSUE_URL = 'https://github.com/kirodotdev/KiroCrew/issues/new'
+const REPORT_ISSUE_URL = 'https://github.com/encomjp/kirocrew-customapi/issues/new'
 
 /**
  * Last-resort prerelease test for an info payload with NO channel fields.
