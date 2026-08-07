@@ -1039,9 +1039,61 @@ def _cc_model_row(model_id: str, description: str = "") -> dict:
     }
 
 
+async def _opencode_models_response(request: web.Request) -> web.Response:
+    """Model catalog for /api/models on the opencode backend.
+
+    Fetches the provider's ``/v1/models`` (both Anthropic- and
+    OpenAI-compatible endpoints expose it; the auth header differs by format).
+    Context windows come from the central resolver (model_registry), same as
+    the claude_code path. Falls back to the curated router whitelist when the
+    endpoint is unreachable, so a cold dashboard never shows an empty picker.
+    """
+    import aiohttp
+
+    cfg = KiroCrewConfig.load()
+    base = (cfg.agent.provider_base_url or "").rstrip("/")
+    rows: list[dict] = []
+    if base:
+        api_format = cfg.agent.provider_api_format or "openai"
+        headers: dict[str, str] = {}
+        if cfg.agent.provider_api_key:
+            if api_format == "anthropic":
+                headers["x-api-key"] = cfg.agent.provider_api_key
+                headers["anthropic-version"] = "2023-06-01"
+            else:
+                headers["Authorization"] = f"Bearer {cfg.agent.provider_api_key}"
+        url = f"{base}/v1/models"
+        try:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=8)
+            ) as session:
+                async with session.get(url, headers=headers) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        for item in data.get("data", []):
+                            mid = item.get("id") or ""
+                            if mid:
+                                rows.append(
+                                    _cc_model_row(
+                                        mid,
+                                        item.get("display_name")
+                                        or item.get("description")
+                                        or "",
+                                    )
+                                )
+        except Exception:
+            logger.debug("opencode /v1/models fetch failed: %s", url, exc_info=True)
+    if cfg.agent.model_whitelist:
+        rows = [r for r in rows if r["model_id"] in cfg.agent.model_whitelist]
+    if not rows:
+        from kiro_crew.acp.client import AcpClient  # noqa: F811
+
+        rows = [_cc_model_row(mid) for mid in sorted(AcpClient.router_model_whitelist())]
+    return web.json_response(rows)
+
+
 def _cc_models_response(request: web.Request) -> web.Response:
     """Curated router-catalog response for /api/models on the claude_code path.
-
     The upstream handler spawns ``kiro-cli chat --list-models``, which returns
     Kiro's Bedrock catalog — useless (and wrong) when the backend is Claude
     Code talking to a custom LLM router. On the router path we serve the
@@ -1064,6 +1116,9 @@ def _cc_models_response(request: web.Request) -> web.Response:
             )
     if not rows:
         rows = [_cc_model_row(mid) for mid in sorted(whitelist)]
+    cfg = KiroCrewConfig.load()
+    if cfg.agent.model_whitelist:
+        rows = [r for r in rows if r["model_id"] in cfg.agent.model_whitelist]
     return web.json_response(rows)
 
 
@@ -1074,6 +1129,8 @@ async def api_models(request: web.Request) -> web.Response:
     cfg = KiroCrewConfig.load()
     if cfg.agent.provider == "claude_code":
         return _cc_models_response(request)
+    if cfg.agent.provider == "opencode":
+        return await _opencode_models_response(request)
     # Signed-out gateways must never reach the spawn below. kiro-cli auto-opens
     # an interactive browser login for ANY subcommand run unauthenticated
     # (--no-interactive does not suppress it, and there is no opt-out env var),
@@ -2075,3 +2132,42 @@ def _regen_conductor() -> None:
         generate_conductor_skill(SkillsLoader())
     except Exception:
         logger.exception("Failed to regenerate conductor skill")
+
+
+async def api_provider_test(request: web.Request) -> web.Response:
+    """POST /api/provider/test — probe a provider base URL + key.
+
+    Body: ``{url, api_key, format}``. Fetches ``{url}/v1/models`` with the
+    format-appropriate auth header and returns the advertised model ids on
+    success, or an error message. Used by the Provider settings "Test" button
+    (works on the unsaved draft, so it needs the values in the body).
+    """
+    import aiohttp
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "invalid JSON"}, status=400)
+    url = str(body.get("url") or "").strip()
+    if not url:
+        return web.json_response({"ok": False, "error": "url required"}, status=400)
+    api_format = str(body.get("format") or "openai")
+    api_key = str(body.get("api_key") or "")
+    headers: dict[str, str] = {}
+    if api_key:
+        if api_format == "anthropic":
+            headers["x-api-key"] = api_key
+            headers["anthropic-version"] = "2023-06-01"
+        else:
+            headers["Authorization"] = f"Bearer {api_key}"
+    fetch_url = f"{url.rstrip('/')}/v1/models"
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+            async with session.get(fetch_url, headers=headers) as resp:
+                if resp.status != 200:
+                    return web.json_response({"ok": False, "error": f"HTTP {resp.status}"})
+                data = await resp.json()
+                models = [m.get("id") or "" for m in data.get("data", []) if m.get("id")]
+                return web.json_response({"ok": True, "models": models})
+    except Exception as exc:  # noqa: BLE001 - surfaced to the UI verbatim
+        return web.json_response({"ok": False, "error": str(exc)[:200]})
