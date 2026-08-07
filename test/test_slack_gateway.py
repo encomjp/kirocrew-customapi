@@ -905,7 +905,7 @@ class TestAutoApplyUpdate:
             await orch._auto_apply_update()  # should not raise
 
     @pytest.mark.asyncio
-    async def test_non_mainline_branch_skips(self):
+    async def test_non_main_branch_skips(self):
         orch = _make_orchestrator()
         proc = AsyncMock()
         proc.communicate = AsyncMock(return_value=(b"feat/test\n", b""))
@@ -1997,7 +1997,11 @@ class TestAutoApplyUpdateGitPath:
             proc = AsyncMock()
             if call_count[0] == 1:
                 # branch detection
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
                 proc.returncode = 0
             else:
                 # fetch fails
@@ -2025,9 +2029,13 @@ class TestAutoApplyUpdateGitPath:
             proc = AsyncMock()
             if call_count[0] == 1:
                 # branch detection
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
                 proc.returncode = 0
             elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 3:
                 # fetch succeeds
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
@@ -2696,27 +2704,31 @@ class TestAutoApplyUpdateVenvPath:
             proc = AsyncMock()
             proc.kill = MagicMock()
             if call_count[0] == 1:
-                # branch detection → mainline
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                # branch detection → main
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
                 proc.returncode = 0
             elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 3:
                 # fetch
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
-            elif call_count[0] == 3:
+            elif call_count[0] == 4:
                 # diff --quiet → has changes (rc=1)
                 proc.returncode = 1
-            elif call_count[0] == 4:
+            elif call_count[0] == 5:
                 # git status --porcelain → clean
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
-            elif call_count[0] == 5:
+            elif call_count[0] == 6:
                 # git reset --hard
                 proc.returncode = 0
-            elif call_count[0] == 6:
+            elif call_count[0] == 7:
                 # kiro-cli update
                 proc.returncode = 0
-            elif call_count[0] == 7:
+            elif call_count[0] == 8:
                 # pip install -e .
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
@@ -3126,21 +3138,25 @@ class TestAutoApplyUpdateResetPath:
             proc = AsyncMock()
             proc.kill = MagicMock()
             if call_count[0] == 1:
-                # branch detection → mainline
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                # branch detection → main
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
                 proc.returncode = 0
             elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 3:
                 # fetch
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
-            elif call_count[0] == 3:
+            elif call_count[0] == 4:
                 # diff --quiet → has changes (rc=1)
                 proc.returncode = 1
-            elif call_count[0] == 4:
+            elif call_count[0] == 5:
                 # git status --porcelain → has tracked changes
                 proc.communicate = AsyncMock(return_value=(b" M file.py\n", b""))
                 proc.returncode = 0
-            elif call_count[0] == 5:
+            elif call_count[0] == 6:
                 # git reset --hard
                 proc.returncode = 0
             else:
@@ -3165,6 +3181,45 @@ class TestAutoApplyUpdateResetPath:
         mock_build.assert_awaited()
         ds.push_update_progress.assert_any_call("building", "Building frontend…")
         ds.push_update_progress.assert_any_call("building", "Rebuilding package…")
+
+    @pytest.mark.asyncio
+    async def test_fetch_and_reset_use_the_tracked_remote(self):
+        """On main, fetch/reset target branch.<name>.remote, not a hardcoded origin."""
+        orch = _make_orchestrator()
+        ds = _mock_dashboard_state()
+        orch.dashboard_state = ds
+        orch.sessions = _mock_sessions()
+        exec_calls = []
+
+        async def _fake_exec(*args, **kwargs):
+            cmd = args[1]
+            proc = AsyncMock()
+            proc.kill = MagicMock()
+            proc.wait = AsyncMock(return_value=0)
+            if cmd == "rev-parse":
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
+                proc.returncode = 0
+            elif cmd == "config":
+                proc.communicate = AsyncMock(return_value=(b"fork\n", b""))
+                proc.returncode = 0
+            elif cmd == "fetch":
+                proc.communicate = AsyncMock(return_value=(b"", b""))
+                proc.returncode = 0
+            elif cmd == "diff":
+                proc.returncode = 0  # --quiet: no changes -> early return
+            else:
+                proc.communicate = AsyncMock(return_value=(b"", b""))
+                proc.returncode = 0
+            exec_calls.append(args)
+            return proc
+
+        with patch.dict("os.environ", {"KIROCREW_PROJECT_DIR": "/tmp/proj"}):
+            with patch("asyncio.create_subprocess_exec", side_effect=_fake_exec):
+                await orch._auto_apply_update()
+
+        assert ("git", "fetch", "fork", "main") in exec_calls, exec_calls
+        assert ("git", "diff", "HEAD", "fork/main", "--quiet") in exec_calls, exec_calls
+        assert not any(c[0] == "reset" for c in exec_calls), "no diff -> no reset"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
