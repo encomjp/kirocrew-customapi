@@ -244,7 +244,7 @@ describe('PullRequestPanel', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('GitHub CLI login required')
-    expect(alert).toHaveTextContent('Kiro Crew uses your local provider CLI')
+    expect(alert).toHaveTextContent('kirocrew-customapi uses your local provider CLI')
     expect(alert).toHaveTextContent('gh auth login')
     expect(alert).not.toHaveTextContent('{"error"')
   })

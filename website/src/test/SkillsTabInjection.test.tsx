@@ -140,7 +140,7 @@ describe('injection control on the Skills page', () => {
     expect(screen.queryByRole('switch', { name: /inject full content/i })).toBeNull()
   })
 
-  it('hides the control for a skill outside the directory Kiro Crew owns', async () => {
+  it('hides the control for a skill outside the directory kirocrew-customapi owns', async () => {
     /* A `skills.extra_paths` skill still reports source `kirocrew`, but the
        writer refuses to rewrite it. Offering a toggle that always errors is
        worse than not offering one, so the gate follows the reported writability. */

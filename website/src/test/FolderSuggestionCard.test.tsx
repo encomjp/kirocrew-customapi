@@ -18,7 +18,7 @@ function renderCard(over: Partial<React.ComponentProps<typeof FolderSuggestionCa
   render(
     <FolderSuggestionCard
       folderName="feature"
-      breadcrumb="Kiro Crew › feature"
+      breadcrumb="kirocrew-customapi › feature"
       onAccept={onAccept}
       onDecline={onDecline}
       {...over}
@@ -35,7 +35,7 @@ describe('FolderSuggestionCard', () => {
 
   it('shows the breadcrumb as ancestry context when the folder is nested', () => {
     renderCard()
-    expect(screen.getByText('Kiro Crew › feature')).toBeInTheDocument()
+    expect(screen.getByText('kirocrew-customapi › feature')).toBeInTheDocument()
   })
 
   it('hides the breadcrumb for a root folder, where it only repeats the name', () => {
@@ -63,7 +63,7 @@ describe('FolderSuggestionCard', () => {
     // The card takes no icon prop: an emoji is font-dependent (tofu box wherever
     // the platform has no emoji font) and would not inherit --accent.
     const { container } = render(
-      <FolderSuggestionCard folderName="i18n" breadcrumb="Kiro Crew › i18n" onAccept={vi.fn()} onDecline={vi.fn()} />,
+      <FolderSuggestionCard folderName="i18n" breadcrumb="kirocrew-customapi › i18n" onAccept={vi.fn()} onDecline={vi.fn()} />,
     )
     const svg = container.querySelector('svg')
     expect(svg).toBeTruthy()
@@ -81,7 +81,7 @@ describe('folderSuggestions reducers', () => {
       slot: 'dashboard_chat-1',
       folderId: 'f1',
       folderName: 'feature',
-      breadcrumb: 'Kiro Crew › feature',
+      breadcrumb: 'kirocrew-customapi › feature',
       ts: 100,
       ...over,
     } as Parameters<typeof setFolderSuggestion>[0])
