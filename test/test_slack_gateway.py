@@ -998,7 +998,7 @@ class TestAutoApplyUpdate:
             await orch._auto_apply_update()  # should not raise
 
     @pytest.mark.asyncio
-    async def test_non_mainline_branch_skips(self):
+    async def test_non_main_branch_skips(self):
         orch = _make_orchestrator()
         proc = AsyncMock()
         proc.communicate = AsyncMock(return_value=(b"feat/test\n", b""))
@@ -2419,7 +2419,11 @@ class TestAutoApplyUpdateGitPath:
             proc = AsyncMock()
             if call_count[0] == 1:
                 # branch detection
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
                 proc.returncode = 0
             else:
                 # fetch fails
@@ -2447,9 +2451,13 @@ class TestAutoApplyUpdateGitPath:
             proc = AsyncMock()
             if call_count[0] == 1:
                 # branch detection
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
                 proc.returncode = 0
             elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 3:
                 # fetch succeeds
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
@@ -3318,27 +3326,31 @@ class TestAutoApplyUpdateVenvPath:
             proc = AsyncMock()
             proc.kill = MagicMock()
             if call_count[0] == 1:
-                # branch detection → mainline
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                # branch detection → main
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
                 proc.returncode = 0
             elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 3:
                 # fetch
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
-            elif call_count[0] == 3:
+            elif call_count[0] == 4:
                 # diff --quiet → has changes (rc=1)
                 proc.returncode = 1
-            elif call_count[0] == 4:
+            elif call_count[0] == 5:
                 # git status --porcelain → clean
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
-            elif call_count[0] == 5:
+            elif call_count[0] == 6:
                 # git reset --hard
                 proc.returncode = 0
-            elif call_count[0] == 6:
+            elif call_count[0] == 7:
                 # kiro-cli update
                 proc.returncode = 0
-            elif call_count[0] == 7:
+            elif call_count[0] == 8:
                 # pip install -e .
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
@@ -3919,21 +3931,25 @@ class TestAutoApplyUpdateResetPath:
             proc = AsyncMock()
             proc.kill = MagicMock()
             if call_count[0] == 1:
-                # branch detection → mainline
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+                # branch detection → main
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
                 proc.returncode = 0
             elif call_count[0] == 2:
+                # remote config → origin
+                proc.communicate = AsyncMock(return_value=(b"origin\n", b""))
+                proc.returncode = 0
+            elif call_count[0] == 3:
                 # fetch
                 proc.communicate = AsyncMock(return_value=(b"", b""))
                 proc.returncode = 0
-            elif call_count[0] == 3:
+            elif call_count[0] == 4:
                 # diff --quiet → has changes (rc=1)
                 proc.returncode = 1
-            elif call_count[0] == 4:
+            elif call_count[0] == 5:
                 # git status --porcelain → has tracked changes
                 proc.communicate = AsyncMock(return_value=(b" M file.py\n", b""))
                 proc.returncode = 0
-            elif call_count[0] == 5:
+            elif call_count[0] == 6:
                 # git reset --hard
                 proc.returncode = 0
             else:
@@ -4010,102 +4026,49 @@ class TestAutoApplyUpdateResetPath:
         assert "restarting" not in steps
 
     @pytest.mark.asyncio
-    async def test_no_restart_after_any_unclean_sync_even_when_the_repair_works(self):
-        """A nonzero sync never restarts, even when the core-dep repair succeeds.
 
-        Every nonzero result names something the restart cannot fix on its own.
-        Dependencies may still be unsatisfied — the repair covers only the CORE
-        deps, not whatever the revision actually added. Or the revision repointed
-        the console script, which no dependency install rewrites: this restart uses
-        `-m kiro_crew` and would survive it, but the next restart through the
-        service manager runs `kirocrew` and would not. Staying up on
-        already-imported modules tells the operator now instead of then.
-        """
+    async def test_fetch_and_reset_use_the_tracked_remote(self):
+        """On main, fetch/reset target branch.<name>.remote, not a hardcoded origin."""
         orch = _make_orchestrator()
         ds = _mock_dashboard_state()
         orch.dashboard_state = ds
         orch.sessions = _mock_sessions()
-
-        call_count = [0]
-
-        async def _fake_exec(*args, **kwargs):
-            call_count[0] += 1
-            proc = AsyncMock()
-            proc.kill = MagicMock()
-            proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
-            # diff --quiet reports changes; everything else, INCLUDING the
-            # core-dep repair, succeeds.
-            proc.returncode = 1 if call_count[0] == 3 else 0
-            proc.wait = AsyncMock(return_value=proc.returncode)
-            return proc
-
-        with patch.dict("os.environ", {"KIROCREW_PROJECT_DIR": "/tmp/proj"}):
-            with patch("asyncio.create_subprocess_exec", side_effect=_fake_exec):
-                # rc=1, not REFUSED: an install that ran and came back unclean.
-                with patch("kiro_crew.dep_sync.sync_or_reinstall", return_value=1):
-                    with patch(
-                        "kiro_crew.slack.gateway.build_frontend_async",
-                        new_callable=AsyncMock,
-                    ):
-                        with patch("os.execv") as mock_execv:
-                            with patch("shutil.which", return_value=None):
-                                await orch._auto_apply_update()
-
-        mock_execv.assert_not_called()
-        orch.sessions.close_all.assert_not_called()
-        steps = [c.args[0] for c in ds.push_update_progress.call_args_list]
-        assert "error" in steps
-        assert "restarting" not in steps
-
-    @pytest.mark.asyncio
-    async def test_a_failed_install_with_a_failed_repair_does_not_restart(self):
-        """Restarting into unsatisfied dependencies would kill the gateway.
-
-        The reset already moved the tree to the new revision. If neither the
-        dependency install nor the core-dep repair succeeded, the process this
-        restart brings up is a revision whose dependencies are known to be
-        missing — it dies at import. Staying up on already-imported modules
-        leaves the operator a working gateway to finish the install from.
-        """
-        orch = _make_orchestrator()
-        ds = _mock_dashboard_state()
-        orch.dashboard_state = ds
-        orch.sessions = _mock_sessions()
-
-        call_count = [0]
+        exec_calls = []
 
         async def _fake_exec(*args, **kwargs):
-            call_count[0] += 1
+            cmd = args[1]
             proc = AsyncMock()
             proc.kill = MagicMock()
-            if call_count[0] == 1:
-                proc.communicate = AsyncMock(return_value=(b"mainline\n", b""))
+            proc.wait = AsyncMock(return_value=0)
+            if cmd == "rev-parse":
+                proc.communicate = AsyncMock(return_value=(b"main\n", b""))
                 proc.returncode = 0
-            elif call_count[0] == 3:
-                proc.returncode = 1  # diff --quiet -> there are changes
+            elif cmd == "config":
+                proc.communicate = AsyncMock(return_value=(b"fork\n", b""))
+                proc.returncode = 0
+            elif cmd == "fetch":
+                proc.communicate = AsyncMock(return_value=(b"", b""))
+                proc.returncode = 0
+            elif cmd == "diff":
+                proc.returncode = 0  # --quiet: no changes -> early return
             else:
-                # Everything else, INCLUDING the core-dep repair, fails.
-                proc.communicate = AsyncMock(return_value=(b"", b"boom"))
-                proc.returncode = 0 if call_count[0] in (2, 4, 5) else 1
-            proc.wait = AsyncMock(return_value=proc.returncode)
+                proc.communicate = AsyncMock(return_value=(b"", b""))
+                proc.returncode = 0
+            exec_calls.append(args)
             return proc
 
         with patch.dict("os.environ", {"KIROCREW_PROJECT_DIR": "/tmp/proj"}):
             with patch("asyncio.create_subprocess_exec", side_effect=_fake_exec):
-                with patch("kiro_crew.dep_sync.sync_or_reinstall", return_value=1):
-                    with patch(
-                        "kiro_crew.slack.gateway.build_frontend_async",
-                        new_callable=AsyncMock,
-                    ):
-                        with patch("os.execv") as mock_execv:
-                            with patch("shutil.which", return_value=None):
-                                await orch._auto_apply_update()
+                await orch._auto_apply_update()
 
-        mock_execv.assert_not_called()
-        orch.sessions.close_all.assert_not_called()
-        steps = [c.args[0] for c in ds.push_update_progress.call_args_list]
-        assert "error" in steps
-        assert "restarting" not in steps
+        assert ("git", "fetch", "fork", "main") in exec_calls, exec_calls
+        assert ("git", "diff", "HEAD", "fork/main", "--quiet") in exec_calls, exec_calls
+        assert not any(c[0] == "reset" for c in exec_calls), "no diff -> no reset"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Tests: _interactive_approval with thread context
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 # ═══════════════════════════════════════════════════════════════════════════

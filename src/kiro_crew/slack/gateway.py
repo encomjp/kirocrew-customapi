@@ -8205,7 +8205,8 @@ class GatewayOrchestrator:
         Untracked files (task specs, notes) are untouched by reset.
 
         The public OSS flow is the same one used by ``kirocrew update`` and the
-        dashboard update endpoint: git reset to origin → build + stage the
+        dashboard update endpoint: git reset to the branch's tracked remote
+        (``branch.<name>.remote``, fallback ``origin``) → build + stage the
         in-tree ``website/`` frontend → ``pip install -e .`` → ``os.execv``
         restart. The optional ``kiro-cli`` backend is updated only when present.
         """
@@ -8229,12 +8230,27 @@ class GatewayOrchestrator:
                 return
             branch = branch_out.strip().decode() if branch_out else ""
             if not branch or branch == "HEAD":
-                branch = "mainline"
+                branch = "main"
 
-            # Only auto-update on mainline — beta/feature branches need manual update
-            if branch != "mainline":
-                logger.debug("Auto-update: skipping — on branch %s, not mainline", branch)
+            # Only auto-update on main — feature/testing branches need manual update
+            if branch != "main":
+                logger.debug("Auto-update: skipping — on branch %s, not main", branch)
                 return
+
+            # Resolve the remote this branch tracks (fallback origin) so a fork
+            # checkout updates from ITS upstream, not a hardcoded one.
+            remote_proc = await asyncio.create_subprocess_exec(
+                "git",
+                "config",
+                "--get",
+                f"branch.{branch}.remote",
+                cwd=proj,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            remote_out, _ = await asyncio.wait_for(remote_proc.communicate(), timeout=10)
+            remote = (remote_out.strip().decode() if remote_out else "") or "origin"
+            remote_ref = f"{remote}/{branch}"
 
             # Source pin, checked before the fetch. This is the most privileged
             # update path in the product — no auth, no click, `git reset --hard`
@@ -8245,7 +8261,7 @@ class GatewayOrchestrator:
             )
 
             blocked = await asyncio.get_running_loop().run_in_executor(
-                None, lambda: update_blocked_reason(resolve_remote_url(proj, remote="origin"))
+                None, lambda: update_blocked_reason(resolve_remote_url(proj, remote=remote))
             )
             if blocked:
                 logger.warning("Auto-update refused: %s", blocked)
@@ -8259,7 +8275,7 @@ class GatewayOrchestrator:
             fetch = await asyncio.create_subprocess_exec(
                 "git",
                 "fetch",
-                "origin",
+                remote,
                 branch,
                 cwd=proj,
                 stdout=asyncio.subprocess.PIPE,
@@ -8277,7 +8293,7 @@ class GatewayOrchestrator:
                 "git",
                 "diff",
                 "HEAD",
-                f"origin/{branch}",
+                remote_ref,
                 "--quiet",
                 cwd=proj,
                 stdout=asyncio.subprocess.DEVNULL,
@@ -8315,7 +8331,7 @@ class GatewayOrchestrator:
                 "git",
                 "reset",
                 "--hard",
-                f"origin/{branch}",
+                remote_ref,
                 cwd=proj,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
@@ -8326,7 +8342,7 @@ class GatewayOrchestrator:
                 if self.dashboard_state:
                     self.dashboard_state.clear_update_progress()
                 return
-            logger.info("Auto-update: reset to origin/%s, rebuilding", branch)
+            logger.info("Auto-update: reset to %s, rebuilding", remote_ref)
 
             # Update the optional kiro-cli backend if present.
             if shutil.which("kiro-cli"):
