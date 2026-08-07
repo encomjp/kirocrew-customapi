@@ -1,6 +1,6 @@
 {
   "name": "kirocrew-customapi",
-  "version": "0.2.0-customapi.2",
+  "version": "0.2.0-customapi.3",
   "description": "kirocrew-customapi \u2014 AI agent desktop app (fork of Kiro Crew)",
   "homepage": "https://github.com/encomjp/kirocrew-customapi",
   "main": "main.js",
