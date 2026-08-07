@@ -98,7 +98,6 @@ function makeDeps({ appVersion = "1.0.0" } = {}) {
     getFlavor: () => "stable",
     stopGateway: async () => {},
     osPlatform: "darwin",
-    feedBase: "https://cdn.example.dev/feed",
     onUpdateState: (s) => states.push(s),
     log: { info: () => {}, warn: () => {}, error: () => {} },
   };
@@ -181,18 +180,16 @@ test("emitted failures never carry multi-line library text", async () => {
 
 const { manualDownloadUrl, DOWNLOAD_BASE } = require("../auto-update");
 
-test("manualDownloadUrl: per-platform artifact on the byte host", () => {
+test("manualDownloadUrl: fork GitHub release permalinks (per-platform)", () => {
+  // The fork's release assets embed the version in the filename; the caller
+  // passes the pending version (found/staged/running).
   assert.strictEqual(
-    manualDownloadUrl("nightly", "darwin"),
-    `${DOWNLOAD_BASE}/desktop/nightly/latest/KiroCrew.dmg`,
+    manualDownloadUrl("0.2.0-customapi.1", "darwin"),
+    `${DOWNLOAD_BASE}/KiroCrew-0.2.0-customapi.1-arm64.dmg`,
   );
   assert.strictEqual(
-    manualDownloadUrl("stable", "linux", "x64"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-x86_64.AppImage`,
-  );
-  assert.strictEqual(
-    manualDownloadUrl("insider", "darwin"),
-    `${DOWNLOAD_BASE}/desktop/insider/latest/KiroCrew.dmg`,
+    manualDownloadUrl("0.2.0-customapi.1", "linux"),
+    `${DOWNLOAD_BASE}/KiroCrew-0.2.0-customapi.1.AppImage`,
   );
   assert.strictEqual(
     manualDownloadUrl("nightly", "win32", "x64"),
@@ -270,9 +267,9 @@ test("manualDownloadUrl: the link matches the format they installed", () => {
 });
 
 test("manualDownloadUrl: null wherever there is no publish lane", () => {
-  // A dev build has no channel lane -- offering a 404 is worse than offering
-  // nothing.
-  assert.strictEqual(manualDownloadUrl("dev", "darwin"), null);
+  // Windows has no lane until a signed lane lands -- offering a 404 is worse
+  // than offering nothing; a missing version is unlinkable too.
+  assert.strictEqual(manualDownloadUrl("0.2.0", "win32"), null);
   assert.strictEqual(manualDownloadUrl("", "darwin"), null);
   assert.strictEqual(manualDownloadUrl(undefined, undefined), null);
   // A Linux arch with no published AppImage returns null rather than guessing
@@ -281,7 +278,10 @@ test("manualDownloadUrl: null wherever there is no publish lane", () => {
   assert.strictEqual(manualDownloadUrl("stable", "linux", "ia32"), null);
 });
 
-test("manualDownloadUrl: points at the same CDN the updater pulls from", () => {
-  // A manual reinstall must land on identical artifacts, not a different host.
-  assert.match(manualDownloadUrl("nightly", "darwin"), /^https:\/\/download\.crew\.kiro\.dev\//);
+test("manualDownloadUrl: points at the fork's GitHub releases, not a CDN", () => {
+  // A manual reinstall must land on the fork's own release assets.
+  assert.match(
+    manualDownloadUrl("0.2.0", "linux"),
+    /^https:\/\/github\.com\/encomjp\/kirocrew-customapi\/releases\/latest\/download\//,
+  );
 });

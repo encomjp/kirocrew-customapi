@@ -2,100 +2,11 @@ const { test } = require("node:test");
 const assert = require("node:assert");
 const {
   initAutoUpdate,
-  channelForFlavor,
-  channelForVersion,
-  resolveChannel,
   buildFeedBase,
   configureUpdater,
-  readExternallyManaged,
-  DEFAULT_FEED_BASE,
+  manualDownloadUrl,
   SUPPORTED_PLATFORMS,
 } = require("../auto-update");
-
-// ---------------------------------------------------------------------------
-// Pure channel helpers (unchanged surface from the hand-rolled updater).
-// ---------------------------------------------------------------------------
-
-test("channelForVersion: nightly stamp -> nightly feed", () => {
-  assert.strictEqual(channelForVersion("0.1.0-nightly.20260721042000"), "nightly");
-});
-
-test("channelForVersion mirrors release.yml: any non-nightly prerelease -> insider", () => {
-  assert.strictEqual(channelForVersion("0.1.0-insider.1"), "insider");
-  assert.strictEqual(channelForVersion("1.2.3-rc.1"), "insider");
-});
-
-test("channelForVersion: bare semver -> stable, unstamped/missing -> null", () => {
-  assert.strictEqual(channelForVersion("1.2.3"), "stable");
-  assert.strictEqual(channelForVersion(undefined), null);
-});
-
-test("channelForFlavor maps beta -> insider", () => {
-  assert.strictEqual(channelForFlavor("beta"), "insider");
-});
-
-test("channelForFlavor maps stable -> stable", () => {
-  assert.strictEqual(channelForFlavor("stable"), "stable");
-});
-
-test("channelForFlavor defaults non-beta to stable", () => {
-  assert.strictEqual(channelForFlavor(undefined), "stable");
-  assert.strictEqual(channelForFlavor("anything"), "stable");
-});
-
-test("resolveChannel: nightly stamp is pinned -- preference ignored", () => {
-  assert.strictEqual(resolveChannel("nightly", "stable"), "nightly");
-  assert.strictEqual(resolveChannel("nightly", "insider"), "nightly");
-  assert.strictEqual(resolveChannel("nightly", ""), "nightly");
-});
-
-test("resolveChannel: dev (null stamp) has no lane -- preference cannot conjure one", () => {
-  assert.strictEqual(resolveChannel(null, "insider"), null);
-  assert.strictEqual(resolveChannel(null, ""), null);
-});
-
-test("resolveChannel: production stamps follow the preference when set", () => {
-  assert.strictEqual(resolveChannel("stable", "insider"), "insider");
-  assert.strictEqual(resolveChannel("insider", "stable"), "stable");
-});
-
-test("resolveChannel: no/invalid preference defaults to STABLE, not to the stamp", () => {
-  // A stable release is PROMOTED, not rebuilt: the stable and insider downloads
-  // of a promoted version are the same file carrying the same prerelease stamp,
-  // so the stamp cannot say which feed to follow. Insider is an explicit opt-in.
-  assert.strictEqual(resolveChannel("stable", ""), "stable");
-  assert.strictEqual(resolveChannel("insider", undefined), "stable");
-  assert.strictEqual(resolveChannel("stable", "nightly"), "stable"); // nightly is not a valid opt-in
-  assert.strictEqual(resolveChannel("insider", "bogus"), "stable");
-});
-
-test("a promoted -insider.N build with no preference follows the STABLE feed", async () => {
-  // The regression this exists for: promoting 0.3.0 publishes the insider
-  // candidate's exact bytes to stable, so every stable install would otherwise
-  // read its own version stamp and migrate itself onto the insider feed.
-  const { deps, calls } = makeDeps({ appVersion: "0.3.0-insider.13" });
-  deps.getChannelPreference = () => "";
-  const u = initAutoUpdate(deps);
-  await u.check();
-  assert.ok(calls.setFeedURL.length >= 1);
-  assert.ok(
-    calls.setFeedURL.every((o) => o.url === "https://cdn.example.dev/feed/stable/"),
-    `expected stable feed urls, got: ${calls.setFeedURL.map((o) => o.url)}`,
-  );
-  assert.strictEqual(u.getInfo().channel, "stable");
-});
-
-test("an explicit insider preference still selects insider on promoted bytes", async () => {
-  const { deps, calls } = makeDeps({ appVersion: "0.3.0-insider.13" });
-  deps.getChannelPreference = () => "insider";
-  const u = initAutoUpdate(deps);
-  await u.check();
-  assert.ok(
-    calls.setFeedURL.every((o) => o.url === "https://cdn.example.dev/feed/insider/"),
-    `expected insider feed urls, got: ${calls.setFeedURL.map((o) => o.url)}`,
-  );
-  assert.strictEqual(u.getInfo().channel, "insider");
-});
 
 // ---------------------------------------------------------------------------
 // buildFeedBase: the generic-provider DIRECTORY url. The trailing slash is
@@ -117,14 +28,6 @@ test("buildFeedBase strips trailing slashes from the base before appending", () 
 test("buildFeedBase url-encodes the channel segment", () => {
   const url = buildFeedBase({ base: "https://cdn.example.dev/feed", channel: "a b" });
   assert.strictEqual(url, "https://cdn.example.dev/feed/a%20b/");
-});
-
-test("buildFeedBase defaults to the public pointer host (DEFAULT_FEED_BASE)", () => {
-  assert.strictEqual(
-    buildFeedBase({ channel: "nightly" }),
-    "https://updates.crew.kiro.dev/feed/nightly/",
-  );
-  assert.strictEqual(DEFAULT_FEED_BASE, "https://updates.crew.kiro.dev/feed");
 });
 
 test("buildFeedBase THROWS for plain http on non-loopback hosts", () => {
@@ -284,8 +187,6 @@ function makeDeps(opts = {}) {
     // Stubbed so the writable-vs-read-only axis is decided by the test, not by
     // whatever the host filesystem happens to allow.
     probeBundleWritable: () => bundleWritable,
-    externallyManaged,
-    feedBase: "https://cdn.example.dev/feed",
     onUpdateState: (s) => states.push(s),
     log: { info: () => {}, warn: () => {}, error: () => {} },
   };
@@ -1046,56 +947,47 @@ test("install path arms a force-exit failsafe after quitAndInstall (app-still-ru
 });
 
 // ---------------------------------------------------------------------------
-// Channel wiring: the feed url follows the version-derived channel and the
-// user's opt-in preference; nightly is pinned. setFeedURL always uses the
-// generic provider with a trailing-slash directory url.
+// Channel wiring: the fork has exactly ONE lane, so the feed is always the
+// fork's GitHub releases (stable) unless KIROCREW_UPDATE_FEED overrides it for
+// the E2E OTA harness (which needs the generic provider against a local feed).
 // ---------------------------------------------------------------------------
 
-test("stamped nightly build points the FEED at nightly (no channel migration)", async () => {
-  const { deps, calls } = makeDeps({ appVersion: "0.1.0-nightly.20260728t112233" });
+test("default feed uses the fork's GitHub provider (single stable lane)", async () => {
+  const { deps, calls } = makeDeps({ appVersion: "0.2.0-customapi.1" });
   const u = initAutoUpdate(deps);
   await u.check();
   assert.ok(calls.setFeedURL.length >= 1);
   for (const o of calls.setFeedURL) {
-    assert.strictEqual(o.provider, "generic");
-    assert.strictEqual(o.url, "https://cdn.example.dev/feed/nightly/");
+    assert.strictEqual(o.provider, "github");
+    assert.strictEqual(o.owner, "encomjp");
+    assert.strictEqual(o.repo, "kirocrew-customapi");
   }
 });
 
-test("channel preference points the FEED at the opted-in channel", async () => {
-  const { deps, calls } = makeDeps({ appVersion: "0.1.0-insider.3" });
-  deps.getChannelPreference = () => "stable";
-  const u = initAutoUpdate(deps);
-  await u.check();
-  assert.ok(calls.setFeedURL.length >= 1);
-  assert.ok(
-    calls.setFeedURL.every((o) => o.url === "https://cdn.example.dev/feed/stable/"),
-    `expected stable feed urls, got: ${calls.setFeedURL.map((o) => o.url)}`,
-  );
-  assert.strictEqual(u.getInfo().channel, "stable");
+test("KIROCREW_UPDATE_FEED override keeps the generic provider (E2E harness)", async () => {
+  process.env.KIROCREW_UPDATE_FEED = "http://127.0.0.1:8799/feed";
+  try {
+    const { deps, calls } = makeDeps({ appVersion: "1.0.0" });
+    const u = initAutoUpdate(deps);
+    await u.check();
+    assert.ok(calls.setFeedURL.length >= 1);
+    assert.ok(
+      calls.setFeedURL.every((o) => o.provider === "generic" && o.url === "http://127.0.0.1:8799/feed/stable/"),
+      `expected generic stable feed urls, got: ${JSON.stringify(calls.setFeedURL)}`,
+    );
+  } finally {
+    delete process.env.KIROCREW_UPDATE_FEED;
+  }
 });
 
-test("getInfo exposes switcher inputs: stamped lane, switchability, preference", () => {
-  const { deps } = makeDeps({ appVersion: "0.1.0-insider.3" });
-  deps.getChannelPreference = () => "stable";
+test("getInfo reports the single stable lane (switcher hidden)", () => {
+  const { deps } = makeDeps({ appVersion: "0.2.0-customapi.1" });
   const u = initAutoUpdate(deps);
   const info = u.getInfo();
-  assert.strictEqual(info.stampedChannel, "insider");
-  assert.strictEqual(info.channelSwitchable, true);
-  assert.strictEqual(info.channelPreference, "stable");
+  assert.strictEqual(info.channel, "stable");
+  assert.strictEqual(info.stampedChannel, "stable");
+  assert.strictEqual(info.channelSwitchable, false);
   assert.strictEqual(info.packaged, true);
-});
-
-test("nightly build reports not switchable and stays on nightly despite a preference", async () => {
-  const { deps, calls } = makeDeps({ appVersion: "0.1.0-nightly.20260722233638" });
-  deps.getChannelPreference = () => "stable"; // must be ignored
-  const u = initAutoUpdate(deps);
-  await u.check();
-  assert.strictEqual(u.getInfo().channelSwitchable, false);
-  assert.ok(
-    calls.setFeedURL.every((o) => o.url.includes("/nightly/")),
-    `expected nightly feed urls, got: ${calls.setFeedURL.map((o) => o.url)}`,
-  );
 });
 
 // ---------------------------------------------------------------------------
@@ -1183,17 +1075,51 @@ test("install() proceeds once an update IS staged", async () => {
   assert.strictEqual(calls.quitAndInstall.length, 1);
 });
 
-test("BLOCKING-fix contract: package.json declares a publish entry so app-update.yml is emitted", () => {
+test("BLOCKING-fix contract: package.json declares the fork's GitHub publish entry so app-update.yml is emitted", () => {
   // electron-updater's downloadUpdate() -> getOrCreateDownloadHelper() awaits
   // configOnDisk -> readFile(app-update.yml). electron-builder only writes that
-  // file when a publish config exists (its repository-info fallback resolves
-  // null here). Without it, DISCOVERY works and every consented download throws
-  // ENOENT -- a dead updater that no unit test with a fake autoUpdater can see.
+  // file when a publish config exists. Without it, DISCOVERY works and every
+  // consented download throws ENOENT.
   const pkg = require("../package.json");
   const publish = pkg.build && pkg.build.publish;
   assert.ok(Array.isArray(publish) && publish.length > 0, "build.publish must be a non-empty array");
-  assert.strictEqual(publish[0].provider, "generic");
-  assert.match(publish[0].url, /^https:\/\//, "baked publish url must be https");
+  assert.strictEqual(publish[0].provider, "github");
+  assert.strictEqual(publish[0].owner, "encomjp");
+  assert.strictEqual(publish[0].repo, "kirocrew-customapi");
+});
+
+// ---------------------------------------------------------------------------
+// manualDownloadUrl: the human reinstall permalink for a failed install now
+// points at the FORK's GitHub release assets (single stable lane), not the
+// upstream CDN. The version is embedded in the asset filename.
+// ---------------------------------------------------------------------------
+
+test("manualDownloadUrl: linux points at the fork's latest AppImage release", () => {
+  assert.strictEqual(
+    manualDownloadUrl("0.2.0", "linux"),
+    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0.AppImage",
+  );
+});
+
+test("manualDownloadUrl: darwin points at the fork's arm64 dmg", () => {
+  assert.strictEqual(
+    manualDownloadUrl("0.2.0", "darwin"),
+    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0-arm64.dmg",
+  );
+});
+
+test("manualDownloadUrl: unsupported platform or missing version -> null", () => {
+  assert.strictEqual(manualDownloadUrl("0.2.0", "win32"), null);
+  assert.strictEqual(manualDownloadUrl("", "linux"), null);
+});
+
+test("getInfo.downloadUrl uses the pending version (running version before discovery)", () => {
+  const { deps } = makeDeps({ appVersion: "1.0.0", osPlatform: "linux" });
+  const u = initAutoUpdate(deps);
+  assert.strictEqual(
+    u.getInfo().downloadUrl,
+    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-1.0.0.AppImage",
+  );
 });
 
 test("the poll skips while an install is in flight (dispatched, gateway stopping)", async (t) => {
