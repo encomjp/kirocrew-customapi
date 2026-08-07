@@ -151,6 +151,7 @@ class TestRouterModelWhitelistPrefixed:
         assert "cx/gpt-5.3-codex-spark" not in wl
         assert "gpt-5.3-codex-spark" not in wl
 
+
 class TestTextOnlyRedirect:
     """Image prompts on text-only router models redirect to the vision model."""
 
@@ -202,6 +203,7 @@ class TestTextOnlyRedirect:
         assert "ol/deepseek-v4-flash:0731" in _DEFAULT_TEXT_ONLY_MODELS
         # oc/mimo-v2.5 is NOT text-only (vision-capable)
         assert "oc/mimo-v2.5" not in _DEFAULT_TEXT_ONLY_MODELS
+
 
 class TestSessionStartImageGuard:
     """Text-only models never emit image blocks and disable screenshot tools."""

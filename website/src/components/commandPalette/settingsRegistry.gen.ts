@@ -15,111 +15,9 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "configKey": "dashboard.use_builtin_browser"
   },
   {
-    "id": "channels.answer-in-group-spaces-webex",
-    "label": "Answer in group spaces (Webex)",
-    "labelKey": "pages.settings.webexPanel.allow_group_spaces",
-    "labelSuffix": "Webex",
-    "description": "Off by default. A reply in a space is visible to everyone in it, including people not on the allowed-emails list.",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "webex"
-    }
-  },
-  {
-    "id": "channels.app-client-id-teams",
-    "label": "App (Client) ID (Teams)",
-    "labelKey": "pages.settings.teamsPanel.app_client_id",
-    "labelSuffix": "Teams",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "teams"
-    },
-    "configKey": "teams.app_id"
-  },
-  {
-    "id": "channels.enable-imessage-channel-imessage",
-    "label": "Enable iMessage channel (iMessage)",
-    "labelKey": "pages.settings.iMessagePanel.enable",
-    "labelSuffix": "iMessage",
-    "description": "Start the channel at gateway boot on this Mac.",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "imessage"
-    }
-  },
-  {
-    "id": "channels.enable-teams-channel-teams",
-    "label": "Enable Teams channel (Teams)",
-    "labelKey": "pages.settings.teamsPanel.enable_teams_channel",
-    "labelSuffix": "Teams",
-    "description": "Start the channel at gateway boot when the App ID + password are set.",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "teams"
-    }
-  },
-  {
-    "id": "channels.enable-the-wechat-channel-wechat",
-    "label": "Enable the WeChat channel (WeChat)",
-    "labelKey": "pages.settings.weixinPanel.enable_the_wechat_channel",
-    "labelSuffix": "WeChat",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "weixin"
-    }
-  },
-  {
-    "id": "channels.enable-webex-channel-webex",
-    "label": "Enable Webex channel (Webex)",
-    "labelKey": "pages.settings.webexPanel.enable_webex_channel",
-    "labelSuffix": "Webex",
-    "description": "Start the channel at gateway boot when a token is set.",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "webex"
-    }
-  },
-  {
-    "id": "channels.file-sessions-in-a-folder-discord",
-    "label": "File sessions in a folder (Discord)",
+    "id": "channels.file-sessions-in-a-folder",
+    "label": "File sessions in a folder",
     "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "Discord",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "discord"
-    }
-  },
-  {
-    "id": "channels.file-sessions-in-a-folder-imessage",
-    "label": "File sessions in a folder (iMessage)",
-    "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "iMessage",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "imessage"
-    }
-  },
-  {
-    "id": "channels.file-sessions-in-a-folder-slack",
-    "label": "File sessions in a folder (Slack)",
-    "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "Slack",
     "tab": "channels",
     "type": "toggle",
     "occurrence": 1,
@@ -128,96 +26,9 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
-    "id": "channels.file-sessions-in-a-folder-teams",
-    "label": "File sessions in a folder (Teams)",
-    "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "Teams",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "teams"
-    }
-  },
-  {
-    "id": "channels.file-sessions-in-a-folder-telegram",
-    "label": "File sessions in a folder (Telegram)",
-    "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "Telegram",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "telegram"
-    }
-  },
-  {
-    "id": "channels.file-sessions-in-a-folder-webex",
-    "label": "File sessions in a folder (Webex)",
-    "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "Webex",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "webex"
-    }
-  },
-  {
-    "id": "channels.file-sessions-in-a-folder-wechat",
-    "label": "File sessions in a folder (WeChat)",
-    "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "WeChat",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "weixin"
-    }
-  },
-  {
-    "id": "channels.file-sessions-in-a-folder-wecom",
-    "label": "File sessions in a folder (WeCom)",
-    "labelKey": "pages.settings.botChannelPanel.file_sessions_in_folder",
-    "labelSuffix": "WeCom",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "wecom"
-    }
-  },
-  {
-    "id": "channels.folder-name-discord",
-    "label": "Folder name (Discord)",
+    "id": "channels.folder-name",
+    "label": "Folder name",
     "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "Discord",
-    "description": "Created for you when you save these settings, if it does not exist yet.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "discord"
-    }
-  },
-  {
-    "id": "channels.folder-name-imessage",
-    "label": "Folder name (iMessage)",
-    "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "iMessage",
-    "description": "Created for you when you save these settings, if it does not exist yet.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "imessage"
-    }
-  },
-  {
-    "id": "channels.folder-name-slack",
-    "label": "Folder name (Slack)",
-    "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "Slack",
     "description": "Created for you when you save these settings, if it does not exist yet.",
     "tab": "channels",
     "type": "input",
@@ -227,115 +38,9 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
-    "id": "channels.folder-name-teams",
-    "label": "Folder name (Teams)",
-    "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "Teams",
-    "description": "Created for you when you save these settings, if it does not exist yet.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "teams"
-    }
-  },
-  {
-    "id": "channels.folder-name-telegram",
-    "label": "Folder name (Telegram)",
-    "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "Telegram",
-    "description": "Created for you when you save these settings, if it does not exist yet.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "telegram"
-    }
-  },
-  {
-    "id": "channels.folder-name-webex",
-    "label": "Folder name (Webex)",
-    "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "Webex",
-    "description": "Created for you when you save these settings, if it does not exist yet.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "webex"
-    }
-  },
-  {
-    "id": "channels.folder-name-wechat",
-    "label": "Folder name (WeChat)",
-    "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "WeChat",
-    "description": "Created for you when you turn this on, if it does not exist yet.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "weixin"
-    }
-  },
-  {
-    "id": "channels.folder-name-wecom",
-    "label": "Folder name (WeCom)",
-    "labelKey": "pages.settings.botChannelPanel.session_folder_name",
-    "labelSuffix": "WeCom",
-    "description": "Created for you when you save these settings, if it does not exist yet.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "wecom"
-    }
-  },
-  {
-    "id": "channels.hard-context-threshold-teams",
-    "label": "Hard context threshold % (Teams)",
-    "labelKey": "pages.settings.channels.hard_threshold_label",
-    "labelSuffix": "Teams",
-    "description": "Compact automatically at this percentage, even without a reply, so the context window never overflows.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "teams"
-    },
-    "configKey": "teams.hard_threshold_pct"
-  },
-  {
-    "id": "channels.hard-context-threshold-webex",
-    "label": "Hard context threshold % (Webex)",
-    "labelKey": "pages.settings.webexPanel.hard_context_threshold",
-    "labelSuffix": "Webex",
-    "description": "Compact automatically at this point, even without a decision, so the context window never overflows.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "webex"
-    }
-  },
-  {
-    "id": "channels.messages-database-path-imessage",
-    "label": "Messages database path (iMessage)",
-    "labelKey": "pages.settings.iMessagePanel.db_path",
-    "labelSuffix": "iMessage",
-    "description": "Override where the Messages database is read from. Leave empty to use the default location.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "imessage"
-    }
-  },
-  {
-    "id": "channels.owner-slack-member-id-slack",
-    "label": "Owner Slack member ID (Slack)",
+    "id": "channels.owner-slack-member-id",
+    "label": "Owner Slack member ID",
     "labelKey": "pages.settings.slackPanel.owner_slack_member_id",
-    "labelSuffix": "Slack",
     "description": "The one member who can always interact with the bot (KIROCREW_OWNER_ID). Starts with U or W.",
     "tab": "channels",
     "type": "input",
@@ -345,10 +50,9 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
-    "id": "channels.phase-reactions-slack",
-    "label": "Phase reactions (Slack)",
+    "id": "channels.phase-reactions",
+    "label": "Phase reactions",
     "labelKey": "pages.settings.slackPanel.phase_reactions",
-    "labelSuffix": "Slack",
     "description": "Show phase-aware emoji reactions (queued → thinking → coding → done) on messages.",
     "tab": "channels",
     "type": "toggle",
@@ -358,36 +62,9 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
-    "id": "channels.reply-in-thread-webex",
-    "label": "Reply in thread (Webex)",
-    "labelKey": "pages.settings.webexPanel.reply_in_thread",
-    "labelSuffix": "Webex",
-    "description": "Reply under the message's own thread when it has one, which keeps a busy space readable.",
-    "tab": "channels",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "channel": "webex"
-    }
-  },
-  {
-    "id": "channels.send-replies-over-imessage",
-    "label": "Send replies over (iMessage)",
-    "labelKey": "pages.settings.iMessagePanel.service",
-    "labelSuffix": "iMessage",
-    "description": "Which service outbound replies use. Inbound is unaffected — messages are accepted whichever service they arrive over.",
-    "tab": "channels",
-    "type": "select",
-    "occurrence": 1,
-    "params": {
-      "channel": "imessage"
-    }
-  },
-  {
-    "id": "channels.show-thinking-slack",
-    "label": "Show thinking (Slack)",
+    "id": "channels.show-thinking",
+    "label": "Show thinking",
     "labelKey": "pages.settings.slackPanel.show_thinking",
-    "labelSuffix": "Slack",
     "description": "Post the model's reasoning as a thread reply. Disable to keep responses concise.",
     "tab": "channels",
     "type": "toggle",
@@ -397,10 +74,9 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
-    "id": "channels.slash-command-slack",
-    "label": "Slash command (Slack)",
+    "id": "channels.slash-command",
+    "label": "Slash command",
     "labelKey": "pages.settings.slackPanel.slash_command",
-    "labelSuffix": "Slack",
     "description": "Trigger word for the Slack slash command (without the leading /).",
     "tab": "channels",
     "type": "input",
@@ -410,80 +86,20 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
-    "id": "channels.soft-context-threshold-discord",
-    "label": "Soft context threshold % (Discord)",
-    "labelKey": "pages.settings.botChannelPanel.soft_context_threshold",
-    "labelSuffix": "Discord",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "discord"
-    }
+    "id": "chat.auto-add-documents",
+    "label": "Auto-Add Documents",
+    "description": "Let the agent add documents it reads while working to your knowledge library, so they stay searchable later. It reads them with its own tools under your approval — kirocrew-customapi fetches nothing itself. Added documents appear in one “Auto-added” source you can remove in a click.",
+    "tab": "chat",
+    "type": "toggle",
+    "occurrence": 1
   },
   {
-    "id": "channels.soft-context-threshold-teams",
-    "label": "Soft context threshold % (Teams)",
-    "labelKey": "pages.settings.botChannelPanel.soft_context_threshold",
-    "labelSuffix": "Teams",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "teams"
-    },
-    "configKey": "teams.soft_threshold_pct"
-  },
-  {
-    "id": "channels.soft-context-threshold-telegram",
-    "label": "Soft context threshold % (Telegram)",
-    "labelKey": "pages.settings.botChannelPanel.soft_context_threshold",
-    "labelSuffix": "Telegram",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "telegram"
-    }
-  },
-  {
-    "id": "channels.soft-context-threshold-webex",
-    "label": "Soft context threshold % (Webex)",
-    "labelKey": "pages.settings.webexPanel.soft_context_threshold",
-    "labelSuffix": "Webex",
-    "description": "When a conversation's context passes this, suggest /compact or /new instead of compacting automatically.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "webex"
-    }
-  },
-  {
-    "id": "channels.soft-context-threshold-wecom",
-    "label": "Soft context threshold % (WeCom)",
-    "labelKey": "pages.settings.botChannelPanel.soft_context_threshold",
-    "labelSuffix": "WeCom",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "wecom"
-    }
-  },
-  {
-    "id": "channels.tenant-id-teams",
-    "label": "Tenant ID (Teams)",
-    "labelKey": "pages.settings.teamsPanel.tenant_id",
-    "labelSuffix": "Teams",
-    "description": "Optional — only for single-tenant bots.",
-    "tab": "channels",
-    "type": "input",
-    "occurrence": 1,
-    "params": {
-      "channel": "teams"
-    },
-    "configKey": "teams.tenant_id"
+    "id": "chat.auto-add-saved-artifacts",
+    "label": "Auto-Add Saved Artifacts",
+    "description": "Mirror documents you save as artifacts into the library, keep them in sync as you edit, and remove them when you delete the artifact.",
+    "tab": "chat",
+    "type": "toggle",
+    "occurrence": 1
   },
   {
     "id": "chat.auto-compact-threshold",
@@ -556,15 +172,6 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "occurrence": 1
   },
   {
-    "id": "chat.default-model",
-    "label": "Default Model",
-    "labelKey": "pages.settings.chatPanel.default_model",
-    "description": "Which model new sessions start with when their agent pins none. Set a model per agent under Capabilities → Agents, or pick one inside a session to override it there.",
-    "tab": "chat",
-    "type": "select",
-    "occurrence": 1
-  },
-  {
     "id": "chat.default-reasoning-effort",
     "label": "Default Reasoning Effort",
     "labelKey": "pages.settings.chatPanel.default_reasoning_effort",
@@ -593,12 +200,12 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
   },
   {
     "id": "chat.fallback-model",
-    "label": "Fallback model",
-    "labelKey": "pages.settings.chatPanel.fallback_model",
+    "label": "Fallback Model",
+    "labelKey": "pages.settings.chatPanel.default_model",
+    "description": "Which model new sessions start with when their agent pins none. Set a model per agent under Capabilities → Agents, or pick one inside a session to override it there.",
     "tab": "chat",
     "type": "select",
-    "occurrence": 1,
-    "configKey": "agent.fallback_model"
+    "occurrence": 1
   },
   {
     "id": "chat.feature-tips",
@@ -672,10 +279,10 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "occurrence": 1
   },
   {
-    "id": "chat.pin-the-latest-turn",
-    "label": "Pin the latest turn",
+    "id": "chat.pin-the-latest-prompt",
+    "label": "Pin the latest prompt",
     "labelKey": "pages.settings.chatPanel.pin_last_prompt",
-    "description": "Keep the most recent turn visible as a sticky banner once it scrolls above the fold.",
+    "description": "Keep the most recent prompt visible as a sticky banner once it scrolls above the fold.",
     "tab": "chat",
     "type": "toggle",
     "occurrence": 1
@@ -976,8 +583,7 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
   {
     "id": "display.highlight-recent-sessions",
     "label": "Highlight recent sessions",
-    "labelKey": "pages.settings.displayPanel.highlight_recent_sessions",
-    "description": "Highlight the N most-recently-active sessions with a graded accent stripe (0 = off). Saved to your Kiro Crew config.",
+    "description": "Highlight the N most-recently-active sessions with a graded accent stripe (0 = off). Saved to your kirocrew-customapi config.",
     "tab": "display",
     "type": "stepper",
     "occurrence": 1
@@ -1062,105 +668,11 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "configKey": "telemetry.enabled"
   },
   {
-    "id": "privacy.send-anonymous-usage-heartbeat",
-    "label": "Send anonymous usage heartbeat",
-    "labelKey": "privacyDisclosure.toggleLabel",
-    "description": "Saved for future launches.",
-    "tab": "privacy",
-    "type": "toggle",
-    "occurrence": 1,
-    "configKey": "telemetry.beacon_enabled"
-  },
-  {
-    "id": "security.denied-commands",
-    "labelKey": "pages.settings.securityPanel.denied_commands",
-    "tab": "security",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "section": "rules"
-    },
-    "label": "Denied Commands"
-  },
-  {
-    "id": "security.governance-policy",
-    "labelKey": "pages.settings.securityPanel.governance_policy",
-    "tab": "security",
-    "type": "select",
-    "occurrence": 1,
-    "params": {
-      "section": "governance"
-    },
-    "label": "Governance Policy"
-  },
-  {
-    "id": "security.how-long-auto-approve-stays-on",
-    "labelKey": "pages.settings.securityPanel.yolo_duration_title",
-    "tab": "security",
-    "type": "buttonGroup",
-    "occurrence": 1,
-    "params": {
-      "section": "approval"
-    },
-    "configKey": "agent.yolo_duration",
-    "label": "How long auto-approve stays on"
-  },
-  {
-    "id": "security.live-security-posture",
-    "labelKey": "pages.settings.securityPanel.live_security_posture",
-    "tab": "security",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "section": "posture"
-    },
-    "label": "Live Security Posture"
-  },
-  {
     "id": "security.trust-every-third-party-app",
-    "labelKey": "pages.settings.securityPanel.trustedApps.allow_all_label",
-    "tab": "security",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "section": "apps"
-    },
     "label": "Trust every third-party app",
-    "description": "Off by default. When on, every third-party app you install can run its own code straight away, without asking you first."
-  },
-  {
-    "id": "security.trust-this-machine-s-tailnet-name",
-    "labelKey": "pages.settings.securityPanel.tailnet_title",
+    "labelKey": "pages.settings.securityPanel.trustedApps.allow_all_label",
+    "description": "Off by default. When on, every third-party app you install can run its own code straight away, without asking you first.",
     "tab": "security",
-    "type": "toggle",
-    "occurrence": 1,
-    "params": {
-      "section": "tailnet"
-    },
-    "label": "Trust this machine's tailnet name"
-  },
-  {
-    "id": "shortcuts.enable-shortcuts",
-    "label": "Enable shortcuts",
-    "labelKey": "pages.settings.shortcutsPanel.enable_shortcuts",
-    "tab": "shortcuts",
-    "type": "toggle",
-    "occurrence": 1
-  },
-  {
-    "id": "shortcuts.search-everywhere",
-    "label": "Search Everywhere",
-    "labelKey": "components.shortcutsModal.search_everywhere",
-    "tab": "shortcuts",
-    "type": "buttonGroup",
-    "occurrence": 1
-  },
-  {
-    "id": "shortcuts.use-ctrl-not-option-for-chat-1-9",
-    "label": "Use ⌃ Ctrl (not ⌥ Option) for chat 1–9",
-    "labelKey": "pages.settings.shortcutsPanel.use_ctrl_not_option_for_chat_1_9",
-    "description": "Bind chat-tab switching to Ctrl+digit instead of Option+digit",
-    "tab": "shortcuts",
     "type": "toggle",
     "occurrence": 1
   },
@@ -1302,7 +814,7 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "id": "voice.model",
     "label": "Model",
     "labelKey": "pages.settings.sttSettings.model",
-    "description": "Larger models are more accurate but slower to run. A model downloads on first use, so the first dictation after switching models may appear to hang or time out while the download completes.",
+    "description": "Larger models are more accurate but slower to run",
     "tab": "voice",
     "type": "select",
     "occurrence": 1
