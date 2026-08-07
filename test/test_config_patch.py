@@ -94,6 +94,30 @@ class TestRoleModels:
             assert resp.status == 200
 
     @pytest.mark.asyncio
+    async def test_chat_default_router_model_allowed(self, tmp_config) -> None:
+        # Fork's CLIProxyAPI prefix routing: the chat-default model id carries a
+        # router prefix ("cmc/…", "oc/…", "cx/…", ...). The upstream model
+        # grammar allowed no "/", so saving any prefixed default failed with
+        # "invalid value for agent.model".
+        app = _make_app()
+        app["state"] = SimpleNamespace(
+            subagents=MagicMock(spec=["update_completion_keep"]),
+            sessions=SimpleNamespace(refresh_defaults=AsyncMock()),
+        )
+        async with TestClient(TestServer(app)) as c:
+            resp = await _patch(c, "agent.model", "cmc/deepseek-v4-flash")
+            assert resp.status == 200
+        data = json.loads(tmp_config.read_text(encoding="utf-8"))
+        assert data["agent"]["model"] == "cmc/deepseek-v4-flash"
+
+    @pytest.mark.asyncio
+    async def test_role_model_prefix_router_id_allowed(self, tmp_config) -> None:
+        # Same prefix-routing ids must be storable as per-role defaults.
+        async with TestClient(TestServer(_make_app())) as c:
+            resp = await _patch(c, "agent.role_models.subagent", "cmc/deepseek-v4-flash")
+            assert resp.status == 200
+
+    @pytest.mark.asyncio
     async def test_role_model_bad_grammar_rejected(self, tmp_config) -> None:
         async with TestClient(TestServer(_make_app())) as c:
             resp = await _patch(c, "agent.role_models.subagent", "bad; rm -rf /")
