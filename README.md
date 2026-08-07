@@ -1,17 +1,17 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Kiro Crew. Keep work moving. Runs on your hardware, remembers across sessions, keeps working unattended.">
+  <img src="assets/banner.svg" alt="kirocrew-customapi. Keep work moving. Runs on your hardware, remembers across sessions, keeps working unattended.">
 </p>
 
 <h1 align="center">kirocrew-customapi</h1>
 
 <p align="center">
-  <strong>Kiro Crew — with the Claude Code ACP backend re-enabled for self-hosted LLM routers.</strong>
+  <strong>kirocrew-customapi — with the Claude Code ACP backend re-enabled for self-hosted LLM routers.</strong>
 </p>
 
 <p align="center">
   This fork of <a href="https://github.com/kirodotdev/KiroCrew">kirodotdev/KiroCrew</a> re-activates the
   dormant <code>claude_code</code> provider (the <code>ACP_BACKEND_CLAUDE</code> seam) so you can drive
-  Kiro Crew through <strong>your own model router</strong> — e.g. a local
+  kirocrew-customapi through <strong>your own model router</strong> — e.g. a local
   <a href="https://github.com/decolua/9router">9router</a> or a
   <strong>CLIProxyAPI</strong> instance at <code>http://localhost:8317</code> speaking the Anthropic API —
   instead of Kiro's built-in Bedrock catalog.
@@ -33,13 +33,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0.AppImage">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0-customapi.2.AppImage">
     <img alt="Download Linux AppImage" src="https://img.shields.io/badge/Linux-AppImage-3b82f6?style=for-the-badge&logo=linux&logoColor=white">
   </a>
-  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0-arm64.dmg">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0-customapi.2-arm64.dmg">
     <img alt="Download macOS DMG" src="https://img.shields.io/badge/macOS-Apple%20Silicon-a3a3a3?style=for-the-badge&logo=apple&logoColor=white">
   </a>
-  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew.Setup.0.2.0.exe">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-Setup-0.2.0-customapi.2.exe">
     <img alt="Download Windows Setup" src="https://img.shields.io/badge/Windows-Setup%20.exe-00b4d8?style=for-the-badge&logo=windows&logoColor=white">
   </a>
 </p>
@@ -54,7 +54,7 @@
 
 ## Why
 
-Kiro Crew's public build hard-caps `agent.provider` to `"acp"` (the kiro-cli backend), and model selection
+kirocrew-customapi's public build hard-caps `agent.provider` to `"acp"` (the kiro-cli backend), and model selection
 goes through Kiro's own AWS Bedrock catalog — you must log in with a Kiro account and your agent traffic
 leaves your network. The underlying code for a Claude Code backend (`ACP_BACKEND_CLAUDE`, `_is_claude`,
 `claude-agent-acp` protocol support) has always existed but was deliberately left dormant, with comments
@@ -69,20 +69,20 @@ This fork re-adds the missing glue:
 - `settings.local.json` seeding so Claude Code honors the router model (see Troubleshooting for the
   `availableModels` pitfall)
 - `kirocrew doctor` reports claude-acp as the active backend when configured
-- the GUI model picker shows **prefixed model ids** (`cmc/`, `oc/`, `ol/`, `cx/`, `ag/`); Kiro Crew strips
+- the GUI model picker shows **prefixed model ids** (`cmc/`, `oc/`, `ol/`, `cx/`, `ag/`); kirocrew-customapi strips
   the prefix before the request leaves, so CLIProxyAPI always receives the provider's raw model id
 - `CLIPROXY_API_KEY` env var feeds the local proxy when `provider_api_key` / `ANTHROPIC_API_KEY` are unset
 
 Everything else — desktop app, dashboard, cron, memory, skills, subagents, apps — is untouched upstream
-Kiro Crew.
+kirocrew-customapi.
 
 ## How it works
 
 <p align="center">
-  <img src="assets/how-it-works.png" alt="kirocrew-customapi architecture: Kiro Crew -> claude-agent-acp -> Claude Code -> CLIProxyAPI" width="900">
+  <img src="assets/how-it-works.png" alt="kirocrew-customapi architecture: kirocrew-customapi -> claude-agent-acp -> Claude Code -> CLIProxyAPI" width="900">
 </p>
 
-- **Kiro Crew** (this fork) acts as the harness: sessions, tool permissions, memory, cron, dashboard.
+- **kirocrew-customapi** (this fork) acts as the harness: sessions, tool permissions, memory, cron, dashboard.
 - **claude-agent-acp** is the ACP adapter (`@agentclientprotocol/claude-agent-acp` on npm) that exposes the
   Claude Code CLI as an ACP backend.
 - **Claude Code** is the agent engine. It talks to your router via `ANTHROPIC_BASE_URL` /
@@ -94,7 +94,7 @@ Kiro Crew.
 
 ## Installation
 
-### 1. Install Kiro Crew from this fork
+### 1. Install kirocrew-customapi from this fork
 
 The quickest path is a source install into a virtualenv (Python 3.11+):
 
@@ -171,7 +171,7 @@ environment variable (`ANTHROPIC_API_KEY` or `CLIPROXY_API_KEY`) if your router 
 
 CLIProxyAPI's five providers share model names — `deepseek-v4-flash` exists on both commandcode and
 opencode-go, `gpt-5.6-luna` on both commandcode and codex. The router picker therefore shows
-**prefixed ids** so you can tell them apart. Before the request reaches the proxy, Kiro Crew strips the
+**prefixed ids** so you can tell them apart. Before the request reaches the proxy, kirocrew-customapi strips the
 known prefix and sends the **raw id** — CLIProxyAPI rejects prefixed spellings (`unknown provider`).
 
 Provider base URLs and notes:
@@ -284,7 +284,7 @@ curl -s -X POST "http://127.0.0.1:8317/v1/messages" \
 > Any other Anthropic-compatible router works too — [9router](https://github.com/decolua/9router)
 > being the classic reference setup. Only the prefixed-id catalog is CLIProxyAPI-specific.
 
-### Step 2 — Point Kiro Crew at it
+### Step 2 — Point kirocrew-customapi at it
 
 ```bash
 .venv/bin/kirocrew config set agent.provider claude_code

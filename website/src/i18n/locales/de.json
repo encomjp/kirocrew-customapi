@@ -83,14 +83,14 @@
     "update_failed": "Aktualisierung fehlgeschlagen",
     "update_failed_2": "Aktualisierung fehlgeschlagen",
     "update_now": "Jetzt aktualisieren",
-    "updating_kirocrew": "Kiro Crew wird aktualisiert…",
+    "updating_kirocrew": "kirocrew-customapi wird aktualisiert…",
     "v": "v",
     "view_full_changelog": "▸ Vollständiges Änderungsprotokoll anzeigen",
     "what_s_new": "Neuigkeiten",
     "you_re_on_the_latest_version": "Sie verwenden die neueste Version",
     "star_us": "Stern geben",
     "report_issue": "Problem melden",
-    "star_kirocrew_on_github": "Kiro Crew auf GitHub einen Stern geben",
+    "star_kirocrew_on_github": "kirocrew-customapi auf GitHub einen Stern geben",
     "click_to_collapse_readouts": "klicken zum Einklappen der Messwerte",
     "click_to_expand_readouts": "klicken zum Aufklappen der Messwerte",
     "gateway_offline_reconnecting": "Gateway offline — wird neu verbunden",
@@ -200,7 +200,7 @@
         "repeat_daily": "täglich"
       },
       "manifest": {
-        "description": "Ein Desktop-Begleiter für Kiro Crew, der dir hilft, dein Tempo zu halten: Er erinnert dich an Pausen, verwaltet die Erinnerungen, die du in normaler Sprache setzt, und führt eine kurze Atemübung durch, wenn du abschalten musst. Außerdem sagt er dir, wenn eine Sitzung endet, fehlschlägt oder deine Zustimmung braucht.",
+        "description": "Ein Desktop-Begleiter für kirocrew-customapi, der dir hilft, dein Tempo zu halten: Er erinnert dich an Pausen, verwaltet die Erinnerungen, die du in normaler Sprache setzt, und führt eine kurze Atemübung durch, wenn du abschalten musst. Außerdem sagt er dir, wenn eine Sitzung endet, fehlschlägt oder deine Zustimmung braucht.",
         "display_name": "Crew Companion",
         "highlight_1": "Sanfte Pausenhinweise — trinken, strecken, wegschauen — in einem Intervall, das du wählst",
         "highlight_2": "Erinnerungen, die du in normaler Sprache setzt, etwa „in 20 Minuten Wasser trinken“",
@@ -658,7 +658,7 @@
         "loading": "wird geladen…"
       },
       "manifest": {
-        "description": "Durchsuche und lies Dateien auf dem Rechner, der Kiro Crew ausführt, ohne das Dashboard zu verlassen. Halte mehrere Dateien in Tabs offen, gehe den Verzeichnisbaum durch, in dem neben jeder Datei ihr Git-Status steht, suche in einem ganzen Ordner nach einer Zeichenfolge und lies Markdown gerendert statt im Rohtext. Der Zugriff ist bewusst nur lesend: Dateien werden geöffnet und durchsucht, aber nie bearbeitet, verschoben oder gelöscht, und erreichbar sind nur dein Home-Verzeichnis sowie /tmp und /opt.",
+        "description": "Durchsuche und lies Dateien auf dem Rechner, der kirocrew-customapi ausführt, ohne das Dashboard zu verlassen. Halte mehrere Dateien in Tabs offen, gehe den Verzeichnisbaum durch, in dem neben jeder Datei ihr Git-Status steht, suche in einem ganzen Ordner nach einer Zeichenfolge und lies Markdown gerendert statt im Rohtext. Der Zugriff ist bewusst nur lesend: Dateien werden geöffnet und durchsucht, aber nie bearbeitet, verschoben oder gelöscht, und erreichbar sind nur dein Home-Verzeichnis sowie /tmp und /opt.",
         "display_name": "Dateien",
         "highlight_1": "Schreibgeschützt: öffnet und durchsucht Dateien und schreibt, verschiebt oder löscht sie nie",
         "highlight_2": "Mehrere Dateien gleichzeitig in Tabs offen, mit Syntaxhervorhebung",
@@ -1170,7 +1170,7 @@
             "as_needing_triage": "als triagebedürftig",
             "auth_are_untouched_you_can_reconnect_anytime": "Authentifizierung bleibt unberührt — Sie können sich jederzeit wieder verbinden.",
             "cancel": "Abbrechen",
-            "checks_about_once_a_minute_inside_kirocrew_no_cr": "Prüft etwa einmal pro Minute innerhalb von Kiro Crew — kein Cron-Job. Läuft nur, während Kiro Crew\n          geöffnet und Ihr Rechner aktiv ist, unter Verwendung Ihres bestehenden",
+            "checks_about_once_a_minute_inside_kirocrew_no_cr": "Prüft etwa einmal pro Minute innerhalb von kirocrew-customapi — kein Cron-Job. Läuft nur, während kirocrew-customapi\n          geöffnet und Ihr Rechner aktiv ist, unter Verwendung Ihres bestehenden",
             "confirm_disconnect": "Trennen bestätigen",
             "couldn_t_load_members_right_now": "Mitglieder konnten momentan nicht geladen werden.",
             "couldn_t_load_saved_settings": "Gespeicherte Einstellungen konnten nicht geladen werden.",
@@ -1213,7 +1213,7 @@
             "sign_in_no_extra_credentials_no_webhook": "Anmeldung (keine\n          zusätzlichen Anmeldedaten, kein {{provider}} Webhook).",
             "this_is_an_approximate_list_inferred_from_issue": " ist dies eine ungefähre Liste, die aus Issue-\n              Autoren abgeleitet wurde. Die vollständige Liste und die Mitgliederverwaltung finden Sie auf",
             "triage_labels": "Triage-Labels",
-            "watch_this_repo_in_the_background_and_post_a_kir": "Dieses Repo im Hintergrund beobachten und eine Kiro Crew-Benachrichtigung senden, sobald ein neues Issue erstellt wird.",
+            "watch_this_repo_in_the_background_and_post_a_kir": "Dieses Repo im Hintergrund beobachten und eine kirocrew-customapi-Benachrichtigung senden, sobald ein neues Issue erstellt wird.",
             "which_labels_mark_newcomer_friendly_work_so_issu": "Welche Labels kennzeichnen einsteigerfreundliche Arbeit, damit Issue Radar Issues für Erstbeitragende hervorheben kann.",
             "which_labels_mean_an_issue_still_needs_triage_dr": "Welche Labels bedeuten, dass ein Issue noch triagiert werden muss. Steuert die Zählung „Nicht triagiert“ in der Übersicht und die Warteschlange der Issues, die Aufmerksamkeit brauchen.",
             "without_push_access_to": "Ohne Push-Zugriff auf",
@@ -1528,7 +1528,7 @@
       "manifest": {
         "description": "Ein KI-Assistent für Besprechungen. Transkribiert eine laufende Besprechung, führt dabei strukturierte Notizen und Diagramme, extrahiert Aufgaben und lässt dich sie prüfen, bevor sie angelegt werden.",
         "display_name": "Besprechungen",
-        "highlight_1": "Live-Transkription über die eigene Sprache-zu-Text-Funktion von Kiro Crew — kein zusätzlicher Daemon, kein Cloud-Konto über das hinaus, was du schon nutzt",
+        "highlight_1": "Live-Transkription über die eigene Sprache-zu-Text-Funktion von kirocrew-customapi — kein zusätzlicher Daemon, kein Cloud-Konto über das hinaus, was du schon nutzt",
         "highlight_2": "Ein Team von Agenten bearbeitet die Besprechung parallel: strukturierte Notizen, ein HTML/Mermaid-Diagramm und eine Aufgabenliste",
         "highlight_3": "Korrigiere wiederkehrende Fehler der Spracherkennung einmal mit einem Fachwörterbuch, und jede spätere Besprechung macht es richtig",
         "highlight_4": "Prüfe die extrahierten Aufgaben, bevor etwas angelegt wird — archiviere das Rauschen, lege den Rest an",
@@ -1572,7 +1572,7 @@
         "cloning": "Wird geklont…",
         "compiled_count_label": "Kompiliert",
         "compiler": "Compiler",
-        "compiler_tip": "Der LaTeX-Compiler auf dem Rechner, der Kiro Crew ausführt. Papyrus bevorzugt pdflatex und greift sonst auf tectonic zurück.",
+        "compiler_tip": "Der LaTeX-Compiler auf dem Rechner, der kirocrew-customapi ausführt. Papyrus bevorzugt pdflatex und greift sonst auf tectonic zurück.",
         "create": "Erstellen",
         "create_one_above_or_clone_an_existing_repository": "Erstellen Sie oben eines, oder klonen Sie ein bestehendes Repository.",
         "delete_paper": "{{name}} löschen",
@@ -1635,7 +1635,7 @@
         "word_count_other": "{{count}} Wörter"
       },
       "manifest": {
-        "description": "Ein LaTeX-Editor für Paper mit Live-PDF-Vorschau und einem KI-Koautor. Schreibe in einem geteilten Editor, drücke Cmd+S (Ctrl+S unter Windows und Linux), um mit pdflatex oder tectonic zu kompilieren, und lies das gerenderte PDF neben deiner Quelle. Kompilierfehler werden zu einer klickbaren Liste geparst, die zur betroffenen Zeile springt. Klone ein bestehendes Paper von einem beliebigen git-Remote, committe und pushe dann aus der Werkzeugleiste. Der Koautor-Bereich ist eine echte Chat-Sitzung von Kiro Crew mit dem Paper als Kontext, sodass der Agent dein LaTeX lesen und bearbeiten kann, während du zusiehst, wie das PDF aktualisiert wird.",
+        "description": "Ein LaTeX-Editor für Paper mit Live-PDF-Vorschau und einem KI-Koautor. Schreibe in einem geteilten Editor, drücke Cmd+S (Ctrl+S unter Windows und Linux), um mit pdflatex oder tectonic zu kompilieren, und lies das gerenderte PDF neben deiner Quelle. Kompilierfehler werden zu einer klickbaren Liste geparst, die zur betroffenen Zeile springt. Klone ein bestehendes Paper von einem beliebigen git-Remote, committe und pushe dann aus der Werkzeugleiste. Der Koautor-Bereich ist eine echte Chat-Sitzung von kirocrew-customapi mit dem Paper als Kontext, sodass der Agent dein LaTeX lesen und bearbeiten kann, während du zusiehst, wie das PDF aktualisiert wird.",
         "display_name": "Papyrus",
         "highlight_1": "Geteilter LaTeX-Editor mit einer Live-PDF-Vorschau daneben",
         "highlight_2": "Kompilieren beim Speichern (Cmd+S, unter Windows und Linux Ctrl+S) über pdflatex oder tectonic, der bibtex-Zyklus läuft für dich mit",
@@ -1809,7 +1809,7 @@
         "unknown": "Unbekannt"
       },
       "manifest": {
-        "description": "Dynamische Workflows erstellen, ausführen und beobachten: Python-Skripte, die dir meist ein Agent aus einem Ziel in normaler Sprache schreibt und die mehrere Kiro Crew-Agenten durch geordnete Phasen führen. Ein Skript wird gegen einen abgeschirmten Satz von Workflow-Befehlen geprüft, bevor irgendetwas läuft, sodass Fehler ohne Ausführung sichtbar werden, und die Seite überträgt dann jede Phase und jedes Agentenereignis, während die Ausführung fortschreitet. Ausführbare Beispiele liegen der App bei, um damit zu starten.",
+        "description": "Dynamische Workflows erstellen, ausführen und beobachten: Python-Skripte, die dir meist ein Agent aus einem Ziel in normaler Sprache schreibt und die mehrere kirocrew-customapi-Agenten durch geordnete Phasen führen. Ein Skript wird gegen einen abgeschirmten Satz von Workflow-Befehlen geprüft, bevor irgendetwas läuft, sodass Fehler ohne Ausführung sichtbar werden, und die Seite überträgt dann jede Phase und jedes Agentenereignis, während die Ausführung fortschreitet. Ausführbare Beispiele liegen der App bei, um damit zu starten.",
         "display_name": "Workflows",
         "highlight_1": "Einen Workflow validieren, bevor du ihn ausführst — Fehler werden sichtbar, ohne dass etwas ausgeführt wird",
         "highlight_2": "Die Ausführung live verfolgen, Phase für Phase, mit Fortschrittsereignissen pro Agent",
@@ -1884,7 +1884,7 @@
         "localTitle": "Änderungen in die lokale Git-Historie dieses Vaults committen. Dieser Vault hat kein Remote, es wird also nichts gepusht."
       },
       "knowledge": {
-        "label": "Mit Kiro Crew Wissen synchronisieren",
+        "label": "Mit kirocrew-customapi Wissen synchronisieren",
         "connectHelp": "Fügt diesen Vault der Wissensbibliothek hinzu, damit Agenten deine Notizen durchsuchen können. Später in den Einstellungen änderbar."
       },
       "connect": {
@@ -2138,18 +2138,18 @@
         "title": "Erscheinungsbild-Galerie"
       },
       "gateway": {
-        "disconnected": "Kiro Crew getrennt",
-        "start_btn": "Kiro Crew starten",
-        "starting": "Verbindung mit Kiro Crew wird hergestellt...",
+        "disconnected": "kirocrew-customapi getrennt",
+        "start_btn": "kirocrew-customapi starten",
+        "starting": "Verbindung mit kirocrew-customapi wird hergestellt...",
         "starting_btn": "Verbinden...",
-        "timeout": "Zeitüberschreitung — stelle sicher, dass Kiro Crew lokal installiert ist und das Dashboard normal öffnet"
+        "timeout": "Zeitüberschreitung — stelle sicher, dass kirocrew-customapi lokal installiert ist und das Dashboard normal öffnet"
       },
       "instances": {
-        "blurb": "Mochi ist ein einzelnes Haustier, und jedes Kiro Crew hat sein eigenes. Wähle, wem es Gesellschaft leistet — nur gerade verbundene Instanzen werden angezeigt.",
+        "blurb": "Mochi ist ein einzelnes Haustier, und jedes kirocrew-customapi hat sein eigenes. Wähle, wem es Gesellschaft leistet — nur gerade verbundene Instanzen werden angezeigt.",
         "connecting": "wird verbunden…",
         "current": "aktuell",
         "errored": "Verbindungsproblem",
-        "feature_off": "Multi-Instanz ist deaktiviert. Aktiviere es in den Kiro Crew-Einstellungen, um eine Remote-Instanz auszuwählen.",
+        "feature_off": "Multi-Instanz ist deaktiviert. Aktiviere es in den kirocrew-customapi-Einstellungen, um eine Remote-Instanz auszuwählen.",
         "list_failed": "Die Instanzliste konnte nicht gelesen werden.",
         "loading": "Suche nach Instanzen…",
         "mochi_off": "Mochi ist dort deaktiviert",
@@ -2160,7 +2160,7 @@
       },
       "menu": {
         "clear_screen": "Bildschirm leeren",
-        "dashboard": "Kiro Crew-Dashboard",
+        "dashboard": "kirocrew-customapi-Dashboard",
         "delete_history": "Chat-Verlauf löschen",
         "gallery": "Erscheinungsbild-Galerie",
         "hide": "Ausblenden",
@@ -2189,7 +2189,7 @@
         "field_category": "Kategorie",
         "field_name": "Name",
         "field_target": "Was beobachten",
-        "landing_enable_hint": "Aktiviere Mochi für Live-Status, Beobachtungsliste und den heutigen Plan. Das Haustier selbst braucht die Kiro Crew-Desktop-App.",
+        "landing_enable_hint": "Aktiviere Mochi für Live-Status, Beobachtungsliste und den heutigen Plan. Das Haustier selbst braucht die kirocrew-customapi-Desktop-App.",
         "landing_starting": "Mochi ist aktiviert und startet — Live-Status, Beobachtungsliste und der heutige Plan erscheinen gleich.",
         "mark_seen": "Als gesehen markieren",
         "mochi_is_sleeping": "Mochi schläft",
@@ -2216,7 +2216,7 @@
         "spend_time_with_mochi_to_build_memories": "Verbringe Zeit mit Mochi, um Erinnerungen zu schaffen",
         "status": "Status",
         "stop_watching": "Beobachtung beenden",
-        "this_is_the_browser_view_everything_here_is_live": "Dies ist die Browser-Ansicht. Alles hier ist live, aber das Haustier-Fenster\n            selbst erscheint nur in der Kiro Crew-Desktop-App.",
+        "this_is_the_browser_view_everything_here_is_live": "Dies ist die Browser-Ansicht. Alles hier ist live, aber das Haustier-Fenster\n            selbst erscheint nur in der kirocrew-customapi-Desktop-App.",
         "top_moods": "Top-Stimmungen",
         "trigger": "Auslöser",
         "url_or_what_to_watch": "URL oder was beobachtet werden soll",
@@ -2291,7 +2291,7 @@
       "settingsPanel": {
         "about": "Über",
         "about_author": "Autor",
-        "about_blurb": "{{name}} ist ein Desktop-Begleiter, der in Kiro Crew integriert ist.",
+        "about_blurb": "{{name}} ist ein Desktop-Begleiter, der in kirocrew-customapi integriert ist.",
         "appearance": "Erscheinungsbild",
         "behavior": "Verhalten",
         "bg_activity": "Hintergrundaktivität",
@@ -2322,14 +2322,14 @@
         "mcp_agent_chat_only": "Nur Chat",
         "mcp_auto_approved": "Automatisch genehmigt",
         "mcp_available": "Zum Hinzufügen verfügbar",
-        "mcp_desc": "Dies sind die in Kiro Crew installierten MCP-Server. {{name}} kann nur die hier hinzugefügten aufrufen — drücke Hinzufügen, um einen zu gewähren, Entfernen, um ihn zurückzunehmen. Integrierte Server sind immer verfügbar und können nicht entfernt werden.",
+        "mcp_desc": "Dies sind die in kirocrew-customapi installierten MCP-Server. {{name}} kann nur die hier hinzugefügten aufrufen — drücke Hinzufügen, um einen zu gewähren, Entfernen, um ihn zurückzunehmen. Integrierte Server sind immer verfügbar und können nicht entfernt werden.",
         "mcp_disabled": "Deaktiviert",
-        "mcp_empty": "Es sind noch keine MCP-Server konfiguriert. Füge einen in den Kiro Crew-Einstellungen → MCP hinzu und öffne dann dieses Panel erneut.",
-        "mcp_error_disabled": "Dieser Server ist deaktiviert. Aktiviere ihn zuerst in den Kiro Crew-Einstellungen → MCP.",
+        "mcp_empty": "Es sind noch keine MCP-Server konfiguriert. Füge einen in den kirocrew-customapi-Einstellungen → MCP hinzu und öffne dann dieses Panel erneut.",
+        "mcp_error_disabled": "Dieser Server ist deaktiviert. Aktiviere ihn zuerst in den kirocrew-customapi-Einstellungen → MCP.",
         "mcp_error_generic": "Tools konnten nicht geladen werden – bitte erneut versuchen.",
         "mcp_error_in_progress": "Tools werden bereits gesucht – einen Moment.",
         "mcp_error_not_found": "Dieser Server ist nicht mehr konfiguriert.",
-        "mcp_error_probe_failed": "Dieser Server hat nicht geantwortet. Prüfe seinen Befehl in den Kiro Crew-Einstellungen → MCP.",
+        "mcp_error_probe_failed": "Dieser Server hat nicht geantwortet. Prüfe seinen Befehl in den kirocrew-customapi-Einstellungen → MCP.",
         "mcp_from_cache": "(zwischengespeichert — möglicherweise veraltet)",
         "mcp_loading": "Server werden geladen…",
         "mcp_needs_approval": "Benötigt Genehmigung",
@@ -2388,7 +2388,7 @@
         "trust_reads_desc": "Schreibgeschützte Vorgänge automatisch genehmigen (ls, cat, grep). Schreibvorgänge fragen weiterhin nach.",
         "trust_trust": "Allen Tools vertrauen",
         "trust_trust_desc": "Jedes Tool, das Mochi nutzt, ohne Rückfrage freigeben",
-        "trust_yolo_active": "YOLO (alles automatisch genehmigen) ist aktiv. Die Einstellung gilt für ganz Kiro Crew und wird im Dashboard geändert, nicht hier.",
+        "trust_yolo_active": "YOLO (alles automatisch genehmigen) ist aktiv. Die Einstellung gilt für ganz kirocrew-customapi und wird im Dashboard geändert, nicht hier.",
         "unsaved_desc": "Du hast ungespeicherte Änderungen. Vor dem Schließen speichern?",
         "unsaved_title": "Ungespeicherte Änderungen"
       },
@@ -2566,7 +2566,7 @@
     },
     "agentWorlds": {
       "manifest": {
-        "description": "Verwandelt deine laufenden Agenten in Figuren einer animierten Pixel-Art-Szene, sodass ein Blick genügt, um zu sehen, wie ausgelastet Kiro Crew ist. Jeder aktive Agent erscheint als Sprite, das reagiert, wenn Arbeit beginnt und endet, über Themenszenen hinweg, vom klassischen Büro bis zum Zauberturm oder Unterwasserlabor. Kopple es in ein eigenes Fenster aus, um es beim Arbeiten auf einem zweiten Bildschirm zu behalten.",
+        "description": "Verwandelt deine laufenden Agenten in Figuren einer animierten Pixel-Art-Szene, sodass ein Blick genügt, um zu sehen, wie ausgelastet kirocrew-customapi ist. Jeder aktive Agent erscheint als Sprite, das reagiert, wenn Arbeit beginnt und endet, über Themenszenen hinweg, vom klassischen Büro bis zum Zauberturm oder Unterwasserlabor. Kopple es in ein eigenes Fenster aus, um es beim Arbeiten auf einem zweiten Bildschirm zu behalten.",
         "display_name": "Agent Worlds",
         "highlight_1": "Live-Ansicht der laufenden Agenten, als Figuren statt als Liste",
         "highlight_2": "Themenszenen wie Büro, Panda-Höhle, Neuronales Netz, Zauberturm und Tiefseelabor",
@@ -2590,14 +2590,14 @@
     },
     "devFleet": {
       "manifest": {
-        "description": "Ein Steuerpult für die Arbeit an Kiro Crew selbst. Listet jeden Feature-Worktree mit dem Zustand seines Pull Requests, der Anzahl der Commits und dem Speicherverbrauch auf und kann jeden davon als Pod starten: eine vollständige Vorschauinstanz auf eigenem Port mit eigenem Datenverzeichnis, damit du eine unfertige Änderung durchklicken kannst, ohne dein laufendes Gateway zu stören. Es übernimmt auch die Nebenarbeiten — main pullen und neu bauen, einen Branch rebasen, Pod-Protokolle live mitlesen und Worktrees bereinigen, deren Arbeit schon gemergt ist.",
+        "description": "Ein Steuerpult für die Arbeit an kirocrew-customapi selbst. Listet jeden Feature-Worktree mit dem Zustand seines Pull Requests, der Anzahl der Commits und dem Speicherverbrauch auf und kann jeden davon als Pod starten: eine vollständige Vorschauinstanz auf eigenem Port mit eigenem Datenverzeichnis, damit du eine unfertige Änderung durchklicken kannst, ohne dein laufendes Gateway zu stören. Es übernimmt auch die Nebenarbeiten — main pullen und neu bauen, einen Branch rebasen, Pod-Protokolle live mitlesen und Worktrees bereinigen, deren Arbeit schon gemergt ist.",
         "display_name": "Dev Fleet",
         "highlight_1": "Starte jeden Worktree als isolierten Pod auf eigenem Port und eigenem Datenverzeichnis, ohne dein laufendes Gateway anzutasten",
         "highlight_2": "Flottenansicht mit PR-Status pro Branch, Commit-Zahlen und Speicherverbrauch",
         "highlight_3": "Synchronisieren (main pullen und neu bauen) oder einen Branch rebasen, ohne das Dashboard zu verlassen",
         "highlight_4": "„Zusammengeführte bereinigen“ verweigert das Löschen eines Worktrees mit nicht committeter oder nicht verfolgter Arbeit, statt sie zu verwerfen",
         "highlight_5": "Pod-Protokolle live mitlesen und Pod-Zugriffstoken in der Benutzeroberfläche erzeugen",
-        "highlight_6": "Für Leute gebaut, die Kiro Crew selbst entwickeln — für den Alltag nicht nötig",
+        "highlight_6": "Für Leute gebaut, die kirocrew-customapi selbst entwickeln — für den Alltag nicht nötig",
         "highlight_7": "Pods laufen unter Linux (systemd --user) und macOS (launchd) — der macOS-Pod hat allerdings keine erzwungene Speicher-/CPU-Obergrenze; „Live schalten“ bleibt auf Linux beschränkt; Flottenansicht, PR-Status, Synchronisieren, Rebasen und Bereinigen funktionieren auf jeder Plattform",
         "page_label": "Dev Fleet"
       }
@@ -2811,8 +2811,8 @@
         "exchange_happens_on_the_nightly_maintenance_pass": "Exchange happens on the nightly maintenance pass only — not per incident. It runs\n          on whichever instance has \"nightly ledger maintenance\" on (see Instance,\n          below), so an instance with that off never pulls: it works from the copy it already\n          has, including the copy of",
         "expected_shape_label": "Expected shape",
         "explicitly_every_time_what_does_not_work_is": "explicitly every time.\n          What does not work is",
-        "find_it_at_the_bottom_of_the_channel_s_detail_di": "Find it at the bottom of the channel's detail dialog in Slack. Invite the\n            Kiro Crew bot to the channel first, or posting will fail.",
-        "get_a_notification_when_something_changes_that_n": "Get a notification when something changes that needs you — no Slack workspace and\n        no credential of any kind. It goes to Kiro Crew's notification centre and to\n        your desktop.",
+        "find_it_at_the_bottom_of_the_channel_s_detail_di": "Find it at the bottom of the channel's detail dialog in Slack. Invite the\n            kirocrew-customapi bot to the channel first, or posting will fail.",
+        "get_a_notification_when_something_changes_that_n": "Get a notification when something changes that needs you — no Slack workspace and\n        no credential of any kind. It goes to kirocrew-customapi's notification centre and to\n        your desktop.",
         "gh": "gh",
         "git_github_com_your_org_ops_memory_git": "git@github.com:your-org/ops-memory.git",
         "git_pull_or_push": "git pull / push",
@@ -2835,7 +2835,7 @@
         "loading": "Loading…",
         "main": "main",
         "min": "min",
-        "mirror_incidents_to_a_channel_as_a_live_board_on": "Mirror incidents to a channel as a live board: one message per incident whose\n        state updates in place, with the diagnosis in its thread. Uses the Slack\n        connection Kiro Crew already has — this app stores no Slack token of its own.",
+        "mirror_incidents_to_a_channel_as_a_live_board_on": "Mirror incidents to a channel as a live board: one message per incident whose\n        state updates in place, with the diagnosis in its thread. Uses the Slack\n        connection kirocrew-customapi already has — this app stores no Slack token of its own.",
         "mirror_incidents_to_slack": "Mirror incidents to Slack",
         "mode_act_label": "Act",
         "mode_help_act": "Executes actions for signal patterns you have explicitly allowlisted with a rule. A rule must name a source and a resource pattern — there is no \"everything\" rule. Every execution is audited.",
@@ -3162,7 +3162,7 @@
       },
       "manifest": {
         "display_name": "Spec Builder",
-        "description": "Spec-getriebene Entwicklung in Kiro Crew: Verwandle eine Feature-Idee mit einem eingebetteten Agenten in Anforderungen → Design → Aufgaben, prüfe das Markdown direkt in der App und übergib den freigegebenen Plan dann an eine autonome Ausführungssitzung.",
+        "description": "Spec-getriebene Entwicklung in kirocrew-customapi: Verwandle eine Feature-Idee mit einem eingebetteten Agenten in Anforderungen → Design → Aufgaben, prüfe das Markdown direkt in der App und übergib den freigegebenen Plan dann an eine autonome Ausführungssitzung.",
         "page_label": "Spec Builder"
       }
     }
@@ -3180,14 +3180,14 @@
     "agentImportFlow": {
       "back": "Zurück",
       "bring_your_crew_with_you": "Nehmen Sie Ihre Crew mit.",
-      "bring_your_supported_setup_sessions_memories_wor": "Übernehmen Sie Ihr unterstütztes Setup — Anweisungen, Erinnerungen, Workspaces, MCP-Server, Skills, Zeitpläne und sichere Einstellungen — in Kiro Crew.",
+      "bring_your_supported_setup_sessions_memories_wor": "Übernehmen Sie Ihr unterstütztes Setup — Anweisungen, Erinnerungen, Workspaces, MCP-Server, Skills, Zeitpläne und sichere Einstellungen — in kirocrew-customapi.",
       "checking_supported_tools_on_this_gateway_host": "Unterstützte Werkzeuge auf diesem Gateway-Host werden geprüft.",
       "choose_sources": "Quellen wählen",
       "continue": "Weiter",
       "could_not_save_onboarding_state": "Onboarding-Status konnte nicht gespeichert werden.",
       "credentials_remain_with_their_source_rules_hooks": "Anmeldedaten verbleiben bei ihrer Quelle. Gesprächsverlauf, Hooks, Agentendefinitionen und die Persona-Identität einer Quelle werden nicht importiert. Ihre schriftlichen Regeln und Anweisungen werden als Erinnerung mit hoher Priorität importiert.",
       "deduplicated": "Dedupliziert",
-      "existing_kirocrew_setup_is_never_overwritten_mat": "Eine bestehende Kiro Crew-Einrichtung wird standardmäßig niemals überschrieben. Übereinstimmende Elemente werden dedupliziert, und bei einem Konflikt bleibt Ihre aktuelle Version erhalten, sofern Sie nach dem Import nichts anderes wählen.",
+      "existing_kirocrew_setup_is_never_overwritten_mat": "Eine bestehende kirocrew-customapi-Einrichtung wird standardmäßig niemals überschrieben. Übereinstimmende Elemente werden dedupliziert, und bei einem Konflikt bleibt Ihre aktuelle Version erhalten, sofern Sie nach dem Import nichts anderes wählen.",
       "found": "gefunden",
       "import_agent_setup": "Agenten-Einrichtung importieren",
       "import_all_your_supported_work_or_handpick_what": "Importiere alle unterstützten Inhalte oder wähle gezielt aus, was übernommen wird.",
@@ -3200,9 +3200,9 @@
       "items_already_exist_with_different_content": "Elemente existieren bereits mit anderem Inhalt.",
       "items_selected": "Elemente ausgewählt",
       "keep_both": "Beide behalten",
-      "kiro_crew": "Kiro Crew",
-      "kiro_crew_found_agent_setup_on_this_gateway_host": "Kiro Crew hat auf diesem Gateway-Host eine Agentenkonfiguration gefunden. Wähle die Quellen zur Prüfung aus.",
-      "kirocrew_did_not_find_supported_setup_to_import": "Kiro Crew hat auf diesem Gateway-Host keine unterstützte Einrichtung zum Importieren gefunden.",
+      "kiro_crew": "kirocrew-customapi",
+      "kiro_crew_found_agent_setup_on_this_gateway_host": "kirocrew-customapi hat auf diesem Gateway-Host eine Agentenkonfiguration gefunden. Wähle die Quellen zur Prüfung aus.",
+      "kirocrew_did_not_find_supported_setup_to_import": "kirocrew-customapi hat auf diesem Gateway-Host keine unterstützte Einrichtung zum Importieren gefunden.",
       "merge_only": "Nur zusammenführen",
       "merge_only_setup_credentials_stay_where_they_are": "Einrichtung nur zum Zusammenführen · Anmeldedaten bleiben, wo sie sind",
       "no_supported_setup_found": "Keine unterstützte Einrichtung gefunden",
@@ -3211,7 +3211,7 @@
       "one_item_already_exists_with_different_content": "1 Element existiert bereits mit anderem Inhalt.",
       "replace_mine": "Meine ersetzen",
       "review_import": "Import prüfen",
-      "review_the_merge_before_kiro_crew_changes_local": "Prüfe die Zusammenführung, bevor Kiro Crew die lokale Konfiguration ändert.",
+      "review_the_merge_before_kiro_crew_changes_local": "Prüfe die Zusammenführung, bevor kirocrew-customapi die lokale Konfiguration ändert.",
       "scanning_for_agent_setup": "Es wird nach einer Agenten-Einrichtung gesucht",
       "select_items_to_import": "Elemente zum Importieren auswählen",
       "selected_setup": "Ausgewählte Einrichtung",
@@ -3223,8 +3223,8 @@
       "the_import_did_not_finish_please_try_again": "Der Import wurde nicht abgeschlossen. Bitte versuche es erneut.",
       "try_again": "Erneut versuchen",
       "we_could_not_scan_agent_setup": "Wir konnten die Agenten-Einrichtung nicht scannen",
-      "your_existing_kirocrew_setup_will_not_be_affecte": "Ihre bestehende Kiro Crew-Einrichtung bleibt unberührt.",
-      "your_selected_setup_is_ready_in_kiro_crew": "Deine ausgewählte Konfiguration ist in Kiro Crew bereit."
+      "your_existing_kirocrew_setup_will_not_be_affecte": "Ihre bestehende kirocrew-customapi-Einrichtung bleibt unberührt.",
+      "your_selected_setup_is_ready_in_kiro_crew": "Deine ausgewählte Konfiguration ist in kirocrew-customapi bereit."
     },
     "agentSelector": {
       "agent_list": "Agenten-Liste",
@@ -3274,17 +3274,17 @@
     "approvalModePicker": {
       "approval_mode_aria": "Freigabemodus: {{mode}}",
       "normal_label": "Normal",
-      "normal_tooltip": "Kiro Crew fragt dich, bevor es etwas tut",
-      "normal_desc": "Kiro Crew stimmt sich mit dir ab, bevor es etwas tut",
+      "normal_tooltip": "kirocrew-customapi fragt dich, bevor es etwas tut",
+      "normal_desc": "kirocrew-customapi stimmt sich mit dir ab, bevor es etwas tut",
       "reads_label": "Lesen",
-      "reads_tooltip": "Kiro Crew recherchiert selbst, fragt aber vor Änderungen nach",
-      "reads_desc": "Kiro Crew recherchiert selbst, fragt aber vor jeder Änderung nach",
+      "reads_tooltip": "kirocrew-customapi recherchiert selbst, fragt aber vor Änderungen nach",
+      "reads_desc": "kirocrew-customapi recherchiert selbst, fragt aber vor jeder Änderung nach",
       "trust_label": "Vertrauen",
-      "trust_tooltip": "In diesem Chat arbeitet Kiro Crew, ohne dich vorher zu fragen",
-      "trust_desc": "In diesem Chat arbeitet Kiro Crew, ohne dich vorher zu fragen",
+      "trust_tooltip": "In diesem Chat arbeitet kirocrew-customapi, ohne dich vorher zu fragen",
+      "trust_desc": "In diesem Chat arbeitet kirocrew-customapi, ohne dich vorher zu fragen",
       "yolo_label": "YOLO",
-      "yolo_tooltip": "In jedem Chat arbeitet Kiro Crew, ohne dich vorher zu fragen",
-      "yolo_desc": "In jedem Chat arbeitet Kiro Crew, ohne dich vorher zu fragen",
+      "yolo_tooltip": "In jedem Chat arbeitet kirocrew-customapi, ohne dich vorher zu fragen",
+      "yolo_desc": "In jedem Chat arbeitet kirocrew-customapi, ohne dich vorher zu fragen",
       "all_tools_will_get_auto_approved_across_all_sess": "Alle Werkzeuge werden in allen Sitzungen automatisch genehmigt.",
       "approval_mode": "Genehmigungsmodus",
       "cancel": "Abbrechen",
@@ -3292,7 +3292,7 @@
       "enable": "Aktivieren",
       "yolo_mode_is_an_app_wide_setting": "Der YOLO-Modus ist eine app-weite Einstellung",
       "configure_duration": "Configure duration",
-      "yolo_expiration_until_shutdown": "Stays on until Kiro Crew restarts — no timed expiry.",
+      "yolo_expiration_until_shutdown": "Stays on until kirocrew-customapi restarts — no timed expiry.",
       "yolo_expiration_timed": "Turns itself off after {{duration}}, then asks again."
     },
     "appstore": {
@@ -3304,7 +3304,7 @@
         "verified_publisher": "Verifizierter Herausgeber",
         "verified_publisher_first_party": "Verifizierter Herausgeber (Erstanbieter)",
         "desktop_app": "Desktop-App",
-        "desktop_app_hint": "Aktivieren geht von hier aus, aber das eigene Fenster der App braucht die Kiro Crew-Desktop-App.",
+        "desktop_app_hint": "Aktivieren geht von hier aus, aber das eigene Fenster der App braucht die kirocrew-customapi-Desktop-App.",
         "view_details_for": "Details zu {{name}} anzeigen"
       },
       "categoryRail": {
@@ -3321,7 +3321,7 @@
         "get": "Abrufen",
         "installed": "Installiert",
         "desktop_app": "Desktop-App",
-        "desktop_app_hint": "Aktivieren geht von hier aus, aber das eigene Fenster der App braucht die Kiro Crew-Desktop-App.",
+        "desktop_app_hint": "Aktivieren geht von hier aus, aber das eigene Fenster der App braucht die kirocrew-customapi-Desktop-App.",
         "view_details_for": "Details zu {{name}} anzeigen"
       },
       "featuredSpotlight": {
@@ -3337,9 +3337,9 @@
       "installedAppCard": {
         "agent_one": "{{count}} Agent",
         "agent_other": "{{count}} Agenten",
-        "app_cannot_be_opened_kirocrew_is_running_in_a_he": "App kann nicht geöffnet werden — Kiro Crew läuft in einer Headless-Umgebung.",
+        "app_cannot_be_opened_kirocrew_is_running_in_a_he": "App kann nicht geöffnet werden — kirocrew-customapi läuft in einer Headless-Umgebung.",
         "built_in": "Integriert",
-        "built_in_this_feature_is_part_of_the_kirocrew_da": "Integriert: Diese Funktion ist Teil des Kiro Crew-Dashboards",
+        "built_in_this_feature_is_part_of_the_kirocrew_da": "Integriert: Diese Funktion ist Teil des kirocrew-customapi-Dashboards",
         "collapse_details": "Details einklappen",
         "cron_one": "{{count}} Cron",
         "cron_other": "{{count}} Crons",
@@ -3392,7 +3392,7 @@
       },
       "types": {
         "built_in": "Integriert",
-        "kirocrew_registry": "Kiro Crew-Registry"
+        "kirocrew_registry": "kirocrew-customapi-Registry"
       },
       "categories": {
         "agents_automation": "Agenten & Automatisierung",
@@ -3641,7 +3641,7 @@
           "developer": "Entwickler",
           "explore": "Erkunden",
           "hooks": "Hooks",
-          "kirocrew_agents": "Kiro Crew-Agenten",
+          "kirocrew_agents": "kirocrew-customapi-Agenten",
           "logs": "Protokolle",
           "pages": "Seiten",
           "remote_crew": "Remote-Crew",
@@ -4000,7 +4000,7 @@
       "due": "Fällig {{time}}",
       "issue_sections": "Issue-Abschnitte",
       "issues": "Issues",
-      "kiro_crew_uses_your_local_provider_cli_to_load_i": "Kiro Crew nutzt deine lokale Provider-CLI, um Issues zu laden.",
+      "kiro_crew_uses_your_local_provider_cli_to_load_i": "kirocrew-customapi nutzt deine lokale Provider-CLI, um Issues zu laden.",
       "linked": "Verknüpft",
       "loading_issue": "Issue wird geladen",
       "locked": "Gesperrt",
@@ -4097,8 +4097,8 @@
     },
     "kiroPrerequisiteGate": {
       "agent_specs_missing": "Agent-Spezifikationen fehlen",
-      "another_sandbox_already_confines_kiro_crew_so_it": "Kiro Crew ist bereits durch eine andere Sandbox eingeschränkt, sodass die eigene Sandbox nicht darin verschachtelt werden kann. Die Sandbox dieses Hosts ist nicht defekt.",
-      "ask_the_kiro_crew_owner_to_install_kiro_cli_and": "Bitten Sie den Kiro Crew-Eigentümer, Kiro CLI zu installieren und sich an diesem Gateway anzumelden. Dieses Dashboard\n          öffnet sich für Sie, sobald das Gateway bereit ist.",
+      "another_sandbox_already_confines_kiro_crew_so_it": "kirocrew-customapi ist bereits durch eine andere Sandbox eingeschränkt, sodass die eigene Sandbox nicht darin verschachtelt werden kann. Die Sandbox dieses Hosts ist nicht defekt.",
+      "ask_the_kiro_crew_owner_to_install_kiro_cli_and": "Bitten Sie den kirocrew-customapi-Eigentümer, Kiro CLI zu installieren und sich an diesem Gateway anzumelden. Dieses Dashboard\n          öffnet sich für Sie, sobald das Gateway bereit ist.",
       "check_again": "Erneut prüfen",
       "complete": "Abgeschlossen",
       "copied": "Kopiert",
@@ -4113,22 +4113,22 @@
       "if_this_keeps_happening": "Wenn das weiterhin auftritt",
       "if_you_are_diagnosing_this_from_a_terminal_kiro": "Falls Sie dies über ein Terminal untersuchen: kiro-cli diagnostic meldet nichts, solange die Kiro CLI App selbst nicht läuft — starten Sie sie zuerst mit kiro-cli launch. Diese Verweigerung ist nicht die Ursache hierfür.",
       "install_kiro_cli_from_kiros_official_setup_page": "Installieren Sie Kiro CLI über die offizielle Einrichtungsseite von Kiro. Sie enthält die Schritte für Ihre Plattform und bleibt aktuell.",
-      "install_kiro_cli_sign_in_once_and_kiro_crew_will": "Installieren Sie Kiro CLI, melden Sie sich einmal an, und Kiro Crew übernimmt den Rest.",
+      "install_kiro_cli_sign_in_once_and_kiro_crew_will": "Installieren Sie Kiro CLI, melden Sie sich einmal an, und kirocrew-customapi übernimmt den Rest.",
       "kiro_cli_is_installed_but_could_not_be_verified": "Kiro CLI ist installiert, konnte aber nicht verifiziert werden",
       "kiro_cli_is_installed_finish_signing_in_to_conti": "Kiro CLI ist installiert. Schließe die Anmeldung ab, um fortzufahren.",
       "kiro_cli_is_required_on_the_gateway_host": "Kiro CLI ist auf dem {{platform}}-Gateway-Host erforderlich.",
       "kiro_cli_was_found_on_this_host": "Kiro CLI wurde auf diesem Host gefunden.",
-      "kiro_crew_installs_the_agent_specs_kiro_cli_load": "Kiro Crew installiert die Agent-Spezifikationen, die Kiro CLI lädt, bevor es überhaupt antworten kann.",
-      "kiro_crew_isolates_the_agent_in_an_os_level_sand": "Kiro Crew isoliert den Agenten in einer Sandbox auf Betriebssystemebene, bevor irgendetwas ausgeführt wird.",
-      "kiro_crew_s_agent_specs_are_not_installed": "Die Agent-Spezifikationen von Kiro Crew sind nicht installiert",
-      "kiro_crew_uses_kiro_cli_as_its_agent_engine_comp": "Kiro Crew verwendet Kiro CLI als Agenten-Engine. Führen Sie diese zwei Schritte auf dem",
-      "kiro_crew_writes_its_own_agent_specs_where_kiro": "Kiro Crew schreibt seine eigenen Agent-Spezifikationen dorthin, wo Kiro CLI sie liest. Ohne sie kann Kiro CLI den Agenten nicht auflösen, sodass jede Nachricht fehlschlägt. „Erneut prüfen“ schreibt die Spezifikationen neu und meldet, was fehlgeschlagen ist.",
+      "kiro_crew_installs_the_agent_specs_kiro_cli_load": "kirocrew-customapi installiert die Agent-Spezifikationen, die Kiro CLI lädt, bevor es überhaupt antworten kann.",
+      "kiro_crew_isolates_the_agent_in_an_os_level_sand": "kirocrew-customapi isoliert den Agenten in einer Sandbox auf Betriebssystemebene, bevor irgendetwas ausgeführt wird.",
+      "kiro_crew_s_agent_specs_are_not_installed": "Die Agent-Spezifikationen von kirocrew-customapi sind nicht installiert",
+      "kiro_crew_uses_kiro_cli_as_its_agent_engine_comp": "kirocrew-customapi verwendet Kiro CLI als Agenten-Engine. Führen Sie diese zwei Schritte auf dem",
+      "kiro_crew_writes_its_own_agent_specs_where_kiro": "kirocrew-customapi schreibt seine eigenen Agent-Spezifikationen dorthin, wo Kiro CLI sie liest. Ohne sie kann Kiro CLI den Agenten nicht auflösen, sodass jede Nachricht fehlschlägt. „Erneut prüfen“ schreibt die Spezifikationen neu und meldet, was fehlgeschlagen ist.",
       "linux_sandbox_guide": "Anleitung zur Linux-Sandbox",
       "missing": "Fehlend",
       "open_kiro_cli_setup": "Kiro CLI-Einrichtung öffnen",
       "or_run_in_terminal": "oder im Terminal ausführen:",
       "refresh": "Aktualisieren",
-      "remedy_apparmor_service_install": "Installieren Sie Kiro Crew als Dienst. Dabei wird außerdem ein eng begrenztes AppArmor-Profil (kirocrew-userns) geschrieben, das ausschließlich dem Kiro Crew-Dienst die Berechtigung für User-Namespaces erteilt — nichts anderes auf dem Rechner wird gelockert.",
+      "remedy_apparmor_service_install": "Installieren Sie kirocrew-customapi als Dienst. Dabei wird außerdem ein eng begrenztes AppArmor-Profil (kirocrew-userns) geschrieben, das ausschließlich dem kirocrew-customapi-Dienst die Berechtigung für User-Namespaces erteilt — nichts anderes auf dem Rechner wird gelockert.",
       "remedy_max_user_namespaces": "Das Erstellen des User-Namespace hat das Limit pro Benutzer erreicht, was in der Regel bedeutet, dass user.max_user_namespaces auf einem gehärteten Host 0 ist. Erhöhen Sie den Wert und hinterlegen Sie ihn dauerhaft in /etc/sysctl.d/, damit er einen Neustart übersteht.",
       "remedy_no_user_ns": "Dieser Kernel wurde ohne Unterstützung für User-Namespaces (CONFIG_USER_NS) gebaut, daher gibt es keine Einstellung, die sich ändern lässt. Nur ein anderer Kernel behebt das.",
       "remedy_userns_denied": "Der Kernel hat das Erstellen des User-Namespace verweigert. Prüfen Sie auf Hosts der Debian-Familie diesen veralteten Schalter und hinterlegen Sie den Wert dauerhaft in /etc/sysctl.d/, damit er einen Neustart übersteht. In einem Container verweigert meist der seccomp-Filter des Containers selbst unshare — das wird über die Startoptionen des Containers behoben, nicht über Host-Einstellungen.",
@@ -4150,8 +4150,8 @@
       "the_gateway_returned_no_prerequisite_status": "Das Gateway hat keinen Status der Voraussetzungen zurückgegeben.",
       "the_repair_attempt_failed": "Der Reparaturversuch ist fehlgeschlagen",
       "then_the_dashboard_will_open_automatically": ", dann\n              öffnet sich das Dashboard automatisch.",
-      "this_host_allows_user_namespaces_but_the_kernel_d": "Dieser Host erlaubt User-Namespaces, aber der Kernel hat anschließend den Mount-Namespace verweigert — das typische Verhalten von Ubuntu 23.10 und neuer, das jeden Prozess, der einen User-Namespace erstellt, in ein eingeschränktes AppArmor-Profil verschiebt. Kiro Crew führt den Agenten lieber nicht ohne Isolation aus, als Ihre Anmeldedaten offenzulegen, und bleibt daher blockiert, bis das Profil vorhanden ist.",
-      "this_host_provides_no_os_level_sandbox_so_kiro_c": "Dieser Host bietet keine Sandbox auf Betriebssystemebene, daher kann Kiro Crew den Agenten nicht isolieren. Es führt den Agenten lieber nicht ohne Sandbox aus, als Ihre Anmeldedaten offenzulegen.",
+      "this_host_allows_user_namespaces_but_the_kernel_d": "Dieser Host erlaubt User-Namespaces, aber der Kernel hat anschließend den Mount-Namespace verweigert — das typische Verhalten von Ubuntu 23.10 und neuer, das jeden Prozess, der einen User-Namespace erstellt, in ein eingeschränktes AppArmor-Profil verschiebt. kirocrew-customapi führt den Agenten lieber nicht ohne Isolation aus, als Ihre Anmeldedaten offenzulegen, und bleibt daher blockiert, bis das Profil vorhanden ist.",
+      "this_host_provides_no_os_level_sandbox_so_kiro_c": "Dieser Host bietet keine Sandbox auf Betriebssystemebene, daher kann kirocrew-customapi den Agenten nicht isolieren. Es führt den Agenten lieber nicht ohne Sandbox aus, als Ihre Anmeldedaten offenzulegen.",
       "this_kiro_cli_is_signed_in": "Diese Kiro CLI ist angemeldet.",
       "this_page_detects_kiro_cli_automatically": "Lassen Sie diese Seite geöffnet. Sie prüft den Gateway-Host und fährt selbstständig fort, sobald Kiro CLI installiert ist.",
       "try_again": "Erneut versuchen",
@@ -4357,7 +4357,7 @@
       "unnamed_input": "Unbenanntes Eingabegerät"
     },
     "migrationBanner": {
-      "install_app_from_apps": "Installieren „{{app}}“ aus Apps, bevor das nächste Kiro Crew-Update erscheint, um sie weiter zu nutzen.",
+      "install_app_from_apps": "Installieren „{{app}}“ aus Apps, bevor das nächste kirocrew-customapi-Update erscheint, um sie weiter zu nutzen.",
       "install_from_apps": "Aus Apps installieren",
       "this_feature_is_moving_to_a_standalone_app": "Diese Funktion wird in eine eigenständige App verlagert"
     },
@@ -4444,7 +4444,7 @@
       }
     },
     "onboardingChapterShell": {
-      "kiro_crew": "Kiro Crew",
+      "kiro_crew": "kirocrew-customapi",
       "skip_all": "Alle überspringen",
       "skip_all_setup_and_onboarding": "Gesamte Einrichtung und Einführung überspringen"
     },
@@ -4456,7 +4456,7 @@
       "color_theme": "Farb-Theme",
       "continue": "Weiter",
       "couldn_t_save_your_answers_press_next_to_retry_o": "Ihre Antworten konnten nicht gespeichert werden — drücken Sie „Weiter“, um es erneut zu versuchen, oder erneut „Überspringen“, um\n            ohne Speichern fortzufahren.",
-      "customize_kirocrew": "Kiro Crew anpassen",
+      "customize_kirocrew": "kirocrew-customapi anpassen",
       "customize_step": "Anpassen · {{n}} von {{total}}",
       "describe_your_role": "Beschreibe deine Rolle",
       "done": "Fertig",
@@ -4471,7 +4471,7 @@
       "tell_kiro_about_you": "Erzählen Sie Kiro von sich",
       "your_role": "Ihre Rolle",
       "pop_apps_body": "Installiere gezielt gebaute Werkzeuge, die neue Fähigkeiten und Workflows freischalten.",
-      "pop_apps_title": "Erweitere, was du mit Kiro Crew tun kannst",
+      "pop_apps_title": "Erweitere, was du mit kirocrew-customapi tun kannst",
       "pop_chat_body": "Stelle eine Frage, übertrage eine Aufgabe oder sag einfach Hallo — dein Agent ist bereit.",
       "pop_chat_title": "Starte deine erste Sitzung",
       "pop_schedule_body": "Lege fest, dass Aufgaben automatisch laufen, damit Dinge passieren, ohne dass du einen Finger rührst.",
@@ -4556,7 +4556,7 @@
       "github_will_merge_this_pull_request_once_its_req": "GitHub führt diesen Pull Request zusammen, sobald seine Anforderungen erfüllt sind",
       "gitlab_merges_this_merge_request_when_the_pipeli": "GitLab führt diesen Merge Request zusammen, wenn die Pipeline erfolgreich ist — ohne ausstehende Pipeline sofort",
       "gitlab_will_merge_this_merge_request_when_the_pi": "GitLab führt diesen Merge Request zusammen, wenn die Pipeline erfolgreich ist",
-      "kiro_crew_uses_your_local_provider_cli_to_load_p": "Kiro Crew verwendet die CLI Ihres lokalen Anbieters, um Pull Requests zu laden. Führen Sie diesen Befehl in Ihrem Terminal aus und versuchen Sie es dann erneut.",
+      "kiro_crew_uses_your_local_provider_cli_to_load_p": "kirocrew-customapi verwendet die CLI Ihres lokalen Anbieters, um Pull Requests zu laden. Führen Sie diesen Befehl in Ihrem Terminal aus und versuchen Sie es dann erneut.",
       "loading_diff": "Diff wird geladen…",
       "loading_source_provider": "Quellanbieter wird geladen…",
       "merge_conflicts_detail": "Dieser Branch hat Konflikte mit {{base}} und kann erst zusammengeführt werden, wenn sie behoben sind.",
@@ -5049,7 +5049,7 @@
       "dismiss": "Schließen",
       "dismiss_update_dialog": "Aktualisierungsdialog schließen",
       "is_downloaded_and_ready_to_install": "ist heruntergeladen und installationsbereit.",
-      "kirocrew": "Kiro Crew",
+      "kirocrew": "kirocrew-customapi",
       "later": "Später",
       "restart_update": "Neu starten & aktualisieren",
       "restarting": "Wird neu gestartet...",
@@ -5174,7 +5174,7 @@
       "responsive_desktop": "Responsiv (Desktop)"
     },
     "welcomeView": {
-      "agent_only_no_kirocrew_context_or_mcp": "Nur Agent — kein Kiro Crew-Kontext oder MCP",
+      "agent_only_no_kirocrew_context_or_mcp": "Nur Agent — kein kirocrew-customapi-Kontext oder MCP",
       "autopilot": "Autopilot",
       "clean": "Sauber",
       "incognito": "Inkognito",
@@ -5191,7 +5191,7 @@
       "switch_to_ephemeral_mode": "Zum temporären Modus wechseln",
       "temporary": "Temporär",
       "temporary_desc": "Leeres Blatt — kein Lesen oder Schreiben in die Erinnerung",
-      "try_create_a_plan_to_analyze_kirocrew_code_packa": "Versuchen Sie: „Erstelle einen Plan, um das Kiro Crew-Codepaket zu analysieren und die Dateianzahl nach Hauptkomponenten zu melden“",
+      "try_create_a_plan_to_analyze_kirocrew_code_packa": "Versuchen Sie: „Erstelle einen Plan, um das kirocrew-customapi-Codepaket zu analysieren und die Dateianzahl nach Hauptkomponenten zu melden“",
       "what_can_i_do_for_you": "Was kann ich für dich tun?"
     },
     "widgetFrame": {
@@ -5225,7 +5225,7 @@
     "privacyChapter": {
       "continue": "Weiter",
       "eyebrow": "Datenschutz",
-      "subtitle": "Die fünf anonymen Felder, die Kiro Crew sendet, und wie du sie abschaltest.",
+      "subtitle": "Die fünf anonymen Felder, die kirocrew-customapi sendet, und wie du sie abschaltest.",
       "title": "Datenschutz"
     },
     "ui": {
@@ -5236,7 +5236,7 @@
     "askAgent": {
       "ask_the_agent": "Agent fragen",
       "open_a_chat_with_this_error_s_context_attached": "Chat mit dem vollständigen Kontext dieses Fehlers öffnen",
-      "prompt_lead": "Dieser Fehler ist gerade im Kiro Crew-Dashboard aufgetreten. Diagnostiziere die Ursache und behebe sie."
+      "prompt_lead": "Dieser Fehler ist gerade im kirocrew-customapi-Dashboard aufgetreten. Diagnostiziere die Ursache und behebe sie."
     },
     "errorNotice": {
       "dismiss": "Schließen"
@@ -5524,7 +5524,7 @@
       "failed_to_uninstall": "Deinstallation fehlgeschlagen",
       "open_screenshot": "Screenshot {{n}} öffnen",
       "screenshot": "Screenshot {{n}}",
-      "third_party_blocked": "Apps, die nicht mit Kiro Crew ausgeliefert wurden, dürfen ihren eigenen Code noch nicht ausführen, daher kann diese App nicht starten. Du kannst das unter Einstellungen → Sicherheit erlauben.",
+      "third_party_blocked": "Apps, die nicht mit kirocrew-customapi ausgeliefert wurden, dürfen ihren eigenen Code noch nicht ausführen, daher kann diese App nicht starten. Du kannst das unter Einstellungen → Sicherheit erlauben.",
       "open_security_settings": "Sicherheitseinstellungen öffnen",
       "features": "Funktionen",
       "fix_with_ai": "Mit KI beheben",
@@ -5542,15 +5542,15 @@
       "mcp_servers": "MCP-Server",
       "mcp_tools": "MCP-Werkzeuge",
       "memory": "Erinnerung:",
-      "min_kirocrew_v": "Min. Kiro Crew: v",
+      "min_kirocrew_v": "Min. kirocrew-customapi: v",
       "network_yes": "Netzwerk: ja",
       "next": "Weiter",
-      "once_launched_the_app_will_automatically_connect": "Nach dem Start verbindet sich die App automatisch mit dieser Kiro Crew-Instanz und erscheint unter „Apps“.",
+      "once_launched_the_app_will_automatically_connect": "Nach dem Start verbindet sich die App automatisch mit dieser kirocrew-customapi-Instanz und erscheint unter „Apps“.",
       "origin": "Ursprung:",
       "permissions": "Berechtigungen",
       "platform": "Plattform:",
       "previous": "Zurück",
-      "removes_kirocrew_metadata_only_the_app_itself_is": "Entfernt nur die Kiro Crew-Metadaten — die App selbst wird extern verwaltet",
+      "removes_kirocrew_metadata_only_the_app_itself_is": "Entfernt nur die kirocrew-customapi-Metadaten — die App selbst wird extern verwaltet",
       "removing": "Wird entfernt…",
       "repository": "Repository:",
       "requires_local_install": "Erfordert lokale Installation",
@@ -5571,7 +5571,7 @@
       "v": "v",
       "v_2": "· v",
       "websocket_events": "WebSocket-Ereignisse",
-      "desktop_app_hint": "Aktivieren geht von hier aus, aber das eigene Fenster der App braucht die Kiro Crew-Desktop-App."
+      "desktop_app_hint": "Aktivieren geht von hier aus, aber das eigene Fenster der App braucht die kirocrew-customapi-Desktop-App."
     },
     "appPage": {
       "loading_app": "App wird geladen…"
@@ -5608,7 +5608,7 @@
       "keep_this_dependency": "Diese Abhängigkeit behalten",
       "kept": "Behalten —",
       "kept_installed_by_you": "Behalten — von Ihnen installiert",
-      "kirocrew_registry": "Kiro Crew-Registry",
+      "kirocrew_registry": "kirocrew-customapi-Registry",
       "library": "Bibliothek",
       "loading_apps": "Apps werden geladen…",
       "name": "Name",
@@ -5624,7 +5624,7 @@
       "sort": "Sortierung:",
       "sort_apps": "Apps sortieren",
       "this_app_has_an_uninstall_script_that_will_run_b": "Diese App hat ein Deinstallationsskript, das vor dem Entfernen ausgeführt wird. Es kann die App-Binärdatei, Agenten-Konfigurationen, Skills und andere während der Installation erstellte Ressourcen löschen.",
-      "this_is_a_self_managed_app_only_kirocrew_metadat": "Dies ist eine selbstverwaltete App — nur die Kiro Crew-Metadaten und das App-Secret werden entfernt.\n                    Die App selbst und ihre Agenten-/Skill-Registrierungen werden extern verwaltet und bleiben unberührt.\n                    Wenn die App noch läuft, registriert sie sich beim nächsten Start möglicherweise erneut.",
+      "this_is_a_self_managed_app_only_kirocrew_metadat": "Dies ist eine selbstverwaltete App — nur die kirocrew-customapi-Metadaten und das App-Secret werden entfernt.\n                    Die App selbst und ihre Agenten-/Skill-Registrierungen werden extern verwaltet und bleiben unberührt.\n                    Wenn die App noch läuft, registriert sie sich beim nächsten Start möglicherweise erneut.",
       "this_will_remove_all_resources_provided_by_this": "Dies entfernt alle von dieser App bereitgestellten Ressourcen:",
       "try_a_different_search_or_category": "Versuchen Sie eine andere Suche oder Kategorie.",
       "try_a_different_search_term": "Versuche einen anderen Suchbegriff",
@@ -5635,8 +5635,8 @@
       "updating_progress": "Aktualisierung {{done}}/{{total}}…",
       "v": "v",
       "the_app_itself_is_managed_externally": "Die App selbst wird extern verwaltet.",
-      "uninstall_removes_metadata_and_source": "Aus Apps installiert — die Kiro Crew-Metadaten und der heruntergeladene Quellcode werden entfernt.",
-      "uninstall_removes_metadata_secret_and_source": "Aus Apps installiert — die Kiro Crew-Metadaten, das App-Secret und der heruntergeladene Quellcode werden entfernt."
+      "uninstall_removes_metadata_and_source": "Aus Apps installiert — die kirocrew-customapi-Metadaten und der heruntergeladene Quellcode werden entfernt.",
+      "uninstall_removes_metadata_secret_and_source": "Aus Apps installiert — die kirocrew-customapi-Metadaten, das App-Secret und der heruntergeladene Quellcode werden entfernt."
     },
     "artifactDeployPage": {
       "0_00_mo": "~0,00 $/Mon.",
@@ -5651,7 +5651,7 @@
       "also_create_in_aws_config": "Auch in AWS-Konfiguration anlegen",
       "and_click": "und klicken Sie auf",
       "anyone_with_the_link_can_view_it": "jeder mit dem Link kann es ansehen",
-      "apply_this_policy_yourself_kirocrew_never_edits": "Wenden Sie diese Richtlinie selbst an (Kiro Crew bearbeitet niemals Ihr IAM).",
+      "apply_this_policy_yourself_kirocrew_never_edits": "Wenden Sie diese Richtlinie selbst an (kirocrew-customapi bearbeitet niemals Ihr IAM).",
       "artifact_deploy": "Artifact Deploy",
       "aws": "aws",
       "aws_2": "~/.aws",
@@ -5667,7 +5667,7 @@
       "cli_with": "CLI mit",
       "click": "— klicken Sie auf",
       "cloudfront_net": "*.cloudfront.net",
-      "command_kirocrew_never_edits_your_iam_the_first": "Befehl. Kiro Crew bearbeitet niemals Ihr IAM.\n              Die erste Bereitstellung meldet die exakt fehlende Berechtigung, falls etwas nicht stimmt.",
+      "command_kirocrew_never_edits_your_iam_the_first": "Befehl. kirocrew-customapi bearbeitet niemals Ihr IAM.\n              Die erste Bereitstellung meldet die exakt fehlende Berechtigung, falls etwas nicht stimmt.",
       "configure_the_profile_on_the": "Konfigurieren Sie das Profil auf dem",
       "confirm_gate_audit": "Bestätigungs-Gate + Audit.",
       "content_is_scanned_for_secrets_and_internal_data": "Der Inhalt wird auf Secrets und Hinweise auf interne Daten\n              (interne Hostnamen, Konto-IDs/ARNs) geprüft, und die Veröffentlichung wird blockiert und gewarnt,\n              bis Sie dies ausdrücklich übergehen. Lokale Verzeichnisse werden gegen sensible Anmeldedatenpfade geprüft\n              (",
@@ -5701,7 +5701,7 @@
       "getting_started_one_time_aws_setup": "Erste Schritte (einmalige AWS-Einrichtung)",
       "h_scan": "Std. · Scan:",
       "how_this_is_secured": "Wie dies gesichert ist",
-      "in_your_terminal_kirocrew_never_sees_your_keys_p": "in Ihrem Terminal (Kiro Crew sieht Ihre Schlüssel nie). Wählen Sie eine Option:",
+      "in_your_terminal_kirocrew_never_sees_your_keys_p": "in Ihrem Terminal (kirocrew-customapi sieht Ihre Schlüssel nie). Wählen Sie eine Option:",
       "is_stored_every_aws_call_runs_through_the": "gespeichert wird;\n              jeder AWS-Aufruf läuft über die",
       "is_the_default_profile": "{{name}} ist das Standardprofil",
       "it_is_created_with_block_public_access_on": "Es wird mit aktiviertem Block Public Access erstellt,",
@@ -5711,7 +5711,7 @@
       "make_the_default_profile": "{{name}} zum Standardprofil machen",
       "missing_sso_start_url_sso_region": "fehlt … sso_start_url, sso_region",
       "more": "mehr",
-      "never_boto3_so_credential_resolution_stays_in_yo": "(niemals boto3),\n              sodass die Anmeldedatenauflösung im Anmeldeinformationsspeicher Ihres Betriebssystems bleibt. Kiro Crew schreibt niemals IAM und\n              verwaltet niemals Konten, Benutzer oder Rollen — Sie wenden die generierte Least-Privilege-Richtlinie selbst an.",
+      "never_boto3_so_credential_resolution_stays_in_yo": "(niemals boto3),\n              sodass die Anmeldedatenauflösung im Anmeldeinformationsspeicher Ihres Betriebssystems bleibt. kirocrew-customapi schreibt niemals IAM und\n              verwaltet niemals Konten, Benutzer oder Rollen — Sie wenden die generierte Least-Privilege-Richtlinie selbst an.",
       "never_credentials": "— niemals Anmeldedaten)",
       "new_profile": "Neues Profil",
       "no_deployments_yet_publish_an_artifact_from_its": "Noch keine Bereitstellungen — veröffentlichen Sie ein Artefakt von seiner Seite aus, um eine zu erstellen, oder öffnen Sie ein Webapp-Artefakt und klicken Sie auf",
@@ -5776,9 +5776,9 @@
       "world_readable_no_auth_in_v1_don_t_publish_anyth": "(weltweit lesbar;\n              keine Authentifizierung in v1). Veröffentlichen Sie nichts, was Sie nicht ins offene Internet stellen würden.",
       "worst_case_tiers_over_each_ttl_window_estimate_n": "(Worst-Case-Stufen, über jedes TTL-Fenster; Schätzung — nicht die AWS-Rechnung)",
       "writes_only_region_credential_process_via": "(schreibt nur region / credential_process über",
-      "your_credentials_never_touch_kirocrew": "Ihre Anmeldedaten berühren Kiro Crew nie.",
+      "your_credentials_never_touch_kirocrew": "Ihre Anmeldedaten berühren kirocrew-customapi nie.",
       "your_host_not_your_laptop_artifact_deploy_shells": "(Ihr Host), nicht Ihr Laptop — Artifact Deploy greift auf",
-      "aws_profiles_tip": "Jede Bereitstellung läuft unter einem registrierten Profil. Registriere deine vorhandenen AWS-CLI-Profile oder erstelle neue — Kiro Crew speichert nur den Namen, niemals Anmeldedaten.",
+      "aws_profiles_tip": "Jede Bereitstellung läuft unter einem registrierten Profil. Registriere deine vorhandenen AWS-CLI-Profile oder erstelle neue — kirocrew-customapi speichert nur den Namen, niemals Anmeldedaten.",
       "ready_to_deploy_tip": "Webapp-Artefakte, die noch nicht bereitgestellt wurden. Bereitstellen öffnet eine Chat-Sitzung mit geladener Fähigkeit, die die App anpasst und veröffentlicht.",
       "deployments_tip": "Alle bereitgestellten Ressourcen — statische Websites, die aus Artefakten veröffentlicht wurden, und Full-Stack-Webapp-Bereitstellungen. Zurückziehen = umkehrbare Abschaltung; Zerstören = dauerhafte Entfernung der Infrastruktur.",
       "confirm_deploy": "Bereitstellung bestätigen",
@@ -5911,7 +5911,7 @@
       "artifact": "Artefakt",
       "return": "Zurückkehren",
       "return_to_main_window_and_close_this_popout": "Zum Hauptfenster zurückkehren und dieses ausgekoppelte Fenster schließen",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — kirocrew-customapi"
     },
     "artifactsPage": {
       "actions": "Aktionen",
@@ -6626,7 +6626,7 @@
       "checks_failed": "Prüfungen fehlgeschlagen",
       "checks_passed": "Prüfungen erfolgreich",
       "checks_running": "Prüfungen laufen",
-      "clean_agent_only_no_kirocrew_context_or_mcp": "Sauber — nur Agent, kein Kiro Crew-Kontext oder MCP",
+      "clean_agent_only_no_kirocrew_context_or_mcp": "Sauber — nur Agent, kein kirocrew-customapi-Kontext oder MCP",
       "clean_up_sessions": "Sitzungen aufräumen",
       "clean_up_sessions_2": "Sitzungen aufräumen",
       "clear": "Leeren",
@@ -6972,7 +6972,7 @@
           "label": "Archiv"
         },
         "config": {
-          "description": "Ansichten für Kiro Crew- und Agenten-Konfiguration (nur lesbar)",
+          "description": "Ansichten für kirocrew-customapi- und Agenten-Konfiguration (nur lesbar)",
           "label": "Konfiguration"
         },
         "logs": {
@@ -7112,7 +7112,7 @@
       "no_crews_match_your_filter": "Keine Crew passt zu deinem Filter",
       "no_crews_yet": "Noch keine Crews",
       "no_description": "Keine Beschreibung",
-      "no_pin_anywhere_the_backend_chooses": "hier und in der Vorlage ist nichts ausgewählt, also wählt Kiro Crew eins für dich aus.",
+      "no_pin_anywhere_the_backend_chooses": "hier und in der Vorlage ist nichts ausgewählt, also wählt kirocrew-customapi eins für dich aus.",
       "none": "— keine —",
       "pinned_on_this_crew": "für diese Crew ausgewählt.",
       "resolves_to": "Verwendet {{model}}",
@@ -7404,7 +7404,7 @@
       "retry": "Wiederholen",
       "the_old_builtin_entry_has_been_removed_your_data": "Der alte integrierte Eintrag wurde entfernt. Ihre Daten wurden erhalten und sind für die eigenständige Version zugänglich.",
       "the_standalone_version_is_installed_and_ready_to": "Die eigenständige Version ist installiert und einsatzbereit.",
-      "this_feature_was_previously_built_into_kirocrew": "Diese Funktion war zuvor in Kiro Crew integriert, wurde aber in ein eigenständiges App-Paket ausgelagert.\n                Die integrierte Version wurde aus dieser Kiro Crew-Veröffentlichung entfernt.",
+      "this_feature_was_previously_built_into_kirocrew": "Diese Funktion war zuvor in kirocrew-customapi integriert, wurde aber in ein eigenständiges App-Paket ausgelagert.\n                Die integrierte Version wurde aus dieser kirocrew-customapi-Veröffentlichung entfernt.",
       "you_can_clean_up_the_old_builtin_entry_to_remove": "Sie können den alten integrierten Eintrag aufräumen, um ihn aus der Seitenleiste zu entfernen.",
       "your_data_has_been_preserved_and_will_be_availab": "Ihre Daten wurden erhalten und sind in der eigenständigen Version verfügbar."
     },
@@ -7432,7 +7432,7 @@
         "loading": "Wird geladen…",
         "save_failed": "Speichern fehlgeschlagen",
         "saved": "Gespeichert",
-        "agent_config_tip": "Die {{process}}-Agentendefinition — Prompt, Tools, MCP-Server, Modelleinstellungen. Dies ist die Konfiguration der Ausführungsebene, getrennt von den Betriebsbindungen von Kiro Crew.",
+        "agent_config_tip": "Die {{process}}-Agentendefinition — Prompt, Tools, MCP-Server, Modelleinstellungen. Dies ist die Konfiguration der Ausführungsebene, getrennt von den Betriebsbindungen von kirocrew-customapi.",
         "save": "Speichern"
       },
       "displayTab": {
@@ -7514,7 +7514,7 @@
         "immediate_auto_approves_all_tools_interactive_as": "Sofort. „auto“ genehmigt alle Werkzeuge; „interactive“ fragt vor jedem nach.",
         "immediate_auto_enables_sandbox_for_untrusted_too": "Sofort. „auto“ aktiviert die Sandbox für nicht vertrauenswürdige Werkzeuge.",
         "inherited_provider": "übernommen ({{provider}})",
-        "kirocrew_agents": "Kiro Crew-Agenten",
+        "kirocrew_agents": "kirocrew-customapi-Agenten",
         "max_age_for_pooled_processes_0_disables_expiry_r": "Maximales Alter für Pool-Prozesse. 0 deaktiviert den Ablauf. Neustart erforderlich.",
         "max_channel_agents": "Max. Kanal-Agenten",
         "max_channels": "Max. Kanäle",
@@ -7573,7 +7573,7 @@
         "filter_servers_or_tools": "Server oder Werkzeuge filtern…",
         "globals": "Globale Werte",
         "kiro": "Kiro",
-        "kirocrew": "Kiro Crew",
+        "kirocrew": "kirocrew-customapi",
         "mcp_servers_count": "MCP-Server ({{count}})",
         "name": "Name",
         "no_matching_servers": "Keine passenden Server",
@@ -7597,7 +7597,7 @@
         "online": "Online",
         "outdated": "Veraltet",
         "unknown": "Unbekannt",
-        "servers_scope_tip": "MCP-Server aus Kiro Crew und Ihren interaktiven {{provider}}/Kiro-Globals. Das Kiro Crew-Badge zeigt, ob der Server in Kiro Crew-Sitzungen geladen wird; das Badge „Globale Werte“ zeigt, ob er für Ihr interaktives Kiro-Global freigegeben ist. Zum Umschalten klicken, dann „Anwenden“."
+        "servers_scope_tip": "MCP-Server aus kirocrew-customapi und Ihren interaktiven {{provider}}/Kiro-Globals. Das kirocrew-customapi-Badge zeigt, ob der Server in kirocrew-customapi-Sitzungen geladen wird; das Badge „Globale Werte“ zeigt, ob er für Ihr interaktives Kiro-Global freigegeben ist. Zum Umschalten klicken, dann „Anwenden“."
       },
       "memoryGraphTab": {
         "all_count": "Alle ({{count}})",
@@ -7607,7 +7607,7 @@
         "refresh": "Aktualisieren",
         "search_memory_nodes": "Erinnerungsknoten suchen",
         "search_nodes": "Knoten suchen…",
-        "gpu_rendered_visualization_of_all_kirocrew_memor": "GPU-gerenderte Visualisierung der gesamten Kiro Crew-Erinnerung. Knoten sind nach Typ farblich kodiert. Zoome hinein, um Beschriftungen anzuzeigen, klicke einen Knoten an, um ihn zu prüfen, und nutze Filter, um den Fokus zu setzen.",
+        "gpu_rendered_visualization_of_all_kirocrew_memor": "GPU-gerenderte Visualisierung der gesamten kirocrew-customapi-Erinnerung. Knoten sind nach Typ farblich kodiert. Zoome hinein, um Beschriftungen anzuzeigen, klicke einen Knoten an, um ihn zu prüfen, und nutze Filter, um den Fokus zu setzen.",
         "group_history_count": "Verlauf ({{count}})",
         "group_lessons_count": "Lektionen ({{count}})",
         "group_preferences_count": "Präferenzen ({{count}})",
@@ -7669,7 +7669,7 @@
         "replace": "Ersetzen",
         "replace_mode_will_overwrite_existing_data_contin": "Der Ersetzungsmodus überschreibt bestehende Daten. Fortfahren?",
         "skills": "Skills:",
-        "upload_a_kirocrew_export_zip_to_restore_settings": "Laden Sie eine Kiro Crew-Export-ZIP hoch, um Einstellungen auf dieser Instanz wiederherzustellen.\n          Bestehende Daten werden standardmäßig zusammengeführt (Duplikate werden übersprungen).",
+        "upload_a_kirocrew_export_zip_to_restore_settings": "Laden Sie eine kirocrew-customapi-Export-ZIP hoch, um Einstellungen auf dieser Instanz wiederherzustellen.\n          Bestehende Daten werden standardmäßig zusammengeführt (Duplikate werden übersprungen).",
         "workspace_files": "Workspace-Dateien:",
         "download_export_zip": "Export herunterladen (.zip)",
         "download_started": "Download gestartet.",
@@ -7748,7 +7748,7 @@
         "skills": "Skills",
         "skills_count": "Skills ({{count}})",
         "skills_from_read_only": "Skills aus {{name}} — schreibgeschützt",
-        "skills_tip": "Bedarfsgesteuerte Fähigkeiten, die geladen werden, wenn der Agent sie als relevant einstuft. Fähigkeiten mit dem auto-Abzeichen werden immer in jede Sitzung eingefügt. Fähigkeiten werden aus Kiro Crew, kiro-cli und AIM-Paketen ermittelt.",
+        "skills_tip": "Bedarfsgesteuerte Fähigkeiten, die geladen werden, wenn der Agent sie als relevant einstuft. Fähigkeiten mit dem auto-Abzeichen werden immer in jede Sitzung eingefügt. Fähigkeiten werden aus kirocrew-customapi, kiro-cli und AIM-Paketen ermittelt.",
         "auto_generated_skill_candidates_awaiting_your_ap": "Automatisch erzeugte Skill-Kandidaten, die auf deine Genehmigung warten. Klicke auf Überprüfen, um die SKILL.md und alle mitgelieferten Skripte vor der Genehmigung zu prüfen. Genehmigen schaltet den Skill live (und macht Skripte ausführbar); Schließen verwirft ihn. Nichts geht live, bevor du es genehmigst.",
         "hide": "Ausblenden",
         "linked_candidate_no_longer_pending": "Dieser Fähigkeiten-Kandidat wartet nicht mehr auf eine Prüfung. Er wurde genehmigt oder geschlossen.",
@@ -7940,7 +7940,7 @@
     },
     "popoutFrame": {
       "session": "Sitzung",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — kirocrew-customapi"
     },
     "projectDetailPage": {
       "analyzing_task_and_building_step_by_step_plan": "Aufgabe wird analysiert und Schritt-für-Schritt-Plan erstellt",
@@ -8224,7 +8224,7 @@
         "downloaded_and_verified_the_app_restarts_to_fini": "Heruntergeladen und verifiziert. Die App startet neu, um die Installation abzuschließen; Sie können sie auch später beenden, dann wird beim Verlassen installiert.",
         "downloading": "Wird heruntergeladen…",
         "install_failed": "Die Aktualisierung konnte nicht installiert werden",
-        "installing_quiet_note": "Wird installiert — Kiro Crew wird für ein oder zwei Minuten still und startet sich dann selbst neu.",
+        "installing_quiet_note": "Wird installiert — kirocrew-customapi wird für ein oder zwei Minuten still und startet sich dann selbst neu.",
         "is_available": "ist verfügbar.",
         "loading_changelog": "Änderungsprotokoll wird geladen…",
         "manual_install_fallback": "Wenn die Aktualisierung nicht funktioniert, können Sie {{link}} und über diese Kopie neu installieren. Ihre Einstellungen, Chats und Dateien bleiben erhalten.",
@@ -8298,7 +8298,7 @@
         "identity_access": "Identität & Zugriff",
         "loading": "Wird geladen",
         "required": "Erforderlich",
-        "settings_are_managed_on_the_machine_running_kiro": "Einstellungen werden auf dem Rechner verwaltet, auf dem Kiro Crew läuft, und sind aus Remote-Sitzungen nur lesbar.",
+        "settings_are_managed_on_the_machine_running_kiro": "Einstellungen werden auf dem Rechner verwaltet, auf dem kirocrew-customapi läuft, und sind aus Remote-Sitzungen nur lesbar.",
         "setup_guide": "Einrichtungsanleitung",
         "soft_context_threshold": "Weicher Kontextschwellenwert %",
         "configuration_is_saved_but_the_channel_is_not_ru": "Die Konfiguration ist gespeichert, aber der Kanal läuft nicht. Starte das Gateway neu, um eine Verbindung herzustellen.",
@@ -8338,7 +8338,7 @@
       "channelDisabledPanel": {
         "checking_your_organization_s_channel_policy": "Die Kanalrichtlinie Ihrer Organisation wird geprüft…",
         "is_turned_off_by_your_administrator": "wurde von Ihrem Administrator deaktiviert",
-        "kirocrew_couldn_t_confirm_whether_your_organizat": "Kiro Crew konnte nicht bestätigen, ob die Sicherheitsrichtlinie Ihrer Organisation\n          diesen Kanal erlaubt. Seine Einstellungen bleiben verborgen, bis der Status geklärt ist —\n          die Durchsetzung ist davon nicht betroffen. Versuchen Sie, neu zu laden.",
+        "kirocrew_couldn_t_confirm_whether_your_organizat": "kirocrew-customapi konnte nicht bestätigen, ob die Sicherheitsrichtlinie Ihrer Organisation\n          diesen Kanal erlaubt. Seine Einstellungen bleiben verborgen, bis der Status geklärt ist —\n          die Durchsetzung ist davon nicht betroffen. Versuchen Sie, neu zu laden.",
         "policy_status_unavailable": "Richtlinienstatus nicht verfügbar",
         "your_organization_s_security_policy_disables_thi": "Die Sicherheitsrichtlinie Ihrer Organisation deaktiviert diesen Kanal. Seine Einstellungen\n        sind nicht verfügbar, und jede Konfiguration hier würde nicht wirksam werden."
       },
@@ -8492,7 +8492,7 @@
         "ux_designer": "UX-Designer",
         "knowledge_library": "Wissensbibliothek",
         "auto_add_documents": "Dokumente automatisch hinzufügen",
-        "let_the_agent_add_documents_it_reads_while_workin": "Erlaubt dem Agenten, Dokumente, die er beim Arbeiten liest, in deine Wissensbibliothek aufzunehmen, damit sie später durchsuchbar bleiben. Er liest sie mit seinen eigenen Werkzeugen und mit deiner Zustimmung – Kiro Crew lädt selbst nichts herunter. Hinzugefügte Dokumente erscheinen in einer einzigen Quelle „Automatisch hinzugefügt“, die sich mit einem Klick entfernen lässt.",
+        "let_the_agent_add_documents_it_reads_while_workin": "Erlaubt dem Agenten, Dokumente, die er beim Arbeiten liest, in deine Wissensbibliothek aufzunehmen, damit sie später durchsuchbar bleiben. Er liest sie mit seinen eigenen Werkzeugen und mit deiner Zustimmung – kirocrew-customapi lädt selbst nichts herunter. Hinzugefügte Dokumente erscheinen in einer einzigen Quelle „Automatisch hinzugefügt“, die sich mit einem Klick entfernen lässt.",
         "auto_register_project_documents": "Projektdokumente automatisch registrieren",
         "register_the_documents_of_each_project_you_work_i": "Registriert die Dokumente jedes Projekts, an dem du arbeitest, damit dessen Entwurfsdokumente, Spezifikationen und READMEs durchsuchbar werden, ohne den Ordner von Hand hinzuzufügen. Nur Dokumente – niemals Quellcode, Agentenanweisungen oder generierte Dateien.",
         "auto_add_saved_artifacts": "Gespeicherte Artefakte automatisch hinzufügen",
@@ -8534,7 +8534,7 @@
         "longest_edge_of_the_screenshot_in_pixels_smaller": "Längste Kante des Screenshots in Pixeln. Kleiner ist günstiger und schneller zu lesen; größer hält kleinen Text lesbar, falls der Agent auf das Bild zurückgreifen muss.",
         "not_applicable": "Nicht zutreffend",
         "not_detected": "Nicht erkannt",
-        "not_detected_does_not_always_mean_unavailable_ma": "„Nicht erkannt“ bedeutet nicht immer „nicht verfügbar“ — macOS schreibt eine Berechtigungserteilung dem Prozess zu, der Kiro Crew gestartet hat, nicht Kiro Crew selbst.",
+        "not_detected_does_not_always_mean_unavailable_ma": "„Nicht erkannt“ bedeutet nicht immer „nicht verfügbar“ — macOS schreibt eine Berechtigungserteilung dem Prozess zu, der kirocrew-customapi gestartet hat, nicht kirocrew-customapi selbst.",
         "the_app_lists_in_computer_use_json_could_not_be": "Die App-Listen in computer_use.json konnten nicht gelesen werden, daher werden sie hier leer angezeigt. Der Agent verweigert weiterhin jede Aktion, die von ihnen abhängt, bis die Datei gültiges JSON ist.",
         "your_chat_sessions_were_restarted_so_this_takes": "Deine Chat-Sitzungen wurden neu gestartet, damit dies sofort wirkt — Kiro liest seine Werkzeugliste einmal pro Sitzung, ein offener Chat hätte sie sonst nicht übernommen. Deine Nachrichten sind weiterhin da; der Agent liest seinen Kontext bei deiner nächsten Nachricht erneut."
       },
@@ -8558,7 +8558,7 @@
         "font_family": "Schriftfamilie",
         "github": "GitHub",
         "highlight_recent_sessions": "Kürzliche Sitzungen hervorheben",
-        "highlight_the_n_most_recently_active_sessions_wi": "Die N zuletzt aktiven Sitzungen mit einem abgestuften Akzentstreifen hervorheben (0 = aus). Wird in Ihrer Kiro Crew-Konfiguration gespeichert.",
+        "highlight_the_n_most_recently_active_sessions_wi": "Die N zuletzt aktiven Sitzungen mit einem abgestuften Akzentstreifen hervorheben (0 = aus). Wird in Ihrer kirocrew-customapi-Konfiguration gespeichert.",
         "how_the_session_color_is_applied_to_the_row": "Wie die Sitzungsfarbe auf die Zeile angewendet wird.",
         "how_visible_the_color_tint_is_on_sidebar_rows": "Wie sichtbar die Farbtönung auf Seitenleistenzeilen ist.",
         "install_theme": "Theme installieren",
@@ -8752,7 +8752,7 @@
       "securityPanel": {
         "add": "Hinzufügen",
         "add_a_custom_deny_pattern_regex_e_g_rm_rf_tmp_mi": "Benutzerdefiniertes Verbotsmuster (Regex) hinzufügen, z. B. rm -rf /tmp/mine",
-        "add_your_own_deny_patterns_python_compatible_reg": "Fügen Sie eigene Verbotsmuster hinzu (Python-kompatible Regex). Diese werden am PreToolUse-Gate von Kiro Crew zusammen mit den integrierten Regeln erzwungen.",
+        "add_your_own_deny_patterns_python_compatible_reg": "Fügen Sie eigene Verbotsmuster hinzu (Python-kompatible Regex). Diese werden am PreToolUse-Gate von kirocrew-customapi zusammen mit den integrierten Regeln erzwungen.",
         "and_cannot_be_changed_here": "und kann hier nicht geändert werden.",
         "and_per_surface": "und pro Oberfläche",
         "cancel": "Abbrechen",
@@ -8768,7 +8768,7 @@
         "disable_all_built_in_denies": "Alle integrierten Verbote deaktivieren",
         "disabling_a_rule_that_overlaps_an_always_on_cont": "Das Deaktivieren einer Regel, die sich mit einem stets aktiven Steuerelement überschneidet (Lesen sensibler Dateien, IMDS, git-publish), hebt die Blockade nicht vollständig auf — Defense-in-Depth hält sie blockiert.",
         "disabling_weakens_protection": "Das Deaktivieren von „{{name}}“ schwächt den Schutz vor destruktiven Befehlen und vor Befehlen, die Zugangsdaten abfließen lassen. Einige Befehle bleiben möglicherweise durch unabhängige Defense-in-Depth-Kontrollen blockiert.",
-        "do_not_enter_highly_sensitive_or_restricted_data": "Geben Sie keine hochsensiblen oder eingeschränkten Daten in Kiro Crew ein. Beachten Sie alle geltenden Richtlinien zum Umgang mit Daten, wenn Sie entscheiden, was Sie mit dem Agenten teilen.",
+        "do_not_enter_highly_sensitive_or_restricted_data": "Geben Sie keine hochsensiblen oder eingeschränkten Daten in kirocrew-customapi ein. Beachten Sie alle geltenden Richtlinien zum Umgang mit Daten, wenn Sie entscheiden, was Sie mit dem Agenten teilen.",
         "documentation": "Dokumentation",
         "effective_security_ceiling": "Effektive Sicherheitsobergrenze",
         "enabled_2": "Aktiviert · {{detail}}",
@@ -8777,9 +8777,9 @@
         "governance_policy": "Governance-Richtlinie",
         "governance_status_is_temporarily_unavailable_enf": "Der Governance-Status ist vorübergehend nicht verfügbar. Die Durchsetzung ist davon nicht betroffen — diese Ansicht konnte die Obergrenze nicht zur Anzeige auflösen.",
         "host_surface": "Host-Oberfläche",
-        "i_understand_this_weakens_kirocrew_s_protection": "Ich verstehe, dass dies den Schutz von Kiro Crew schwächt.",
+        "i_understand_this_weakens_kirocrew_s_protection": "Ich verstehe, dass dies den Schutz von kirocrew-customapi schwächt.",
         "kiro_crew_security_policy_json": "~/.kiro/crew/security_policy.json",
-        "kirocrew_implements_6_security_layers_each_layer": "Kiro Crew implementiert 6 Sicherheitsschichten. Jede Schicht arbeitet unabhängig — ein Angreifer muss alle Schichten gleichzeitig umgehen, um erfolgreich zu sein.",
+        "kirocrew_implements_6_security_layers_each_layer": "kirocrew-customapi implementiert 6 Sicherheitsschichten. Jede Schicht arbeitet unabhängig — ein Angreifer muss alle Schichten gleichzeitig umgehen, um erfolgreich zu sein.",
         "live_security_posture": "Aktuelle Sicherheitslage",
         "loading_built_in_rules": "Integrierte Regeln werden geladen…",
         "loading_governance_policy": "Governance-Richtlinie wird geladen…",
@@ -8809,7 +8809,7 @@
         "disabled_by_policy": "Durch Richtlinie deaktiviert",
         "other_surfaces_have_their_own_profiles": "Eine Surface mit eigenem Profil kann erlauben, was der Host nicht kann: {{surfaces}}.",
         "disabled_for_this_surface": "Für die Host-Surface deaktiviert",
-        "disabling_all_built_in_denies_removes_kirocrew_s": "Das Deaktivieren aller integrierten Verbote entfernt den Schutz von Kiro Crew vor destruktiven Befehlen und Befehlen zur Exfiltration von Anmeldedaten. Einige Befehle bleiben möglicherweise durch unabhängige Defense-in-Depth-Steuerelemente blockiert (sensible Pfade, IMDS, git-publish).",
+        "disabling_all_built_in_denies_removes_kirocrew_s": "Das Deaktivieren aller integrierten Verbote entfernt den Schutz von kirocrew-customapi vor destruktiven Befehlen und Befehlen zur Exfiltration von Anmeldedaten. Einige Befehle bleiben möglicherweise durch unabhängige Defense-in-Depth-Steuerelemente blockiert (sensible Pfade, IMDS, git-publish).",
         "enabled": "Aktiviert",
         "expand_category_rules": "Regeln für {{category}} ausklappen",
         "hide_pattern": "Muster ausblenden",
@@ -8842,7 +8842,7 @@
         "feature_sel_audit": "SEL-Auditprotokollierung",
         "feature_sel_audit_description": "Unveränderliche, HMAC-verkettete Spur von Sicherheitsereignissen mit Redaktion von Anmeldedaten vor der Weiterleitung",
         "feature_sensitive_paths": "Blockieren sensibler Pfade",
-        "feature_sensitive_paths_description": "Verzeichnisse mit Anmeldedaten und Kiro Crew-Vertrauenswurzeln werden in der Hook-Schicht vor der Werkzeugausführung blockiert",
+        "feature_sensitive_paths_description": "Verzeichnisse mit Anmeldedaten und kirocrew-customapi-Vertrauenswurzeln werden in der Hook-Schicht vor der Werkzeugausführung blockiert",
         "feature_suspicious_patterns": "Verdächtige Bash-Muster",
         "feature_suspicious_patterns_description": "Erkennt Angriffsmuster für Löschung, Exfiltration und Pipe-Ausführung in Shell-Befehlen",
         "feature_token_auth": "Token-Authentifizierung für das Dashboard",
@@ -8884,20 +8884,20 @@
         "yolo_duration_6h": "6 hours",
         "yolo_duration_12h": "12 hours",
         "yolo_duration_24h": "24 hours",
-        "yolo_duration_until_shutdown": "Until Kiro Crew restarts",
+        "yolo_duration_until_shutdown": "Until kirocrew-customapi restarts",
         "yolo_duration_locked": "Disabled by your organization's policy",
         "yolo_duration_next_activation_note": "Applies the next time you turn auto-approve on.",
         "failed_to_save_yolo_duration": "Could not save the duration.",
-        "yolo_active_until_restart": "Auto-approve is on and stays on until Kiro Crew restarts.",
+        "yolo_active_until_restart": "Auto-approve is on and stays on until kirocrew-customapi restarts.",
         "yolo_active_expires_at": "Auto-approve is on until {{time}}.",
         "third_party_apps_section": "Third-party apps",
         "third_party_apps_state_unknown": "Unavailable",
         "third_party_apps_unavailable": "Could not read the current setting, so it cannot be shown or changed here. If it was already on, third-party apps stay allowed — reload the page to try again.",
         "third_party_apps_title": "Let third-party apps run their own code",
-        "third_party_apps_desc": "Apps that did not ship with Kiro Crew cannot run their own code until you allow it. Leave this off and such an app will install but refuse to start.",
-        "third_party_apps_tip": "Applies to any app that is not built into Kiro Crew. Built-in apps are unaffected and keep working either way.",
-        "third_party_apps_on_warning": "This trusts every third-party app, including ones you install later — not just the one you were trying to start. A trusted app runs with the same access Kiro Crew has: your files, your saved credentials, and the internet.",
-        "third_party_apps_scope_note": "Takes effect the next time an app's code is loaded. Turning it back off stops Kiro Crew admitting that code again; an app already running stays up until it is switched off or Kiro Crew restarts.",
+        "third_party_apps_desc": "Apps that did not ship with kirocrew-customapi cannot run their own code until you allow it. Leave this off and such an app will install but refuse to start.",
+        "third_party_apps_tip": "Applies to any app that is not built into kirocrew-customapi. Built-in apps are unaffected and keep working either way.",
+        "third_party_apps_on_warning": "This trusts every third-party app, including ones you install later — not just the one you were trying to start. A trusted app runs with the same access kirocrew-customapi has: your files, your saved credentials, and the internet.",
+        "third_party_apps_scope_note": "Takes effect the next time an app's code is loaded. Turning it back off stops kirocrew-customapi admitting that code again; an app already running stays up until it is switched off or kirocrew-customapi restarts.",
         "third_party_apps_save_failed": "Could not save this setting.",
         "section_group_status": "Status",
         "section_group_your_settings": "Ihre Einstellungen",
@@ -8965,7 +8965,7 @@
         "cannot_load_slack_config_is_the_gateway_running": "Slack-Konfiguration kann nicht geladen werden. Läuft das Gateway?",
         "copied": "Kopiert",
         "create_slack_app": "Slack-App erstellen",
-        "create_the_slack_app_from_the_manifest": "Erstellen Sie die Slack-App aus dem vorbefüllten Manifest unten (Socket Mode und Berechtigungen\n            enthalten, benannt KiroCrew-{{alias}}). Installieren Sie sie in Ihrem\n            Workspace und fügen Sie dann das Bot-Token und das App-Level-Token hier ein.",
+        "create_the_slack_app_from_the_manifest": "Erstellen Sie die Slack-App aus dem vorbefüllten Manifest unten (Socket Mode und Berechtigungen\n            enthalten, benannt kirocrew-customapi-{{alias}}). Installieren Sie sie in Ihrem\n            Workspace und fügen Sie dann das Bot-Token und das App-Level-Token hier ein.",
         "e0123abc456": "E0123ABC456",
         "enterprise_grid_org_ids_to_allow_starts_with_e_o": "Zu erlaubende Enterprise Grid-Organisations-IDs (beginnt mit E oder T). Leer lassen, um alle Organisationen zu erlauben.",
         "from_oauth_permissions_after_installing_your_sla": "Aus „OAuth & Permissions“ nach der Installation Ihrer Slack-App (beginnt mit xoxb-).",
@@ -8989,7 +8989,7 @@
         "slack_app_token": "Slack-App-Token",
         "slack_bot_token": "Slack-Bot-Token",
         "slack_connection_failed_at_startup": "Slack-Verbindung beim Start fehlgeschlagen ({{error}}). Prüfe den Netzwerkzugriff auf slack.com und starte dann das Gateway neu.",
-        "slack_settings_are_managed_on_the_machine_runnin": "Slack-Einstellungen werden auf dem Rechner verwaltet, auf dem Kiro Crew läuft, und sind aus Remote-Sitzungen nur lesbar.",
+        "slack_settings_are_managed_on_the_machine_runnin": "Slack-Einstellungen werden auf dem Rechner verwaltet, auf dem kirocrew-customapi läuft, und sind aus Remote-Sitzungen nur lesbar.",
         "slash_command": "Slash-Befehl",
         "talk_to_your_agents_from_slack_over_socket_mode": "Sprechen Sie mit Ihren Agenten aus Slack über Socket Mode. Fügen Sie erlaubte Mitglieds-IDs hinzu, damit verbundene Bots antworten können.",
         "the_one_member_who_can_always_interact_with_the": "Das einzige Mitglied, das immer mit dem Bot interagieren kann (KIROCREW_OWNER_ID). Beginnt mit U oder W.",
@@ -9128,7 +9128,7 @@
         "talk_to_your_agents_from_a_teams_1_1_chat_self_h": "Sprechen Sie mit Ihren Agenten aus einem Teams-1:1-Chat. Selbst gehostet über das Bot Framework:\n            Teams sendet an den HTTPS-Webhook Ihres Gateways, daher wird ein öffentlicher Endpunkt benötigt\n            (Reverse Proxy, App Service oder ein Dev-Tunnel).",
         "teams_credential_check_failed": "Prüfung der Teams-Zugangsdaten fehlgeschlagen ({{error}}). Überprüfe App-ID / Passwort / Mandant und starte dann das Gateway neu.",
         "teams_delivers_messages_by_calling_this_endpoint": "Teams stellt Nachrichten zu, indem\n              es diesen Endpunkt aus dem Internet aufruft, daher ist ein",
-        "teams_settings_are_managed_on_the_machine_runnin": "Teams-Einstellungen werden auf dem Rechner verwaltet, auf dem Kiro Crew läuft, und sind aus Remote-Sitzungen nur lesbar.",
+        "teams_settings_are_managed_on_the_machine_runnin": "Teams-Einstellungen werden auf dem Rechner verwaltet, auf dem kirocrew-customapi läuft, und sind aus Remote-Sitzungen nur lesbar.",
         "tenant_id": "Tenant-ID",
         "to": "bis",
         "tunnel_or_reverse_proxy_see_the_note_above_note": "(Tunnel oder Reverse\n              Proxy) — siehe Hinweis oben. Notieren Sie den resultierenden Host.",
@@ -9198,11 +9198,11 @@
         "required": "Erforderlich",
         "setup_guide": "Einrichtungsanleitung",
         "start_the_channel_at_gateway_boot_when_a_token_i": "Den Kanal beim Gateway-Start aktivieren, wenn ein Token festgelegt ist.",
-        "talk_to_your_agents_from_cisco_webex_no_public_u": "Sprechen Sie mit Ihren Agenten aus Cisco Webex. Keine öffentliche URL erforderlich — Kiro Crew empfängt\n            Nachrichten über einen ausgehenden WebSocket, funktioniert also hinter einer Firewall.",
+        "talk_to_your_agents_from_cisco_webex_no_public_u": "Sprechen Sie mit Ihren Agenten aus Cisco Webex. Keine öffentliche URL erforderlich — kirocrew-customapi empfängt\n            Nachrichten über einen ausgehenden WebSocket, funktioniert also hinter einer Firewall.",
         "webex": "Webex",
         "webex_account_emails_permitted_to_dm_the_bot_emp": "E-Mail-Adressen von Webex-Konten, die dem Bot Direktnachrichten senden dürfen. Leer = niemand (fail closed) — jeder in einer Organisation kann einem Webex-Bot schreiben, fügen Sie daher nur Ihre eigene hinzu.",
         "webex_bot_token": "Webex-Bot-Token",
-        "webex_settings_are_managed_on_the_machine_runnin": "Webex-Einstellungen werden auf dem Rechner verwaltet, auf dem Kiro Crew läuft, und sind aus Remote-Sitzungen nur lesbar.",
+        "webex_settings_are_managed_on_the_machine_runnin": "Webex-Einstellungen werden auf dem Rechner verwaltet, auf dem kirocrew-customapi läuft, und sind aus Remote-Sitzungen nur lesbar.",
         "you_example_com": "you@example.com",
         "active": "Aktiv",
         "needs_setup": "Einrichtung nötig",
@@ -9259,7 +9259,7 @@
         "open_developer_portal": "Developer Portal öffnen",
         "thread_allowlist_description": "Optional. Genehmigte Benutzer dürfen den Agenten nur in genau diesen Discord-Threads ausführen. Leer = nur Direktnachrichten.",
         "thread_help": "Wenn der Developer Mode aktiviert ist, klicke mit der rechten Maustaste auf den Thread → <mono>Copy Channel ID</mono>. Verwende die ID des Threads, nicht die des übergeordneten Kanals.",
-        "thread_warning": "Der Thread-Modus aktiviert Discords globalen Message Content Intent. Discord liefert Inhalte aus jedem Server-Kanal, den der Bot sehen kann; Kiro Crew verwirft Verkehr außerhalb genehmigter Threads. Alle, die einen genehmigten Thread sehen können, können Agentenantworten und Werkzeugausgaben lesen.",
+        "thread_warning": "Der Thread-Modus aktiviert Discords globalen Message Content Intent. Discord liefert Inhalte aus jedem Server-Kanal, den der Bot sehen kann; kirocrew-customapi verwirft Verkehr außerhalb genehmigter Threads. Alle, die einen genehmigten Thread sehen können, können Agentenantworten und Werkzeugausgaben lesen.",
         "threshold_description": "Zu !compact oder !new auffordern, wenn der Sitzungskontext diesen Prozentsatz überschreitet.",
         "token_description": "Von der Bot-Seite des Developer Portals (Reset Token, um es einmal anzuzeigen).",
         "token_placeholder": "Discord-Bot-Token einfügen"
@@ -9301,7 +9301,7 @@
       }
     },
     "settingsPage": {
-      "kirocrew_v": "Kiro Crew v",
+      "kirocrew_v": "kirocrew-customapi v",
       "settings": "Einstellungen"
     },
     "systemPage": {
@@ -9318,7 +9318,7 @@
       "host": "Host",
       "hostname": "Hostname",
       "ip_address": "IP-Adresse",
-      "kirocrew_process": "Kiro Crew-Prozess",
+      "kirocrew_process": "kirocrew-customapi-Prozess",
       "live_system_metrics_refreshes_every_2s": "Live-Systemmetriken · Aktualisierung alle 2 s",
       "load_1_5_15m": "Last (1/5/15m)",
       "mcp_process_breakdown": "{{total}} ({{sandbox}} Sandbox · {{provider}} {{providerLabel}} · {{mcp}} MCP)",
@@ -9375,7 +9375,7 @@
       "block_unclassified": "Nicht klassifiziert",
       "block_your_message": "Deine Nachricht",
       "caption": "Die Balkenlänge nutzt eine Quadratwurzelskala, damit auch ein kurzer Zug breit genug bleibt, um seine Zusammensetzung zu erkennen.",
-      "card_meta": "{{turns}} Züge · {{chars}} von Kiro Crew gesendete Zeichen",
+      "card_meta": "{{turns}} Züge · {{chars}} von kirocrew-customapi gesendete Zeichen",
       "empty": "Für diese Sitzung wurde noch keine Kontextaufschlüsselung erfasst.",
       "estimate_label": "Nicht gemessen · Schätzung {{pct}}",
       "group_per_turn": "pro Zug",
@@ -9386,7 +9386,7 @@
       "segment_label": "{{label}} {{pct}}",
       "strip_kiro_builtin": "Nicht gemessen",
       "strip_kiro_builtin_sub": "~{{chars}} Zeichen · kiro-Grundlast + Konversation (geschätzt)",
-      "strip_kirocrew_added": "Von Kiro Crew hinzugefügt",
+      "strip_kirocrew_added": "Von kirocrew-customapi hinzugefügt",
       "strip_kirocrew_added_sub": "{{chars}} Zeichen · per Konfiguration entfernbar",
       "strip_your_messages": "Deine Nachrichten",
       "strip_your_messages_sub": "{{chars}} von {{total}} Zeichen",
@@ -9513,7 +9513,7 @@
       "call_with_this_token": "Mit diesem Token aufrufen",
       "caller_name": "Name des Aufrufers",
       "callers_over_the_cap_get_http_429_retry_with_bac": "Aufrufer über dem Limit erhalten HTTP 429; mit Backoff erneut versuchen.",
-      "calls_must_send_signature_headers_detail": "Aufrufe mit diesem Token müssen X-KiroCrew-Timestamp und X-KiroCrew-Signature senden. Die Signatur deckt \"<timestamp>.<raw body>\" ab, der Zeitstempel muss innerhalb von ±{{seconds}}s liegen, und jede Signatur wird pro Gateway-Prozess einmal akzeptiert.",
+      "calls_must_send_signature_headers_detail": "Aufrufe mit diesem Token müssen X-kirocrew-customapi-Timestamp und X-kirocrew-customapi-Signature senden. Die Signatur deckt \"<timestamp>.<raw body>\" ab, der Zeitstempel muss innerhalb von ±{{seconds}}s liegen, und jede Signatur wird pro Gateway-Prozess einmal akzeptiert.",
       "calls_using_it_start_failing_with_401": "Aufrufe damit schlagen ab dann mit 401 fehl.",
       "capacity": "Kapazität",
       "chars": "Zeichen",
@@ -9659,11 +9659,11 @@
       "setup_endpoint": "Einrichtung & Endpunkt",
       "shown_in_the_bearer_only_form_because_no_existin": "Wird in der reinen Bearer-Form gezeigt, weil kein vorhandener Token eine Signatur verlangt.",
       "shown_in_the_signing_form_because_the_tokens_tha": "Wird in der Signatur-Form gezeigt, weil die Tokens, die diesen Endpunkt aufrufen können, eine Signatur verlangen.",
-      "shown_once_bearer_only_warning": "Dies ist das einzige Mal, dass das vollständige Secret angezeigt wird. Kiro Crew speichert davon nur einen Hash, deshalb kann es nicht erneut angezeigt oder wiederhergestellt werden. Wenn du es verlierst, widerrufe den Token und erzeuge einen neuen.",
-      "shown_once_signing_pair_warning": "Dies ist das einzige Mal, dass diese Werte angezeigt werden. Kiro Crew speichert den Bearer-Token nur als Hash und zeigt das Signing-Secret nie wieder an, deshalb lässt sich keines von beiden wiederherstellen. Wenn du eines davon verlierst, widerrufe den Token und erzeuge einen neuen.",
+      "shown_once_bearer_only_warning": "Dies ist das einzige Mal, dass das vollständige Secret angezeigt wird. kirocrew-customapi speichert davon nur einen Hash, deshalb kann es nicht erneut angezeigt oder wiederhergestellt werden. Wenn du es verlierst, widerrufe den Token und erzeuge einen neuen.",
+      "shown_once_signing_pair_warning": "Dies ist das einzige Mal, dass diese Werte angezeigt werden. kirocrew-customapi speichert den Bearer-Token nur als Hash und zeigt das Signing-Secret nie wieder an, deshalb lässt sich keines von beiden wiederherstellen. Wenn du eines davon verlierst, widerrufe den Token und erzeuge einen neuen.",
       "signature_required": "Signatur erforderlich",
       "signed": "Signiert",
-      "signed_mode_requirements": "Hier erzeugte Tokens verlangen standardmäßig eine Signierung: der Aufruf muss X-KiroCrew-Timestamp und X-KiroCrew-Signature zusammen mit dem Bearer-Token mitsenden, und die Signatur deckt den Roh-Body ab, sende also genau die Bytes, die du signiert hast. Ein Zeitstempel, der mehr als {{seconds}}s abweicht, oder eine bereits gesehene Signatur wird mit 401 abgelehnt.",
+      "signed_mode_requirements": "Hier erzeugte Tokens verlangen standardmäßig eine Signierung: der Aufruf muss X-kirocrew-customapi-Timestamp und X-kirocrew-customapi-Signature zusammen mit dem Bearer-Token mitsenden, und die Signatur deckt den Roh-Body ab, sende also genau die Bytes, die du signiert hast. Ein Zeitstempel, der mehr als {{seconds}}s abweicht, oder eine bereits gesehene Signatur wird mit 401 abgelehnt.",
       "signed_over_timestamp_and_raw_body_detail": "Signiert über \"<timestamp>.<raw body>\". Ein Zeitstempel außerhalb von ±{{seconds}}s wird abgelehnt, und jede Signatur wird pro Gateway-Prozess nur einmal akzeptiert; eine abgefangene Anfrage kann also innerhalb des Fensters nicht wiederholt werden, sofern das Gateway nicht zuvor neu startet.",
       "signing": "Signierung",
       "signing_secret_proves_the_body_was_not_tampered": "Signing-Secret — belegt, dass der Body nicht manipuliert wurde",
@@ -9752,7 +9752,7 @@
       "filter_sessions": "Sitzungen filtern…",
       "host_headroom": "Freier Hostspeicher (GB)",
       "host_share": "Host-Anteil",
-      "kirocrew_used": "Von Kiro Crew belegt (GB)",
+      "kirocrew_used": "Von kirocrew-customapi belegt (GB)",
       "largest_session": "Größte Sitzung (GB)",
       "mcp": "MCP",
       "mcp_stubs": "MCP-Stubs",
@@ -9812,7 +9812,7 @@
         "auto": "Automatisch",
         "description": "Sprache für die Dashboard-Oberfläche.",
         "label": "Sprache",
-        "sync_failed": "Dies konnte nicht in Ihrer Kiro Crew-Konfiguration gespeichert werden — die Sprache gilt nur in diesem Browser und kann beim Neuladen zurückgesetzt werden."
+        "sync_failed": "Dies konnte nicht in Ihrer kirocrew-customapi-Konfiguration gespeichert werden — die Sprache gilt nur in diesem Browser und kann beim Neuladen zurückgesetzt werden."
       }
     },
     "groups": {
@@ -9849,7 +9849,7 @@
         "label": "Anzeige"
       },
       "imports": {
-        "description": "Daten von einem anderen KI-Agenten übernehmen und die Kiro Crew-Konfiguration sichern oder wiederherstellen",
+        "description": "Daten von einem anderen KI-Agenten übernehmen und die kirocrew-customapi-Konfiguration sichern oder wiederherstellen",
         "label": "Import / Export"
       },
       "instances": {

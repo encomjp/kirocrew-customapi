@@ -1,7 +1,7 @@
 {
-  "name": "kirocrew-electron-mac",
+  "name": "kirocrew-customapi",
   "version": "0.2.0-customapi.2",
-  "description": "Kiro Crew \u2014 AI agent desktop app",
+  "description": "kirocrew-customapi \u2014 AI agent desktop app (fork of Kiro Crew)",
   "homepage": "https://github.com/encomjp/kirocrew-customapi",
   "main": "main.js",
   "scripts": {
@@ -25,8 +25,8 @@
     "js-yaml": "4.3.0"
   },
   "build": {
-    "appId": "com.amazon.kiro.crew",
-    "productName": "KiroCrew",
+    "appId": "com.kirocrew.customapi",
+    "productName": "kirocrew-customapi",
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "icon.png",
@@ -41,16 +41,16 @@
       "notarize": false,
       "x64ArchFiles": "{**/backend-dist/**,**/backend-dist/**/.*/**}",
       "extendInfo": {
-        "CFBundleDisplayName": "Kiro Crew",
-        "NSMicrophoneUsageDescription": "Kiro Crew uses the microphone for voice input and dictation in chat. Audio is captured only while you hold or toggle the mic button."
+        "CFBundleDisplayName": "kirocrew-customapi",
+        "NSMicrophoneUsageDescription": "kirocrew-customapi uses the microphone for voice input and dictation in chat. Audio is captured only while you hold or toggle the mic button."
       }
     },
     "afterSign": "scripts/notarize.js",
     "linux": {
       "category": "Development",
       "icon": "icon.png",
-      "synopsis": "Kiro Crew — AI agent desktop app",
-      "description": "Kiro Crew is an open source development workspace that runs locally or remotely on your hardware. This fork re-enables the claude_code provider for custom LLM routers.",
+      "synopsis": "kirocrew-customapi \u2014 AI agent desktop app",
+      "description": "kirocrew-customapi is an open source development workspace (fork of Kiro Crew) that runs locally or remotely on your hardware. This fork re-enables the claude_code provider for custom LLM routers.",
       "maintainer": "Adrian Kozlowski <encomjp@users.noreply.github.com>",
       "target": [
         "AppImage",

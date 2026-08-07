@@ -119,7 +119,7 @@ test("configureUpdater: allowPrerelease=true (nightly/insider stamps are semver 
 test("CONTRACT: absolute artifact urls pass through newUrlFromBase unchanged (pointer/bytes split)", () => {
   const { newBaseUrl, newUrlFromBase } = require("electron-updater/out/util");
   const base = newBaseUrl(buildFeedBase({ base: "https://updates.crew.kiro.dev/feed", channel: "nightly" }));
-  const absolute = "https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260728t112233/KiroCrew-arm64.dmg";
+  const absolute = "https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260728t112233/kirocrew-customapi-arm64.dmg";
   // Base is on a DIFFERENT host than the artifact: the absolute url must win.
   assert.strictEqual(newUrlFromBase(absolute, base).href, absolute);
 });
@@ -827,14 +827,14 @@ test("BLOCKING-fix contract: package.json declares the fork's GitHub publish ent
 test("manualDownloadUrl: linux points at the fork's latest AppImage release", () => {
   assert.strictEqual(
     manualDownloadUrl("0.2.0", "linux"),
-    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0.AppImage",
+    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0.AppImage",
   );
 });
 
 test("manualDownloadUrl: darwin points at the fork's arm64 dmg", () => {
   assert.strictEqual(
     manualDownloadUrl("0.2.0", "darwin"),
-    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0-arm64.dmg",
+    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0-arm64.dmg",
   );
 });
 
@@ -848,6 +848,6 @@ test("getInfo.downloadUrl uses the pending version (running version before disco
   const u = initAutoUpdate(deps);
   assert.strictEqual(
     u.getInfo().downloadUrl,
-    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-1.0.0.AppImage",
+    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-1.0.0.AppImage",
   );
 });

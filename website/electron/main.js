@@ -405,7 +405,7 @@ async function offerRelocationIfUnupdatable() {
   try {
     ({ response } = await dialog.showMessageBox({
       type: "warning",
-      title: "Move Kiro Crew to Applications?",
+      title: "Move kirocrew-customapi to Applications?",
       message: describeLocation(location, { bundleWritable }),
       detail: "Move it to your Applications folder to receive updates. "
         + "You can keep using it from here for now, but it will not update itself.",

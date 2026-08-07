@@ -185,11 +185,11 @@ test("manualDownloadUrl: fork GitHub release permalinks (per-platform)", () => {
   // passes the pending version (found/staged/running).
   assert.strictEqual(
     manualDownloadUrl("0.2.0-customapi.1", "darwin"),
-    `${DOWNLOAD_BASE}/KiroCrew-0.2.0-customapi.1-arm64.dmg`,
+    `${DOWNLOAD_BASE}/kirocrew-customapi-0.2.0-customapi.1-arm64.dmg`,
   );
   assert.strictEqual(
     manualDownloadUrl("0.2.0-customapi.1", "linux"),
-    `${DOWNLOAD_BASE}/KiroCrew-0.2.0-customapi.1.AppImage`,
+    `${DOWNLOAD_BASE}/kirocrew-customapi-0.2.0-customapi.1.AppImage`,
   );
 });
 

@@ -5,8 +5,8 @@
 # no internal tooling required. Uses python3/pip (backend) + npm/vite (frontend).
 #
 # Usage (from a local clone):
-#   git clone https://github.com/kirodotdev/KiroCrew.git
-#   cd kirocrew
+#   git clone https://github.com/encomjp/kirocrew-customapi.git
+#   cd kirocrew-customapi
 #   bash install.sh
 #
 # Options:
@@ -128,7 +128,7 @@ echo ""
 
 if [ ! -f "$KIROCREW_APP_DIR/pyproject.toml" ]; then
     die "Run this from inside a KiroCrew clone (pyproject.toml not found in $KIROCREW_APP_DIR).
-     git clone https://github.com/kirodotdev/KiroCrew.git && cd kirocrew && bash install.sh"
+     git clone https://github.com/encomjp/kirocrew-customapi.git && cd kirocrew-customapi && bash install.sh"
 fi
 
 # ══════════════════════════════════════════════════════════════════════

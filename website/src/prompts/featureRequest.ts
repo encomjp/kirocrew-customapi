@@ -1,4 +1,4 @@
-export const FEATURE_REQUEST_URL = 'https://github.com/kirodotdev/KiroCrew/issues/new'
+export const FEATURE_REQUEST_URL = 'https://github.com/encomjp/kirocrew-customapi/issues/new'
 
 /**
  * Prompt used when the dashboard has already confirmed that the
