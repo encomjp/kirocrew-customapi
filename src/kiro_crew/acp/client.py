@@ -2080,44 +2080,47 @@ class AcpClient:
         return self.backend == ACP_BACKEND_CLAUDE
 
     def _write_opencode_provider_config(self) -> None:
-        """Seed ~/.config/opencode/opencode.json with the fork's custom provider.
+        """Write an isolated OpenCode config for the fork's custom provider.
 
-        baseURL / apiKey come from the spawn ``extra_env`` (set from
-        ``agent.provider_base_url`` / ``agent.provider_api_key`` by the
-        provider factory); ``format: "openai"`` lets OpenCode translate the
-        OpenAI-compatible endpoint to its internal Anthropic calls. Existing
-        OpenCode config is preserved; the fork-owned provider entry is
-        replaced wholesale.
+        Writes to ``~/.config/kirocrew-customapi/opencode-home/.config/opencode/
+        opencode.json`` so that when the OpenCode ACP process is spawned with
+        ``HOME`` set to ``~/.config/kirocrew-customapi/opencode-home``, it sees
+        only our provider — no user plugins (Honcho) or MCP servers that would
+        stall the ACP session.
         """
         home = os.path.expanduser("~")
-        cfg_dir = os.path.join(home, ".config", "opencode")
+        cfg_dir = os.path.join(
+            home, ".config", "kirocrew-customapi", "opencode-home", ".config", "opencode"
+        )
         os.makedirs(cfg_dir, exist_ok=True)
         path = os.path.join(cfg_dir, "opencode.json")
-        existing: dict = {}
-        try:
-            with open(path, encoding="utf-8") as fh:
-                existing = json.load(fh)
-        except (OSError, ValueError):
-            existing = {}
-        if not isinstance(existing, dict):
-            existing = {}
         base_url = (self._extra_env or {}).get("ANTHROPIC_BASE_URL", "")
-        api_key = (self._extra_env or {}).get("ANTHROPIC_API_KEY", "")
         api_format = (self._extra_env or {}).get("OPENCODE_API_FORMAT", "") or "openai"
-        # OpenCode selects the wire format via the AI-SDK adapter (npm package),
-        # not via an options flag: anthropic -> @ai-sdk/anthropic,
-        # openai -> @ai-sdk/openai-compatible.
+        if base_url.rstrip("/") in ("https://ollama.com", "https://ollama.com/v1"):
+            base_url = "https://ollama.com/v1"
+            api_format = "openai"
+        api_key = (self._extra_env or {}).get("ANTHROPIC_API_KEY", "")
         npm = "@ai-sdk/anthropic" if api_format == "anthropic" else "@ai-sdk/openai-compatible"
         options: dict[str, object] = {"baseURL": base_url}
         if api_key:
             options["apiKey"] = api_key
-        providers = existing.get("provider")
-        if not isinstance(providers, dict):
-            providers = {}
-            existing["provider"] = providers
-        providers["kirocrew"] = {"npm": npm, "options": options}
-        with open(path, "w", encoding="utf-8") as fh:
-            json.dump(existing, fh, indent=2)
+        model_id = (self._extra_env or {}).get("KIROCREW_DEFAULT_MODEL", "") or getattr(
+            self, "_model", DEFAULT_MODEL
+        )
+        model_id = strip_router_model_prefix(model_id or "")
+        models = {model_id: {"name": model_id}} if model_id and model_id != DEFAULT_MODEL else {}
+        # Fully isolated config — no user plugins, no user MCP servers.
+        config = {
+            "provider": {
+                "kirocrew": {"npm": npm, "options": options, "models": models},
+            },
+            "plugin": [],
+            "mcp": {},
+        }
+
+        from kiro_crew.atomic_write import atomic_write
+
+        atomic_write(path, json.dumps(config, indent=2) + "\n", mode=0o600)
 
     def _pooled_mcp_servers(self) -> list[dict[str, Any]]:
         """Broker-stub ``mcpServers`` entries for this session's ``session/new``.
@@ -2298,6 +2301,13 @@ class AcpClient:
             channel_id,
         )
 
+    def _wire_model_id(self, model_id: str) -> str:
+        """Translate KiroCrew's model id into the active ACP backend namespace."""
+        raw = strip_router_model_prefix(model_id)
+        if self.backend == ACP_BACKEND_OPENCODE and raw != DEFAULT_MODEL:
+            return raw if raw.startswith("kirocrew/") else f"kirocrew/{raw}"
+        return raw
+
     async def set_model(self, model_id: str) -> None:
         """Switch model on a running session (used by warm pool post-claim)."""
         if not self._session_id:
@@ -2340,7 +2350,7 @@ class AcpClient:
         else:
             await self._send_request(
                 METHOD_SET_MODEL,
-                {"sessionId": self._session_id, "modelId": model_id},
+                {"sessionId": self._session_id, "modelId": self._wire_model_id(model_id)},
             )
         self._model = model_id
         self._resolved_model_id = model_id
@@ -2614,7 +2624,7 @@ class AcpClient:
         else:
             await self._send_request(
                 METHOD_SET_MODEL,
-                {"sessionId": self._session_id, "modelId": self._model},
+                {"sessionId": self._session_id, "modelId": self._wire_model_id(self._model)},
             )
         logger.info("ACP model: %s", self._model)
 
@@ -2803,7 +2813,7 @@ class AcpClient:
             argv,
             mode=self._sandbox_mode,
             strip_python_env=True,
-            is_kiro_cli=not self._is_claude,
+            is_kiro_cli=self.backend not in {ACP_BACKEND_CLAUDE, ACP_BACKEND_OPENCODE},
         )
         # cgroup v2 scope (OUTERMOST): bound this agent + all its MCP-server /
         # tool descendants with pids.max (fork bomb) + memory.max (RSS balloon).
@@ -2816,6 +2826,19 @@ class AcpClient:
         env = {**os.environ}
         if self._extra_env:
             env.update(self._extra_env)
+        if self.backend == ACP_BACKEND_OPENCODE:
+            # Isolate the OpenCode process from the user's global config
+            # (~/.config/opencode/opencode.json and .jsonc) which may contain
+            # plugins (Honcho) and MCP servers that stall the ACP session.
+            # _write_opencode_provider_config already wrote our isolated
+            # config to ~/.config/kirocrew-customapi/opencode-home/.config/
+            # opencode/opencode.json — setting HOME to that root makes
+            # OpenCode see ONLY our config, with zero user plugins or MCP.
+            isolated_home = os.path.join(
+                os.path.expanduser("~"),
+                ".config", "kirocrew-customapi", "opencode-home",
+            )
+            env["HOME"] = isolated_home
         logger.debug(
             "spawn env check: ANTHROPIC_MODEL=%r ANTHROPIC_BASE_URL=%r model_via_env=%s argv=%r cwd=%s",
             env.get("ANTHROPIC_MODEL", "<unset>"),
@@ -3264,7 +3287,9 @@ class AcpClient:
         """Handshake: initialize → session/load or session/new → set_mode → set_model."""
         # 1. Initialize
         protocol_version: int | str = (
-            PROTOCOL_VERSION_CLAUDE if self._is_claude else PROTOCOL_VERSION
+            PROTOCOL_VERSION_CLAUDE
+            if self.backend in {ACP_BACKEND_CLAUDE, ACP_BACKEND_OPENCODE}
+            else PROTOCOL_VERSION
         )
         init_id = await self._send_request(
             METHOD_INITIALIZE,
@@ -3396,7 +3421,7 @@ class AcpClient:
             except OSError:
                 self._jsonl_pos = 0
 
-        # 4. Activate agent via set_mode (claude-agent-acp does not support set_mode — skip).
+        # 4. Activate Kiro agent mode. Other ACP backends do not expose Kiro modes.
         #    Guard (A): fire only when the backend advertised this agent, or
         #    advertised no modes at all (older kiro-cli / fake → attempt,
         #    backward-compatible). If modes ARE advertised but this agent is
@@ -3405,7 +3430,7 @@ class AcpClient:
         #    default (broader) mode, which for a restricted agent is a privilege
         #    escalation. Self-heal (B, in _spawn) regenerates the managed default
         #    so the common case never reaches this branch.
-        if not self._is_claude:
+        if self.backend not in {ACP_BACKEND_CLAUDE, ACP_BACKEND_OPENCODE}:
             if not self._modes_advertised or self._agent in self._available_mode_ids:
                 await self._send_request(
                     METHOD_SET_MODE,

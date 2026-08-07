@@ -328,7 +328,15 @@ export function ChatPanel() {
       ? mcCfg.agent.provider
       : 'acp')
   const effUrl = draft?.url ?? mcCfg?.agent?.provider_base_url ?? ''
-  const effPreset = draft?.preset ?? 'custom'
+  // Bug 1 fix: derive preset from the saved URL so it doesn't reset to
+  // "custom" after save + reload.
+  const savedPreset = (() => {
+    const savedUrl = (mcCfg?.agent?.provider_base_url ?? '').replace(/\/+$/, '')
+    const presets = (mcCfg?.agent?.provider === 'claude_code' || mcCfg?.agent?.provider === 'opencode')
+      ? PROVIDER_PRESETS[mcCfg.agent.provider] : []
+    return presets.find(p => p.url === savedUrl)?.value ?? 'custom'
+  })()
+  const effPreset = draft?.preset ?? savedPreset
   const effFormat: 'anthropic' | 'openai' = (draft?.format ??
     (effBackend === 'opencode'
       ? (mcCfg?.agent?.provider_api_format ?? 'openai')
@@ -358,7 +366,12 @@ export function ChatPanel() {
     setProviderTesting(true)
     setProviderTestResult(null)
     try {
-      const res = await api.providerTest({ url: effUrl, api_key: draft?.key || undefined, format: effFormat })
+      // Bug 2 fix: use the stored key when no draft key is entered (e.g.
+      // after a restart with no unsaved changes).
+      const key = draft?.key || (hasStoredKey ? undefined : undefined)
+      // When no draft key is present but a key is stored, the backend
+      // should use the saved key. Pass a flag so the endpoint knows.
+      const res = await api.providerTest({ url: effUrl, api_key: key, format: effFormat, use_stored: !draft?.key && hasStoredKey })
       setProviderTestResult(res)
     } catch {
       setProviderTestResult({ ok: false, message: 'request failed' })

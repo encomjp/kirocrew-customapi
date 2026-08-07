@@ -55,7 +55,10 @@ export const PROVIDER_PRESETS: Record<'claude_code' | 'opencode', ProviderPreset
     { value: 'opencode-go', label: 'OpenCode Go', url: 'https://opencode.ai/zen/go', format: 'anthropic', keyRequired: true },
     // Anthropic-compatible gateways.
     { value: 'commandcode', label: 'commandcode.ai', url: 'https://commandcode.ai', format: 'anthropic', keyRequired: true },
-    { value: 'ollama-cloud', label: 'Ollama Cloud', url: 'https://ollama.com', format: 'anthropic', keyRequired: true },
+    // Ollama Cloud's Anthropic endpoint rejects cloud API keys; use OpenAI wire.
+    // URL is bare host (https://ollama.com) — the backend normalizes to /v1
+    // for the OpenCode AI-SDK adapter, and the test endpoint appends /v1/models.
+    { value: 'ollama-cloud', label: 'Ollama Cloud', url: 'https://ollama.com', format: 'openai', keyRequired: true },
     { value: 'anthropic', label: 'Anthropic', url: 'https://api.anthropic.com', format: 'anthropic', keyRequired: true },
     { value: 'openrouter', label: 'OpenRouter', url: 'https://openrouter.ai/api', format: 'anthropic', keyRequired: true },
     { value: 'xai-a', label: 'xAI (Anthropic)', url: 'https://api.x.ai', format: 'anthropic', keyRequired: true },

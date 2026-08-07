@@ -168,6 +168,16 @@ def _is_claude_backend(provider: Any) -> bool:
     return backend == "claude"
 
 
+def _provider_label(provider: Any) -> str:
+    """Return the session-map identity for an ACP provider backend."""
+    backend = getattr(getattr(provider, "client", None), "backend", "")
+    if backend == "claude":
+        return "claude_code"
+    if backend == "opencode":
+        return "opencode"
+    return "acp"
+
+
 def _provider_effectively_alive(provider: Any) -> bool:
     """Whether a session's provider should be treated as live (NOT stale).
 
@@ -2483,10 +2493,10 @@ class SessionManager:
             # build_session_replay on the first prompt (provider_switch_replay flag).
             _provider_switched = False
             if resume_sid:
-                is_cc_now = (
-                    ClaudeCodeProvider is not None and isinstance(provider, ClaudeCodeProvider)
-                ) or _is_claude_backend(provider)
-                current_provider = "claude_code" if is_cc_now else "acp"
+                is_standalone_cc = ClaudeCodeProvider is not None and isinstance(
+                    provider, ClaudeCodeProvider
+                )
+                current_provider = "claude_code" if is_standalone_cc else _provider_label(provider)
                 if detect_provider_switch(self._session_map, key, current_provider):
                     resume_sid = None
                     _provider_switched = True
@@ -2617,9 +2627,10 @@ class SessionManager:
                     _cwd_str = provider.cwd
                     if not is_stateless and isinstance(provider, AcpProvider):
                         sid = provider.client._session_id
-                        _prov_label = "claude_code" if _is_claude_backend(provider) else "acp"
                         if sid:
-                            self._session_map.set(key, sid, provider=_prov_label, cwd=_cwd_str)
+                            self._session_map.set(
+                                key, sid, provider=_provider_label(provider), cwd=_cwd_str
+                            )
                     elif (
                         not is_stateless
                         and ClaudeCodeProvider is not None
@@ -3353,12 +3364,12 @@ class SessionManager:
                             or self._is_continuable_key(key)
                         )
                     ):
-                        # Persist the provider label so detect_provider_switch
-                        # on next startup doesn't see a missing entry, default
-                        # to "acp", and falsely fire a switch for users still
-                        # on claude_code.
-                        _prov_label = "claude_code" if _is_claude_backend(sess.provider) else "acp"
-                        self._session_map.set(key, sid, provider=_prov_label, cwd=_cwd_str)
+                        # Persist the concrete backend identity so incompatible
+                        # native, Claude Code, and OpenCode sessions are never
+                        # resumed across provider switches.
+                        self._session_map.set(
+                            key, sid, provider=_provider_label(sess.provider), cwd=_cwd_str
+                        )
                 elif ClaudeCodeProvider is not None and isinstance(
                     sess.provider, ClaudeCodeProvider
                 ):

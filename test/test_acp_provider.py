@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from kiro_crew.acp.client import AcpAuthRequired
-from kiro_crew.acp.types import ACP_BACKEND_CLAUDE, AcpEvent, TurnUsage
+from kiro_crew.acp.types import ACP_BACKEND_CLAUDE, ACP_BACKEND_OPENCODE, AcpEvent, TurnUsage
 from kiro_crew.providers.acp import AcpProvider
 
 
@@ -38,6 +38,21 @@ def _async_iter(items):
             yield it
 
     return _gen()
+
+
+class TestProviderStartRouting:
+    @pytest.mark.asyncio
+    async def test_opencode_backend_uses_acp_client_not_kiro_runtime(self):
+        provider = _build_provider(backend=ACP_BACKEND_OPENCODE)
+        provider._client.ensure_ready = AsyncMock()
+        provider._start_kiro_runtime = AsyncMock()
+        provider._apply_initial_effort = AsyncMock()
+
+        await provider.start()
+
+        provider._client.ensure_ready.assert_awaited_once()
+        provider._start_kiro_runtime.assert_not_awaited()
+        assert provider.is_session_sharing_eligible is False
 
 
 class TestStreamCommandRouting:
@@ -1008,6 +1023,37 @@ class TestStartKiroRuntimeModelEntitlement:
     async def test_unusable_configured_model_is_never_sent(self):
         handle = await self._run("claude-opus-4.8", ["claude-sonnet-4.6"])
         handle.set_model.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_unusable_configured_model_resets_a_resumed_session_to_auto(self):
+        """Withholding is insufficient after session/load: the loaded transcript
+        can still be pinned to the stale model, so it must be reset explicitly."""
+        provider = self._kiro_provider("deepseek-v4-flash:0731")
+        provider._client._resume_session_id = "resumed-sid"
+        handle = MagicMock()
+        handle.session_id = "resumed-sid"
+        handle.store_session_config = MagicMock()
+        handle.set_model = AsyncMock()
+        handle.available_models = [
+            {"modelId": "auto", "name": "auto"},
+            {"modelId": "deepseek-3.2", "name": "deepseek-3.2"},
+        ]
+        runtime = MagicMock()
+        runtime.pid = 4321
+        runtime.spawn = AsyncMock()
+        runtime.load_session = AsyncMock(return_value=handle)
+
+        with (
+            patch("kiro_crew.providers.acp.AcpRuntime", return_value=runtime),
+            patch(
+                "kiro_crew.providers.acp.AcpSessionProvider",
+                side_effect=lambda h, r, **kw: MagicMock(_handle=h, _runtime=r, resumed=False),
+            ),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
+            await provider._start_kiro_runtime()
+
+        handle.set_model.assert_awaited_once_with("auto")
 
     @pytest.mark.asyncio
     async def test_usable_configured_model_is_applied(self):

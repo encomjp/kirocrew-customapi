@@ -66,6 +66,13 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     }
   },
   {
+    "id": "chat.api-key",
+    "label": "API key",
+    "tab": "chat",
+    "type": "input",
+    "occurrence": 1
+  },
+  {
     "id": "chat.auto-add-documents",
     "label": "Auto-Add Documents",
     "description": "Let the agent add documents it reads while working to your knowledge library, so they stay searchable later. It reads them with its own tools under your approval — kirocrew-customapi fetches nothing itself. Added documents appear in one “Auto-added” source you can remove in a click.",
@@ -116,6 +123,13 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "label": "Background Model",
     "tab": "chat",
     "type": "select",
+    "occurrence": 1
+  },
+  {
+    "id": "chat.base-url",
+    "label": "Base URL",
+    "tab": "chat",
+    "type": "input",
     "occurrence": 1
   },
   {
@@ -258,6 +272,13 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "description": "Keep the most recent prompt visible as a sticky banner once it scrolls above the fold.",
     "tab": "chat",
     "type": "toggle",
+    "occurrence": 1
+  },
+  {
+    "id": "chat.preset",
+    "label": "Preset",
+    "tab": "chat",
+    "type": "select",
     "occurrence": 1
   },
   {
