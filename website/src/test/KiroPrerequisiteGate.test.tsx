@@ -94,7 +94,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    await screen.findByText(/Kiro Crew uses Kiro CLI/)
+    await screen.findByText(/kirocrew-customapi uses Kiro CLI/)
     // Cold mount has no cached status, so it reads the latch.
     expect(vi.mocked(api.kiroPrerequisite).mock.calls[0][0]).toBe(false)
 
@@ -141,7 +141,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Kiro Crew uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/kirocrew-customapi uses Kiro CLI/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Check again' }))
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
   })
@@ -164,7 +164,7 @@ describe('KiroPrerequisiteGate', () => {
   })
 
   it('sends the user to Kiro CLI setup instead of installing anything', async () => {
-    // Kiro Crew does not install Kiro CLI. A missing CLI must offer a link to
+    // kirocrew-customapi does not install Kiro CLI. A missing CLI must offer a link to
     // Kiro's own setup page and NO install action of any kind, so there is
     // nothing for the user to press that would download and run a script.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({ platform: 'Windows' }))
@@ -173,7 +173,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Kiro Crew uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/kirocrew-customapi uses Kiro CLI/)).toBeInTheDocument()
     expect((await screen.findAllByText(/Windows gateway host/)).length).toBeGreaterThan(0)
 
     const setupLink = screen.getByRole('link', { name: /Open Kiro CLI setup/ })
@@ -218,7 +218,7 @@ describe('KiroPrerequisiteGate', () => {
   })
 
   it('exposes no way to start a sign-in from the dashboard', async () => {
-    // Kiro Crew does not authenticate for the user: there is no device-flow
+    // kirocrew-customapi does not authenticate for the user: there is no device-flow
     // trigger, no sign-in URL, and no device code surfaced anywhere.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({ installed: true }))
 
@@ -344,7 +344,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText("Kiro Crew's agent specs are not installed")).toBeInTheDocument()
+    expect(await screen.findByText("kirocrew-customapi's agent specs are not installed")).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
     // Names the actual files, so the user can see what to look for on disk.
     expect(screen.getByText(/kirocrew\.json/)).toBeInTheDocument()
@@ -613,7 +613,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Kiro Crew needs Kiro sign-in.')).not.toBeInTheDocument()
+    expect(screen.queryByText('kirocrew-customapi needs Kiro sign-in.')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Sign in to Kiro' })).not.toBeInTheDocument()
     expect(screen.queryByText('kiro-cli login')).not.toBeInTheDocument()
     // Nothing is paused: no gate chrome of any kind renders over the app.
@@ -709,7 +709,7 @@ describe('KiroPrerequisiteGate', () => {
 
     await waitFor(() => expect(api.kiroPrerequisite).toHaveBeenCalled())
     expect(screen.getByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Kiro Crew needs Kiro sign-in.')).not.toBeInTheDocument()
+    expect(screen.queryByText('kirocrew-customapi needs Kiro sign-in.')).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
   })

@@ -883,7 +883,7 @@ describe('the api layer declares the postmortem without overstating it', () => {
  * Local desktop notifications (§5.6).
  *
  * `app.json` declared the `notification` event permission from the app's first commit and
- * the app never produced one, so the ONE push channel Kiro Crew offers that needs no
+ * the app never produced one, so the ONE push channel kirocrew-customapi offers that needs no
  * credential and no inbound URL was inert. Wiring the backend alone would have repeated the
  * failure this run exists to stop: an operator has to be able to SEE that channels exist
  * and turn them off, or the feature is machinery that looks deliberate while doing nothing.
@@ -915,7 +915,7 @@ describe('Settings surfaces the notification channels and their on/off', () => {
   })
 
   it('points at the central rail instead of duplicating per-channel mute', () => {
-    // Kiro Crew stores per-channel mute centrally; a second control here would be two
+    // kirocrew-customapi stores per-channel mute centrally; a second control here would be two
     // controls that can disagree about one stored setting.
     expect(panel).toMatch(/Settings → Notifications/)
   })
