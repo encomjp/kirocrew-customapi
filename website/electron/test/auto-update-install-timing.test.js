@@ -46,7 +46,6 @@ function makeDeps({ appVersion = "1.0.0", withNative = true } = {}) {
     getFlavor: () => "stable",
     stopGateway: async () => {},
     osPlatform: "darwin",
-    feedBase: "https://cdn.example.dev/feed",
     onUpdateState: () => {},
     log: { info: () => {}, warn: () => {}, error: () => {} },
     ...(withNative

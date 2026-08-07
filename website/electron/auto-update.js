@@ -16,10 +16,9 @@
  * forced OFF (see configureUpdater) and every install path goes through
  * stopGateway() first.
  *
- * Pure helpers (channelForFlavor, channelForVersion, resolveChannel,
- * buildFeedBase) are dependency-free and tested directly. initAutoUpdate takes
- * the electron + electron-updater surfaces injected so it stays testable
- * without an Electron runtime.
+ * Pure helpers (buildFeedBase) are dependency-free and tested directly.
+ * initAutoUpdate takes the electron + electron-updater surfaces injected so
+ * it stays testable without an Electron runtime.
  */
 
 // Default update feed host: updates.crew.kiro.dev, the pointer hostname of the
@@ -62,7 +61,12 @@ function isBundleContainerWritable(resourcesPath) {
   }
 }
 
-const DEFAULT_FEED_BASE = "https://updates.crew.kiro.dev/feed";
+// The fork's own repo: the single update source. The GitHub provider resolves
+// release metadata (latest-mac.yml / latest-linux.yml) from the repo's releases
+// over the GitHub API, and bytes from the release assets — no CDN involved.
+const GITHUB_OWNER = "encomjp";
+const GITHUB_REPO = "kirocrew-customapi";
+const DOWNLOAD_BASE = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest/download`;
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // every 4h while running
 const LAUNCH_CHECK_DELAY_MS = 30 * 1000; // let startup settle first
 const FORCE_EXIT_AFTER_MS = 5 * 1000; // failsafe: guarantee exit after quitAndInstall
@@ -74,68 +78,6 @@ const FORCE_EXIT_AFTER_MS = 5 * 1000; // failsafe: guarantee exit after quitAndI
  * unsigned installer would fail every update rather than warn (#598).
  */
 const SUPPORTED_PLATFORMS = new Set(["darwin", "linux"]);
-
-// Byte host for human (manual) downloads -- deliberately the same CDN the
-// updater pulls from, so a manual reinstall lands on identical artifacts.
-const DOWNLOAD_BASE = "https://download.crew.kiro.dev";
-// Channels with a desktop publish lane. "dev" has none.
-const KNOWN_CHANNELS = new Set(["nightly", "insider", "stable"]);
-
-/**
- * Map the build flavor ("beta" | "stable") to an update channel. Retained
- * for the internal beta flavor and as the fallback when the running version
- * carries no channel marker.
- * @param {"beta"|"stable"} flavor
- * @returns {"insider"|"stable"}
- */
-function channelForFlavor(flavor) {
-  return flavor === "beta" ? "insider" : "stable";
-}
-
-/**
- * Derive the update channel from the running version. CI stamps the app
- * version per channel (nightly.yml: <base>-nightly.<stamp>; release.yml:
- * tag-derived), so the version itself says which feed this build must
- * track. MUST mirror release.yml's tag-to-channel rule: "-nightly." is
- * nightly, any OTHER prerelease suffix (-insider.N, -rc.N, ...) is
- * insider, bare semver is stable. Without this, a nightly/insider build
- * would check the stable feed, see a differing version, and silently
- * migrate the user onto stable.
- * @param {string} version
- * @returns {"nightly"|"insider"|"stable"|null} null when unstamped (dev)
- */
-function channelForVersion(version) {
-  if (!version || typeof version !== "string") return null;
-  if (version.includes("-nightly.")) return "nightly";
-  if (version.includes("-")) return "insider";
-  return "stable";
-}
-
-/**
- * Resolve the EFFECTIVE update channel from the build stamp + the user's
- * channel preference (the Settings > About switcher).
- *
- * Rules (stable ⇄ insider opt-in design):
- * - nightly-stamped builds are PINNED to nightly: the nightly app is a
- *   separate side-by-side install, and honoring a preference here would
- *   migrate the dev app onto a production channel.
- * - unstamped (dev, stamped === null) builds have no update lane; the
- *   preference cannot conjure one.
- * - production stamps (insider/stable) follow the preference when set,
- *   else their own stamp. Switching BACK can be a downgrade mid-cycle
- *   (insider 0.2.0-insider.1 -> stable 0.1.0), which is why allowDowngrade
- *   is enabled in configureUpdater.
- *
- * @param {"nightly"|"insider"|"stable"|null} stamped - channelForVersion(version)
- * @param {"insider"|"stable"|""|null|undefined} preference - user opt-in, falsy = follow stamp
- * @returns {"nightly"|"insider"|"stable"|null}
- */
-function resolveChannel(stamped, preference) {
-  if (stamped === "nightly") return "nightly";
-  if (stamped === null) return null;
-  if (preference === "insider" || preference === "stable") return preference;
-  return stamped;
-}
 
 /**
  * Build the per-channel feed DIRECTORY url for the generic provider. Pure +
@@ -154,10 +96,11 @@ function resolveChannel(stamped, preference) {
  *
  * @param {{base:string, channel:string}} o
  * @returns {string}
- * @throws {Error} on a non-HTTPS, non-loopback base
+ * @throws {Error} on a missing base, or a non-HTTPS, non-loopback base
  */
 function buildFeedBase({ base, channel }) {
-  const b = (base || DEFAULT_FEED_BASE).replace(/\/+$/, "");
+  if (!base) throw new Error("feed base required");
+  const b = String(base).replace(/\/+$/, "");
   const url = `${b}/${encodeURIComponent(channel)}/`;
   const parsed = new URL(url);
   const isLoopback = ["127.0.0.1", "localhost", "[::1]", "::1"].includes(parsed.hostname);
@@ -168,39 +111,32 @@ function buildFeedBase({ base, channel }) {
 }
 
 /**
- * Human download permalink for a channel + platform, or null when there is no
- * publish lane (dev builds, Windows until publish-windows.yml lands).
+ * Human download permalink for a fork version + platform, or null when there is
+ * no publish lane (Windows until a signed lane lands).
  *
  * Why the UI needs this: an update that downloads but fails to APPLY leaves the
  * user with no next step -- the card simply re-offers the same update after
- * relaunch (observed in the field on 0.1.2-nightly.20260729t073648). Reinstalling
- * over the top is the supported recovery and is non-destructive: user data lives
- * in the KiroCrew home directory, never inside the app bundle.
+ * relaunch. Reinstalling over the top is the supported recovery and is
+ * non-destructive: user data lives in the KiroCrew home directory, never inside
+ * the app bundle.
  *
- * Computed HERE rather than in the renderer because the renderer has no
- * trustworthy platform: getInfo()'s `platform` field is a display string that
- * main.js does not currently supply, so it reports its "darwin-arm64" default on
- * every OS. osPlatform is the real one.
+ * The fork's GitHub release assets embed the version in the filename
+ * (KiroCrew-<ver>.AppImage / KiroCrew-<ver>-arm64.dmg), so the caller passes the
+ * pending version (found/staged/running -- see getInfo).
  *
- * Paths are the documented mutable "latest" aliases (max-age=300).
- *
- * @param {string} channel    resolved update channel
+ * @param {string} version    pending version to download
  * @param {string} osPlatform process.platform value
  * @returns {string|null}
  */
-function manualDownloadUrl(channel, osPlatform) {
-  if (!KNOWN_CHANNELS.has(channel)) return null;
-  // ARCH ASSUMPTION: the mac dmg is universal, but the only Linux desktop lane
-  // publish-linux.yml builds is x86_64 (LINUX_BASENAME + "-x86_64.AppImage"). If
-  // an aarch64 lane ever ships, this must branch on process.arch or it hands ARM
-  // users an incompatible binary.
+function manualDownloadUrl(version, osPlatform) {
+  if (!version) return null;
   const file = osPlatform === "darwin"
-    ? "KiroCrew.dmg"
+    ? `KiroCrew-${version}-arm64.dmg`
     : osPlatform === "linux"
-      ? "KiroCrew-x86_64.AppImage"
+      ? `KiroCrew-${version}.AppImage`
       : null;
   if (!file) return null;
-  return `${DOWNLOAD_BASE}/desktop/${channel}/latest/${file}`;
+  return `${DOWNLOAD_BASE}/${file}`;
 }
 
 /**
@@ -329,7 +265,6 @@ function classifyError(err) {
  * @param {object} deps.autoUpdater            - electron-updater AppUpdater
  * @param {typeof import("electron").dialog} deps.dialog
  * @param {typeof import("electron").Notification} deps.Notification
- * @param {() => string} deps.getFlavor        - returns "beta" | "stable"
  * @param {() => Promise<void>} deps.stopGateway - graceful, awaitable gateway stop
  * @param {string} [deps.platform]             - display arch, e.g. "darwin-arm64"
  * @param {string} [deps.osPlatform]           - process.platform override (tests)
@@ -342,7 +277,10 @@ function classifyError(err) {
  *   the "writable external disk still updates" case is unassertable.
  * @param {object} [deps.nativeAutoUpdater]     - Electron's native autoUpdater, observed
  *   for `before-quit-for-update` to know the installer took over (tests inject a stub)
- * @param {string} [deps.feedBase]             - override feed host
+ * @param {string} [deps.githubOwner]          - GitHub owner of the update repo
+ *   (defaults to the fork)
+ * @param {string} [deps.githubRepo]           - GitHub repo of the update repo
+ *   (defaults to the fork)
  * @param {(state:object) => void} [deps.onUpdateState] - if provided, the
  *   in-app UI drives the install prompt: state transitions are pushed here
  *   ({state, version, notes, channel}) and the native dialog is suppressed.
@@ -355,7 +293,6 @@ function initAutoUpdate(deps) {
     autoUpdater,
     dialog,
     Notification,
-    getFlavor,
     getChannelPreference = () => "",
     notifyUpdateFound = null,
     stopGateway,
@@ -380,7 +317,9 @@ function initAutoUpdate(deps) {
     nativeAutoUpdater = (() => {
       try { return require("electron").autoUpdater || null; } catch { return null; }
     })(),
-    feedBase = process.env.KIROCREW_UPDATE_FEED || DEFAULT_FEED_BASE,
+    githubOwner = GITHUB_OWNER,
+    githubRepo = GITHUB_REPO,
+    feedOverride = process.env.KIROCREW_UPDATE_FEED || "",
     onUpdateState = null,
     log = console,
   } = deps;
@@ -388,13 +327,10 @@ function initAutoUpdate(deps) {
   // When the in-app UI is wired (onUpdateState provided), it owns the prompt;
   // the native dialog stays as the fallback for headless / no-renderer cases.
   const uiDriven = typeof onUpdateState === "function";
-  // Single channel resolver used for the feed AND everything reported to
-  // the UI. Read the preference FRESH on every call: configureFeed() runs
-  // per check, so a Settings channel switch takes effect on the next check
-  // with no re-init. Flavor stays the unstamped-dev display fallback.
   function currentChannel() {
-    const stamped = channelForVersion(app.getVersion());
-    return resolveChannel(stamped, getChannelPreference()) || channelForFlavor(getFlavor());
+    // Single stable lane for the fork: version stamps (-customapi.N,
+    // -9router.N, bare semver) all resolve to stable, display-only.
+    return "stable";
   }
   function emit(state, extra = {}) {
     if (!uiDriven) return;
@@ -405,19 +341,18 @@ function initAutoUpdate(deps) {
     }
   }
   function getInfo() {
-    const stamped = channelForVersion(app.getVersion());
     return {
       version: app.getVersion(),
       channel: currentChannel(),
-      // Switcher inputs: the build's own lane, whether this build may switch
-      // (nightly is pinned; dev has no lane), and the stored preference.
-      stampedChannel: stamped,
-      channelSwitchable: stamped === "insider" || stamped === "stable",
+      // Switcher inputs: the fork has exactly one lane, so the About panel
+      // hides the channel switcher (channelSwitchable=false).
+      stampedChannel: "stable",
+      channelSwitchable: false,
       channelPreference: getChannelPreference() || "",
       platform,
       packaged: !!app.isPackaged,
       // Escape hatch for a failed install (see manualDownloadUrl).
-      downloadUrl: manualDownloadUrl(currentChannel(), osPlatform),
+      downloadUrl: manualDownloadUrl(pendingVersion(), osPlatform),
     };
   }
 
@@ -519,11 +454,18 @@ function initAutoUpdate(deps) {
   }
 
   function configureFeed() {
-    const channel = currentChannel();
-    const url = buildFeedBase({ base: feedBase, channel });
-    autoUpdater.setFeedURL({ provider: "generic", url });
-    log.info(`[update] feed: ${url}`);
-    return url;
+    if (feedOverride) {
+      // E2E OTA harness (scripts/stage3-autoupdate-test.sh + local-feed-server.js):
+      // the generic provider reads latest-*.yml from the local server. Production
+      // never sets this env var.
+      const url = buildFeedBase({ base: feedOverride, channel: "stable" });
+      autoUpdater.setFeedURL({ provider: "generic", url });
+      log.info(`[update] feed (override): ${url}`);
+      return url;
+    }
+    autoUpdater.setFeedURL({ provider: "github", owner: githubOwner, repo: githubRepo });
+    log.info(`[update] feed: github ${githubOwner}/${githubRepo}`);
+    return `${DOWNLOAD_BASE}/`;
   }
 
   /**
@@ -852,14 +794,10 @@ function initAutoUpdate(deps) {
 
 module.exports = {
   initAutoUpdate,
-  channelForFlavor,
-  channelForVersion,
-  resolveChannel,
   buildFeedBase,
   configureUpdater,
   classifyError,
   manualDownloadUrl,
-  DEFAULT_FEED_BASE,
   DOWNLOAD_BASE,
   SUPPORTED_PLATFORMS,
 };
