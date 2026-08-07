@@ -223,8 +223,9 @@
     ],
     "publish": [
       {
-        "provider": "generic",
-        "url": "https://updates.crew.kiro.dev/feed/stable/"
+        "provider": "github",
+        "owner": "encomjp",
+        "repo": "kirocrew-customapi"
       }
     ],
     "win": {
