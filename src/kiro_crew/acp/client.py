@@ -5523,37 +5523,16 @@ class AcpClient:
 
     async def _vision_subagent_describe(self, image_path: str) -> str:
         """One-shot vision subagent: describe *image_path* on the vision model."""
-        from kiro_crew.acp.client import AcpClient as _Self  # noqa: F811
+        from kiro_crew.acp.vision import vision_subagent_describe
 
-        # Fresh env: drop the PARENT's ANTHROPIC_MODEL (which belongs to the
-        # text-only model) so this client derives its own model via
-        # _model_via_env -> ANTHROPIC_MODEL=<stripped mimo id>. Keep the base
-        # URL + key.
-        sub_env = dict(self._extra_env or {})
-        sub_env.pop("ANTHROPIC_MODEL", None)
-        sub = _Self(
+        return await vision_subagent_describe(
+            image_path,
+            vision_model=self._vision_fallback_model,
             work_dir=self._work_dir / "vision-subagent",
-            # Picker spelling — the client strips the prefix to the raw id for
-            # the wire and validates config options against the picker form.
-            model=self._vision_fallback_model,
-            sandbox_mode=self._sandbox_mode,
-            extra_env=sub_env,
+            extra_env=self._extra_env,
             acp_backend=self._acp_backend,
-            audit_source="vision-subagent",
+            sandbox_mode=self._sandbox_mode,
         )
-        try:
-            chunks: list[str] = []
-            async for chunk in sub.send_message_stream(
-                f"Describe this image in 1-3 short sentences: {image_path}",
-                timeout=120.0,
-            ):
-                chunks.append(chunk)
-            return "".join(chunks).strip()
-        finally:
-            try:
-                await sub.shutdown()
-            except Exception:
-                logger.debug("vision subagent shutdown failed", exc_info=True)
 
     async def _read_prompt_response(self, req_id: int, timeout: float) -> str:
         output: list[str] = []

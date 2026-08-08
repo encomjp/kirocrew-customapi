@@ -1209,6 +1209,29 @@ SKILL_FETCH_SCHEMA = ToolSchema(
 # needs to cover the non-empty case.
 _ABSOLUTE_PATH_RE = re.compile(r"^/")
 
+# vision_analyze describes an image (local path or http(s) URL) for a text-only
+# model via a one-shot vision subagent. The image ref is LLM-authored and, for
+# the URL form, reaches the vision subagent's own fetch path, so it is gated
+# here at the MCP boundary: at most one of path/url, http(s) only for the url.
+_HTTP_URL_RE = re.compile(r"^https?://[^\s<>\"']{1,2048}$")
+
+
+def _validate_vision_analyze(args: dict[str, Any]) -> None:
+    has_path = bool(args.get("path"))
+    has_url = bool(args.get("url"))
+    if has_path == has_url:
+        raise ValidationError("path", "exactly one of path or url is required")
+
+
+VISION_ANALYZE_SCHEMA = ToolSchema(
+    tool_name="vision_analyze",
+    fields=[
+        FieldSpec("path", str, max_len=4096, pattern=_ABSOLUTE_PATH_RE),
+        FieldSpec("url", str, max_len=2048, pattern=_HTTP_URL_RE),
+    ],
+    custom_validator=_validate_vision_analyze,
+)
+
 # 4096 = Linux PATH_MAX. The gateway endpoint enforces realpath and
 # sensitive-path checks; this schema is the MCP-layer shape gate.
 
@@ -2586,6 +2609,7 @@ MCP_CORE_SCHEMAS: dict[str, ToolSchema] = {
     # crash that takes the whole kirocrew-core server down for the session.
     "issue_radar_crew_read": ISSUE_RADAR_CREW_READ_SCHEMA,
     "issue_radar_crew_record": ISSUE_RADAR_CREW_RECORD_SCHEMA,
+    "vision_analyze": VISION_ANALYZE_SCHEMA,
 }
 
 MCP_CRON_SCHEMAS: dict[str, ToolSchema] = {
