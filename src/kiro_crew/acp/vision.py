@@ -193,6 +193,66 @@ async def describe_image_via_chain(
     return "unavailable"
 
 
+async def redirect_image_message(
+    message: str,
+    *,
+    model_id: str,
+    image_redirect: str,
+    image_input_mode: str,
+    text_only_models: Iterable[str] | None,
+    vision_providers: Iterable[dict[str, Any]] | None,
+    vision_fallback_model: str,
+    main_env: dict[str, str] | None = None,
+    main_backend: str = "",
+    work_dir: str | Path | None = None,
+    sandbox_mode: str = "auto",
+) -> tuple[str, str]:
+    """Apply the image-redirect decision to *message* and return
+    ``(rewritten_message, image_mode)``.
+
+    When the active *model_id* routes images to ``text`` (see
+    :func:`decide_image_input_mode`) AND the message references an image path,
+    this rewrites the message by describing each image via the configured vision
+    chain and injecting ``[image: <name>: <description>]`` — the same behavior
+    ``AcpClient._send_prompt`` had, extracted so the shared-runtime path
+    (``AcpSessionHandle.prompt``) uses it too. ``image_mode`` is the routing
+    decision (``"native"`` or ``"text"``) so the caller can gate image-block
+    emission on it.
+
+    ``image_redirect == "off"`` disables the rewrite entirely; ``"switch"`` is
+    handled by the caller (it needs the session, not just the message).
+    """
+    image_mode = decide_image_input_mode(
+        model_id,
+        image_input_mode=image_input_mode,
+        text_only_models=text_only_models,
+    )
+    if image_redirect != "off" and image_mode == "text":
+        from kiro_crew.acp.prompt_blocks import _PATH_RE
+
+        if _PATH_RE.search(message):
+            providers = resolve_vision_providers(
+                vision_providers=vision_providers,
+                vision_fallback_model=vision_fallback_model,
+                main_env=main_env,
+                main_backend=main_backend,
+            )
+            paths = [m.group(1).strip() for m in _PATH_RE.finditer(message)]
+            rewritten = message
+            for path in paths:
+                description = await describe_image_via_chain(
+                    path,
+                    providers,
+                    work_dir=work_dir,
+                    sandbox_mode=sandbox_mode,
+                )
+                name = Path(path).name
+                marker = f"[image: {name}: {description.strip() or 'unavailable'}]"
+                rewritten = rewritten.replace(path, marker, 1)
+            return rewritten, image_mode
+    return message, image_mode
+
+
 def _coerce_image_input_mode(raw: Any) -> str:
     """Normalize a config value into one of the valid modes (default ``auto``)."""
     if isinstance(raw, str):

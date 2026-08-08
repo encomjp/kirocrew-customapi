@@ -712,3 +712,94 @@ class TestHttpDescribe:
                 env={"ANTHROPIC_BASE_URL": "https://ollama.com/v1", "ANTHROPIC_API_KEY": "k"},
                 timeout=15,
             )
+
+
+class TestSessionHandleRedirect:
+    """The shared-runtime prompt() path (dashboard/cron) must apply the same
+    image redirect as AcpClient._send_prompt."""
+
+    def _make_runtime(self):
+        class _Rt:
+            supports_image_prompt = True
+
+            def __init__(self):
+                self.sent: list[dict] = []
+
+            async def send_request(self, method, params):
+                self.sent.append({"method": method, "params": params})
+                return 1
+
+            def is_alive(self):
+                return True
+
+            def send_notification(self, *a, **kw):
+                return None
+
+            def send_response(self, *a, **kw):
+                return None
+
+        return _Rt()
+
+    @pytest.mark.asyncio
+    async def test_text_only_model_message_is_rewritten(self, monkeypatch, tmp_path):
+        import asyncio
+
+        from kiro_crew.acp.session_handle import AcpSessionHandle
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"pngbytes")
+
+        # Fake the whole vision chain so no network/ACP is touched.
+        import kiro_crew.acp.vision as vision_mod
+
+        async def fake_redirect(message, **kw):
+            assert kw["model_id"] == "deepseek-v4-flash:0731"
+            return "[image: shot.png: a blue square]", "text"
+
+        monkeypatch.setattr(vision_mod, "redirect_image_message", fake_redirect)
+
+        # Override the config the handle reads.
+        class _Agent:
+            image_redirect = "subagent"
+            image_input_mode = "auto"
+            text_only_models = ["ol/deepseek-v4-flash:0731"]
+            vision_providers = []
+            vision_fallback_model = "kimi-k2.6"
+            provider = "opencode"
+            provider_base_url = "https://ollama.com/v1"
+            provider_api_key = "k"
+            sandbox = "off"
+
+        class _Cfg:
+            agent = _Agent()
+
+        class _FakeKiroCrewConfig:
+            @staticmethod
+            def load():
+                return _Cfg()
+
+        monkeypatch.setattr(
+            "kiro_crew.config.loader.KiroCrewConfig", _FakeKiroCrewConfig, raising=False
+        )
+
+        rt = self._make_runtime()
+        handle = AcpSessionHandle("sA", asyncio.Queue(), rt)
+        handle._model = "deepseek-v4-flash:0731"
+
+        async def drain():
+            async for _ in handle.prompt(
+                f"what is {img}?", timeout=5.0
+            ):
+                pass
+
+        task = asyncio.ensure_future(drain())
+        await asyncio.sleep(0.05)
+        await asyncio.wait_for(task, timeout=5.0)
+
+        assert rt.sent, "prompt() never sent a request"
+        prompt = rt.sent[0]["params"]["prompt"]
+        text = prompt[0]["text"] if prompt else ""
+        assert "[image: shot.png: a blue square]" in text
+        # No image block (allow_image gated to text-mode=False -> runtime
+        # supports_image_prompt True but image_mode text -> False)
+        assert not any(p.get("type") == "image" for p in prompt)
