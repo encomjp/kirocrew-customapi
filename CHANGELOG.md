@@ -2,6 +2,26 @@
 
 All notable changes to KiroCrew are documented in this file.
 
+## [0.2.0-customapi.5] — 2026-08-08 — Vision
+
+**Big feature: native vision — image models feel first-class, not bolted on.**
+
+![Vision tool — describe any image on a text-only model](assets/vision-tool.png)
+
+Every model now reports `supports_vision`; the picker groups **Vision — image input** (muted **Image** pill) above **Text**, and **Settings → Chat → Vision** governs how text-only models handle images (describe subagent / switch / off + fallback model). Attach any image via the composer's `+` / drag-drop — it rides as native pixels on vision models, or as a one-shot `vision_subagent_describe` on text-only ones (the `vision_analyze` MCP tool is also available to the agent). Images are downscaled to model limits before they ever reach the gateway.
+
+### Added
+
+- **`vision_analyze` MCP tool** — the main agent can describe any local path or http(s) image URL on demand (`vision_analyze({ path|url })`), so screenshots the agent itself captures enter the conversation as text.
+- **Vision-aware image routing** — `prompt_blocks` downscales + `vision.decide_image_input_mode` routes `auto` → native vs text; `AcpClient` + shared-runtime `AcpSessionHandle` both honor it so Slack/cron/dashboard share one implementation. Two new config keys surface in `config.json` (`agent.image_input_mode: auto|native|text`, `agent.image_redirect: subagent|switch|off`) and the new Settings card.
+- **Reported `supports_vision` flag** — every `GET /api/models` row carries it (registry `supports_vision` + router catalog `capabilities` + ACP `oc/ol deepseek-v4-flash` denylist), wired `AcpAdapter` → `ModelDropdownList` grouping.
+- **Multi-provider picker — full catalogs** — `oc/` (opencode-go) and `ol/` (ollama) now expose their full catalogs (mimo-v2.5, glm, kimi, minimax, qwen, gemma, …), with 9router `ocg`/`ollama` normalization so `oc/mimo-v2.5`, `ol/glm-5.2` etc. are selectable end-to-end.
+- **Settings → Chat → Vision** — native `Image input mode`, `On text-only models`, and `Vision fallback model` selects, right next to Default Model. The model picker's Vision grouping is derived from the reported flag, not a hard-coded client list.
+
+### Fixed
+
+- AppImage gateway startup blockers (packaged-build path) and shared-runtime image prompt parity.
+
 ## [0.2.0-customapi.4] — 2026-08-08
 
 The kirocrew-customapi fork: Kiro Crew with the Claude Code ACP backend re-enabled for self-hosted LLM routers (9router, CLIProxyAPI, OpenCode Zen, Ollama Cloud, and any Anthropic/OpenAI-compatible endpoint).
