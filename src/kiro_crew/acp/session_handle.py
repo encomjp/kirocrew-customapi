@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
@@ -208,6 +209,23 @@ def _warn_if_above_chat_ceiling(key: str, value: float, chat_ceiling: float) -> 
             "surfaces as the turn-limit card instead of stall recovery.",
             key, value, chat_ceiling,
         )
+
+
+def _message_has_image_path(message: str) -> bool:
+    """Best-effort check whether *message* references an image file on disk.
+
+    Reuses the same path regex ``build_prompt_blocks`` scans, so the redirect
+    fires exactly when the prompt builder would emit an image block (parity
+    with ``AcpClient._message_has_image_path``).
+    """
+    if not message or not message.strip():
+        return False
+    try:
+        from kiro_crew.acp.prompt_blocks import _PATH_RE
+
+        return bool(_PATH_RE.search(message))
+    except Exception:  # pragma: no cover - import/attr drift guard
+        return False
 
 
 def _load_watchdog_settings(crew_agent: str = "") -> WatchdogSettings:
@@ -654,6 +672,51 @@ class AcpSessionHandle:
         ``agent.chat_turn_timeout_secs`` so the transport wait follows a raised
         turn ceiling instead of cutting the turn at the 2h default underneath it.
         """
+
+        # Fork: text-only router models (deepseek-v4-flash family) reject
+        # image content upstream. When the active model routes images to
+        # text, describe each referenced image via the vision chain and
+        # inject its description BEFORE the request is built, so no image
+        # block reaches the rejecting upstream. Mirrors the direct-client
+        # path so the shared-runtime path (chat/dashboard/cron) behaves the
+        # same way.
+        image_mode = "native"
+        if _message_has_image_path(message):
+            # circular import: config.loader -> dashboard -> session -> acp
+            from kiro_crew.config.loader import KiroCrewConfig
+
+            cfg = KiroCrewConfig.load()
+            a = cfg.agent
+            main_env: dict[str, str] = {}
+            base_url = (a.provider_base_url or "").strip()
+            api_key = (
+                (a.provider_api_key or "").strip()
+                or os.environ.get("ANTHROPIC_API_KEY")
+                or os.environ.get("CLIPROXY_API_KEY")
+            )
+            if base_url:
+                main_env["ANTHROPIC_BASE_URL"] = base_url
+            if api_key:
+                main_env["ANTHROPIC_API_KEY"] = api_key
+            main_backend = (
+                "claude"
+                if a.provider == "claude_code"
+                else ("opencode" if a.provider == "opencode" else "")
+            )
+            from kiro_crew.acp.vision import redirect_image_message
+
+            message, image_mode = await redirect_image_message(
+                message,
+                model_id=self._model,
+                image_redirect=a.image_redirect,
+                image_input_mode=a.image_input_mode,
+                text_only_models=a.text_only_models,
+                vision_providers=list(a.vision_providers or []),
+                vision_fallback_model=a.vision_fallback_model,
+                main_env=main_env,
+                main_backend=main_backend,
+                sandbox_mode=a.sandbox,
+            )
 
         async def _build() -> tuple[str, dict[str, Any]]:
             # Offloaded: the builder stats and reads image files (up to
