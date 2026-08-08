@@ -896,6 +896,19 @@ class AgentConfig:
             "disables the redirect entirely.",
         ),
     )
+    image_input_mode: str = field(
+        default="auto",
+        metadata=_meta(
+            "Image Input Mode",
+            "How user-attached images are presented to the model. 'auto' "
+            "(default): attach natively when the active model is vision-capable "
+            "(registry metadata or not in text_only_models), else run the "
+            "vision-subagent describe pipeline. 'native': always attach the "
+            "image as pixels (the model must accept image content). 'text': "
+            "always describe via the vision subagent and inject the text.",
+            enum=["auto", "native", "text"],
+        ),
+    )
     default_agent: str = field(
         default="",
         metadata=_meta("Default Agent", "Default agent name for new sessions."),
@@ -5718,6 +5731,7 @@ class KiroCrewConfig:
                 image_redirect=self.agent.image_redirect,
                 vision_fallback_model=self.agent.vision_fallback_model,
                 text_only_models=list(self.agent.text_only_models),
+                image_input_mode=self.agent.image_input_mode,
             )
 
         return _acp

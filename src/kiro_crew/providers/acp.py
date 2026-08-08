@@ -248,6 +248,7 @@ class AcpProvider(LLMProvider):
         image_redirect: str = "subagent",
         vision_fallback_model: str = "cmc/mimo-v2.5",
         text_only_models: list[str] | None = None,
+        image_input_mode: str = "auto",
     ) -> None:
         kwargs: dict[str, Any] = {
             "work_dir": work_dir,
@@ -268,6 +269,7 @@ class AcpProvider(LLMProvider):
             "image_redirect": image_redirect,
             "vision_fallback_model": vision_fallback_model,
             "text_only_models": list(text_only_models or []),
+            "image_input_mode": image_input_mode,
         }
         if agent:
             kwargs["agent"] = agent

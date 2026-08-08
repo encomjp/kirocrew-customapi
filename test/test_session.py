@@ -4031,4 +4031,7 @@ class TestTextOnlyResumeGuard:
         class _Cfg:
             pass  # no agent attr at all
 
-        assert _model_is_text_only_for_session(_Cfg(), "oc/deepseek-v4-flash") is False
+        # Missing config fails toward the SAFE side: an unknown model's image
+        # history must not resume into a rejecting upstream (the old default of
+        # False could replay image blocks onto a text-only model).
+        assert _model_is_text_only_for_session(_Cfg(), "oc/deepseek-v4-flash") is True

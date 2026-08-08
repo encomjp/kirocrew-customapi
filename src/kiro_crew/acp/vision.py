@@ -1,7 +1,11 @@
 """Shared vision-model helpers for image prompts on text-only router models.
 
-Two consumers share one implementation so they cannot drift:
+Three consumers share one implementation so they cannot drift:
 
+* :func:`decide_image_input_mode` — the per-turn routing decision: attach the
+  image natively (``native``) when the active model is vision-capable, or run
+  the describe pipeline (``text``) when it is not. Mirrors Hermes's
+  ``agent.image_input_mode`` (``auto`` | ``native`` | ``text``).
 * :meth:`kiro_crew.acp.client.AcpClient._describe_images_with_vision` — the
   legacy user-image path: a text-only model gets a message carrying an image
   path, so the path is replaced by a one-shot vision subagent's description.
@@ -9,10 +13,10 @@ Two consumers share one implementation so they cannot drift:
   AGENT itself asks to describe a screenshot / chart / URL-referenced image,
   so the tool spawns the same one-shot subagent and returns the text.
 
-Both spawn an :class:`~kiro_crew.acp.client.AcpClient` on the configured
-vision-capable fallback model (default ``cmc/mimo-v2.5``) against the same
-router proxy, then tear the subagent process down. The main session's model is
-untouched, so a text-only main model never sees an image block.
+Both describe paths spawn an :class:`~kiro_crew.acp.client.AcpClient` on the
+configured vision-capable fallback model (default ``cmc/mimo-v2.5``) against
+the same router proxy, then tear the subagent process down. The main session's
+model is untouched, so a text-only main model never sees an image block.
 
 The import of ``acp.client`` is deferred into the function (not module-level)
 to keep this module importable from ``mcp_core`` and ``config`` without
@@ -22,10 +26,15 @@ re-entering the ``config.loader -> providers.acp -> acp.client`` cycle.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+#: Valid values for ``agent.image_input_mode`` (mirrors Hermes). ``auto`` is the
+#: default and is decided per turn by :func:`decide_image_input_mode`.
+IMAGE_INPUT_MODES = frozenset({"auto", "native", "text"})
 
 #: Prompt sent to the vision subagent. 1-3 short sentences keeps the injected
 #: description token-cheap on the text-only main model and matches the marker
@@ -36,6 +45,65 @@ _VISION_DESCRIBE_PROMPT = "Describe this image in 1-3 short sentences: {ref}"
 #: (initialize + session/new + prompt), so a long image can legitimately take a
 #: while; 120s is the same bound the legacy ``_vision_subagent_describe`` used.
 VISION_DESCRIBE_TIMEOUT = 120.0
+
+
+def _coerce_image_input_mode(raw: Any) -> str:
+    """Normalize a config value into one of the valid modes (default ``auto``)."""
+    if isinstance(raw, str):
+        val = raw.strip().lower()
+        if val in IMAGE_INPUT_MODES:
+            return val
+    return "auto"
+
+
+def decide_image_input_mode(
+    model_id: str,
+    *,
+    image_input_mode: str = "auto",
+    text_only_models: Iterable[str] | None = None,
+    registry_supports_vision: Any = None,
+) -> str:
+    """Decide how *model_id*'s turn should carry images: ``"native"`` or ``"text"``.
+
+    Resolution order, first hit wins:
+
+    1. ``image_input_mode`` config override — ``native`` or ``text`` pins the
+       mode unconditionally; ``auto`` falls through.
+    2. ``registry_supports_vision`` — when supplied (the caller's pre-resolved
+       registry/metadata lookup), a definite True/False decides directly. This
+       lets tests and callers inject a catalog capability (e.g. a router
+       ``/v1/models`` entry that reports ``capabilities``) without reaching
+       into the registry.
+    3. ``model_registry.model_supports_vision(model_id)`` — True -> native
+       (Anthropic Claude models), False -> text.
+    4. ``text_only_models`` membership — the router per-model denylist
+       (``oc/deepseek-v4-flash``, ``ol/deepseek-v4-flash:0731``). A match
+       -> text.
+    5. Default -> ``"native"``. Unknown models are treated as vision-capable
+       (fail open on capability, fail closed on rejecting the image): a model
+       that genuinely rejects images surfaces a 400 the operator can add to
+       ``text_only_models``; a model we wrongly text-route would silently
+       degrade every image to a lossy summary forever.
+    """
+    mode = _coerce_image_input_mode(image_input_mode)
+    if mode != "auto":
+        return mode
+
+    if registry_supports_vision is not None:
+        return "native" if registry_supports_vision else "text"
+
+    try:
+        from kiro_crew.model_registry import model_supports_vision
+
+        supports = model_supports_vision(model_id)
+        if supports is not None:
+            return "native" if supports else "text"
+    except Exception:  # pragma: no cover - registry load is defensive
+        logger.debug("vision: model_supports_vision lookup failed for %s", model_id, exc_info=True)
+
+    if text_only_models and model_id in set(text_only_models):
+        return "text"
+    return "native"
 
 
 async def vision_subagent_describe(

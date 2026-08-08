@@ -1912,6 +1912,7 @@ class AcpClient:
         image_redirect: str = "subagent",
         vision_fallback_model: str = "cmc/mimo-v2.5",
         text_only_models: list[str] | None = None,
+        image_input_mode: str = "auto",
     ):
         if work_dir:
             self._work_dir = Path(work_dir)
@@ -1931,6 +1932,7 @@ class AcpClient:
         self._image_redirect = image_redirect or "subagent"
         self._vision_fallback_model = vision_fallback_model or "cmc/mimo-v2.5"
         self._text_only_models = frozenset(text_only_models or _DEFAULT_TEXT_ONLY_MODELS)
+        self._image_input_mode = image_input_mode or "auto"
         # Fork: when the claude backend points at a custom ANTHROPIC_BASE_URL
         # (e.g. a local router), the model id is the router's own namespace and
         # the claude-agent-acp adapter rejects it in set_config_option. Skip
@@ -2279,7 +2281,16 @@ class AcpClient:
             # (computer-use / browser screenshot tools return image blocks the
             # SDK forwards upstream, where the text-only provider rejects
             # them). Disable the screenshot-producing tools for this session.
-            if self._model in self._text_only_models:
+            from kiro_crew.acp.vision import decide_image_input_mode
+
+            if (
+                decide_image_input_mode(
+                    self._model,
+                    image_input_mode=self._image_input_mode,
+                    text_only_models=self._text_only_models,
+                )
+                == "text"
+            ):
                 disabled = set(data.get("disabledTools") or [])
                 for tool in _TEXT_ONLY_DISABLED_TOOLS:
                     disabled.add(tool)
@@ -4803,19 +4814,22 @@ class AcpClient:
         # Shared with AcpSessionHandle.prompt via prompt_blocks so the two paths
         # cannot drift.
         # Fork: text-only router models (oc/deepseek-v4-flash, ol/…) reject
-        # image content upstream with a 400. When the active model is text-only
-        # and the message carries an image path, dispatch the image to a
-        # one-shot VISION subagent (cmc/mimo-v2.5) and inject its text
-        # description in place of the image. The main session keeps its
+        # image content upstream with a 400. When the active model is not
+        # vision-capable and the message carries an image path, dispatch the
+        # image to a one-shot VISION subagent (cmc/mimo-v2.5) and inject its
+        # text description in place of the image. The main session keeps its
         # text-only model; the subagent session is spawned on demand and torn
         # down after the turn.
         model_id = self._model or ""
-        is_text_only = model_id in self._text_only_models
-        if (
-            self._image_redirect != "off"
-            and is_text_only
-            and _message_has_image_path(message)
-        ):
+        from kiro_crew.acp.vision import decide_image_input_mode
+
+        image_mode = decide_image_input_mode(
+            model_id,
+            image_input_mode=self._image_input_mode,
+            text_only_models=self._text_only_models,
+        )
+        needs_redirect = image_mode == "text" and _message_has_image_path(message)
+        if self._image_redirect != "off" and needs_redirect:
             if self._image_redirect == "subagent":
                 try:
                     message = await self._describe_images_with_vision(message)
@@ -4849,7 +4863,9 @@ class AcpClient:
                 # upstream. This is the session-start guard: text-only models
                 # cannot carry images in the conversation at all.
                 "prompt": await asyncio.to_thread(
-                    build_prompt_blocks, message, allow_image=not is_text_only
+                    build_prompt_blocks,
+                    message,
+                    allow_image=image_mode == "native",
                 ),
             },
         )
