@@ -24,6 +24,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit as _urlsplit
 
 from kiro_crew import __version__, model_registry
@@ -887,6 +888,20 @@ class AgentConfig:
             "local proxy.",
         ),
     )
+    vision_providers: list[dict[str, Any]] = field(
+        default_factory=list,
+        metadata=_meta(
+            "Vision Providers",
+            "Ordered fallback chain of vision-capable backends used to describe "
+            "images on text-only models. Each entry is {provider, model, "
+            "base_url?, api_key?}. 'router' reuses the main session's router "
+            "endpoint and model must be a picker id; 'custom' (or any entry "
+            "with a base_url) targets an Anthropic-compatible endpoint (e.g. a "
+            "local Qwen-VL/LLaVA/Pixtral server). Entries are tried in order; "
+            "the first successful description wins. Empty = fall back to "
+            "agent.vision_fallback_model.",
+        ),
+    )
     text_only_models: list[str] = field(
         default_factory=lambda: ["oc/deepseek-v4-flash", "ol/deepseek-v4-flash:0731"],
         metadata=_meta(
@@ -894,6 +909,19 @@ class AgentConfig:
             "Router model ids whose upstream rejects image content; image "
             "prompts on these trigger the image_redirect behaviour. Empty list "
             "disables the redirect entirely.",
+        ),
+    )
+    image_input_mode: str = field(
+        default="auto",
+        metadata=_meta(
+            "Image Input Mode",
+            "How user-attached images are presented to the model. 'auto' "
+            "(default): attach natively when the active model is vision-capable "
+            "(registry metadata or not in text_only_models), else run the "
+            "vision-subagent describe pipeline. 'native': always attach the "
+            "image as pixels (the model must accept image content). 'text': "
+            "always describe via the vision subagent and inject the text.",
+            enum=["auto", "native", "text"],
         ),
     )
     default_agent: str = field(
@@ -4654,6 +4682,7 @@ class KiroCrewConfig:
                 vision_fallback_model=agent_data.get(
                     "vision_fallback_model", "cmc/mimo-v2.5"
                 ),
+                vision_providers=list(agent_data.get("vision_providers") or []),
                 text_only_models=list(
                     agent_data.get(
                         "text_only_models",
@@ -4661,6 +4690,7 @@ class KiroCrewConfig:
                     )
                     or []
                 ),
+                image_input_mode=agent_data.get("image_input_mode", "auto"),
                 default_agent=agent_data.get("default_agent", ""),
                 sandbox=agent_data.get("sandbox", "auto"),
                 sandbox_allow_no_isolation=bool(
@@ -5717,7 +5747,9 @@ class KiroCrewConfig:
                 # image prompts to a vision-capable model).
                 image_redirect=self.agent.image_redirect,
                 vision_fallback_model=self.agent.vision_fallback_model,
+                vision_providers=list(self.agent.vision_providers or []),
                 text_only_models=list(self.agent.text_only_models),
+                image_input_mode=self.agent.image_input_mode,
             )
 
         return _acp

@@ -12,6 +12,7 @@ Tools:
     learn_list      — list all lessons
     learn_remove    — remove lessons by substring
     task_run        — start the autonomous task runner
+    vision_analyze  — describe an image (path or URL) via a vision subagent
 """
 
 from __future__ import annotations
@@ -420,6 +421,32 @@ def _list_tools() -> list[dict[str, Any]]:
                 "action, so treat it as guidance, not a guarantee."
             ),
             "inputSchema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "vision_analyze",
+            "description": (
+                "Describe an image for a text-only model: pass a local absolute "
+                "path (e.g. a screenshot you just captured at /tmp/shot.png) or an "
+                "http(s) image URL, and get back a 1-3 sentence text description "
+                "from a vision-capable model. Use this INSTEAD of trying to inline "
+                "an image on a model that rejects image input (deepseek-v4-flash "
+                "family) — the image never reaches the text-only upstream. "
+                "Exactly one of path or url is required."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Absolute path to a local image file",
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "http(s) URL of an image",
+                    },
+                },
+                "anyOf": [{"required": ["path"]}, {"required": ["url"]}],
+            },
         },
         {
             "name": "skill_search",
@@ -3121,6 +3148,85 @@ def _validate_args(name: str, args: dict[str, Any]) -> dict[str, Any]:
     return args  # tools without schemas (learn_list) pass through
 
 
+def _run_vision_analyze(args: dict[str, Any]) -> str:
+    """Describe an image (path or url) via the configured vision provider chain.
+
+    Runs synchronously in the MCP stdio worker thread: the vision subagent is a
+    one-shot ``AcpClient`` on the configured vision fallback chain (default
+    ``cmc/mimo-v2.5``) against the same router proxy the main session uses (or
+    each ``vision_providers`` entry's own Anthropic-compatible endpoint), and
+    is torn down after the turn. A text-only main model never sees the image —
+    only the returned description.
+    """
+    import asyncio
+
+    from kiro_crew.acp.vision import describe_image_via_chain, resolve_vision_providers
+
+    ref = args.get("path") or args.get("url") or ""
+    cfg = KiroCrewConfig.load()
+    vision_fallback = (cfg.agent.vision_fallback_model or "").strip() or "cmc/mimo-v2.5"
+
+    # Mirror the provider factory's env wiring for the vision subagent: the
+    # router base URL + API key (config key > ANTHROPIC_API_KEY env >
+    # CLIPROXY_API_KEY env, exactly the loader's precedence).
+    backend = (
+        "claude"
+        if cfg.agent.provider == "claude_code"
+        else ("opencode" if cfg.agent.provider == "opencode" else "")
+    )
+    env: dict[str, str] = {}
+    base_url = (cfg.agent.provider_base_url or "").strip()
+    api_key = (
+        (cfg.agent.provider_api_key or "").strip()
+        or os.environ.get("ANTHROPIC_API_KEY")
+        or os.environ.get("CLIPROXY_API_KEY")
+    )
+    if base_url:
+        env["ANTHROPIC_BASE_URL"] = base_url
+    if api_key:
+        env["ANTHROPIC_API_KEY"] = api_key
+    if backend == "opencode":
+        env.setdefault("OPENCODE_API_FORMAT", cfg.agent.provider_api_format or "openai")
+
+    providers = resolve_vision_providers(
+        vision_providers=list(cfg.agent.vision_providers or []),
+        vision_fallback_model=vision_fallback,
+        main_env=env,
+        main_backend=backend,
+    )
+    if not providers:
+        return "Error: no vision provider configured"
+
+    # For a local path, verify readability + sensitive-path gate up front so a
+    # bad ref returns a clean error instead of a subagent spawn failure.
+    if args.get("path"):
+        p = Path(ref)
+        if not p.is_file():
+            return f"Error: no such file: {ref}"
+        try:
+            from kiro_crew.hooks import safe_read_file_bytes
+
+            if safe_read_file_bytes(str(p)) is None:
+                return f"Error: image read refused (sensitive path): {ref}"
+        except Exception:
+            # Fall through to the subagent which surfaces its own error.
+            pass
+
+    try:
+        description = asyncio.run(
+            describe_image_via_chain(
+                ref,
+                providers,
+                sandbox_mode=cfg.agent.sandbox,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001 - surface a clean tool error
+        return f"Error: vision describe failed: {exc}"
+    if not description or description == "unavailable":
+        return "Error: vision describe failed (no description returned)"
+    return description
+
+
 def _current_session_thread_ts() -> str | None:
     """Return the CALLER's Slack thread_ts, or None.
 
@@ -3927,6 +4033,10 @@ def _call_tool_inner(name: str, args: dict[str, Any]) -> str:
                 "proceed with normal caution."
             )
         return "\n".join(out)
+
+    if name == "vision_analyze":
+        # Schema-validated (MCP_CORE_SCHEMAS): exactly one of path/url.
+        return _run_vision_analyze(args)
 
     if name == "spawn_status":
         agent_id = args.get("agent_id", "")

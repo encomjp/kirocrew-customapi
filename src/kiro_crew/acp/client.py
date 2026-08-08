@@ -1682,17 +1682,31 @@ _ROUTER_MODEL_PROVIDERS: dict[str, str] = {
     "ag": "antigravity",
 }
 
-# (Legacy prefix aliases were removed with the ocg/ spelling — see git history.)
-_ROUTER_PREFIX_ALIASES: dict[str, str] = {}
+# (Legacy prefix aliases were removed with the ocg/ spelling — see git history.
+# 9router re-introduces ocg/ and ollama/ as its OWN catalog prefixes, so they
+# are mapped here to the fork's canonical picker prefixes.)
+_ROUTER_PREFIX_ALIASES: dict[str, str] = {
+    "ocg": "oc",
+    "ollama": "ol",
+}
 
 # owned_by group in the proxy's /v1/models catalog -> picker prefix. The
 # Codex OAuth models are grouped under owned_by "openai" in that catalog.
+# The 9router aggregator reports the group as the prefix itself (ocg, ollama,
+# ag, cx, cmc, cu, gemini) — every group here maps to the fork's canonical
+# picker prefix so an already-prefixed 9router id is recognized.
 _ROUTER_OWNED_BY_TO_PREFIX: dict[str, str] = {
     "commandcode": "cmc",
     "opencode-go": "oc",
+    "ocg": "oc",  # 9router's group for the opencode-go provider
     "ollama-cloud": "ol",
+    "ollama": "ol",  # 9router's group for the ollama provider
     "openai": "cx",
     "antigravity": "ag",
+    "ag": "ag",
+    "cx": "cx",
+    "cmc": "cmc",
+    "gemini": "ag",  # 9router gemini group rides the antigravity account
 }
 
 # Raw model ids per provider, exactly as the proxy advertises them in
@@ -1735,13 +1749,57 @@ _ROUTER_RAW_MODEL_IDS: dict[str, tuple[str, ...]] = {
         "gpt-5.6-luna",
     ),
     "oc": (
+        # Full opencode-go (/zen/go/v1) catalog — every model this provider
+        # serves, so the picker can select any of them. Raw ids, exactly as
+        # the catalog advertises them; the picker shows them prefixed (oc/).
+        "minimax-m3",
+        "minimax-m2.7",
+        "minimax-m2.5",
+        "kimi-k3",
+        "kimi-k2.7-code",
+        "kimi-k2.6",
+        "kimi-k2.5",
+        "glm-5.2",
+        "glm-5.1",
+        "glm-5",
+        "deepseek-v4-pro",
         "deepseek-v4-flash",
+        "qwen3.7-max",
+        "qwen3.8-max",
+        "qwen3.7-plus",
+        "qwen3.6-plus",
+        "qwen3.5-plus",
+        "mimo-v2-pro",
+        "mimo-v2-omni",
+        "mimo-v2.5-pro",
         "mimo-v2.5",
+        "hy3",
+        "hy3-preview",
+        "gpt-5.6-luna",
+        "grok-4.5",
     ),
     "ol": (
-        # Only the 0731 build is exposed from ollama; the plain and kimi/glm
-        # entries are deliberately absent (operator preference).
+        # Full ollama-cloud (/v1) catalog. The plain and kimi/glm entries were
+        # previously hidden (operator preference); they are now exposed so the
+        # picker can select any ollama model.
+        "nemotron-3-ultra",
+        "deepseek-v4-flash:preview",
+        "minimax-m2.7",
+        "qwen3.5:397b",
+        "glm-5.2",
+        "deepseek-v4-pro",
         "deepseek-v4-flash:0731",
+        "gpt-oss:20b",
+        "kimi-k3",
+        "gpt-oss:120b",
+        "gemma4:31b",
+        "nemotron-3-super",
+        "nemotron-3-nano:30b",
+        "minimax-m3",
+        "glm-5.1",
+        "kimi-k2.7-code",
+        "kimi-k2.6",
+        "mistral-large-3:675b",
     ),
     "cx": (
         "gpt-5.6-luna",
@@ -1808,16 +1866,39 @@ def strip_router_model_prefix(model_id: str) -> str:
 
 
 def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
-    """Map a raw ``/v1/models`` entry to its prefixed picker id (or None).
+    """Map a ``/v1/models`` entry to its prefixed picker id (or None).
 
-    The proxy catalog groups entries by ``owned_by``; the group picks the
-    prefix (``openai`` = the Codex OAuth group -> ``cx/``). The raw id must be
-    a known entry of that provider, so the catalog can never advertise a model
-    the whitelist does not show. When ``owned_by`` is absent or unknown, fall
-    back to scanning the raw-id sets and require an unambiguous match —
-    ``gpt-5.6-luna`` is served by both commandcode and Codex, so the raw id
-    alone cannot disambiguate.
+    Handles BOTH catalog formats:
+
+    * **CLIProxyAPI (raw ids + owned_by):** the entry is a raw id like
+      ``deepseek/deepseek-v4-pro`` and ``owned_by`` names the provider group
+      (``openai`` = Codex -> ``cx/``). The raw id must be a known entry of
+      that provider, so the catalog can never advertise a model the whitelist
+      does not show.
+    * **9router (already-prefixed ids):** the entry already carries the group
+      prefix (``ocg/kimi-k2.6``, ``ollama/glm-5.2``, ``ag/gemini-3.6-flash-high``)
+      and ``owned_by`` matches it. The source prefix is normalized to the
+      fork's canonical picker prefix (``ocg`` -> ``oc``, ``ollama`` -> ``ol``)
+      and the rest checked against that provider's whitelist.
+
+    When ``owned_by`` is absent or unknown, fall back to scanning the raw-id
+    sets and require an unambiguous match — ``gpt-5.6-luna`` is served by both
+    commandcode and Codex, so the raw id alone cannot disambiguate.
     """
+    # An already-prefixed 9router id: the leading group IS the source prefix.
+    source_prefix, _, rest = model_id.partition("/")
+    if rest:
+        prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(owned_by, "")
+        if not prefix:
+            # Fall back to recognizing the embedded prefix directly.
+            prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(source_prefix, "")
+        if prefix:
+            if rest not in _ROUTER_RAW_MODEL_IDS.get(prefix, ()):
+                return None
+            return _router_picker_id(prefix, rest)
+        # Unknown owned_by + unknown prefix: the id is not a recognized model.
+        return None
+
     prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(owned_by, "")
     if prefix:
         if model_id not in _ROUTER_RAW_MODEL_IDS.get(prefix, ()):
@@ -1911,7 +1992,9 @@ class AcpClient:
         permission_mode: str | None = None,
         image_redirect: str = "subagent",
         vision_fallback_model: str = "cmc/mimo-v2.5",
+        vision_providers: list[dict[str, Any]] | None = None,
         text_only_models: list[str] | None = None,
+        image_input_mode: str = "auto",
     ):
         if work_dir:
             self._work_dir = Path(work_dir)
@@ -1930,7 +2013,9 @@ class AcpClient:
         # constants so direct constructions behave like before.
         self._image_redirect = image_redirect or "subagent"
         self._vision_fallback_model = vision_fallback_model or "cmc/mimo-v2.5"
+        self._vision_providers = list(vision_providers or [])
         self._text_only_models = frozenset(text_only_models or _DEFAULT_TEXT_ONLY_MODELS)
+        self._image_input_mode = image_input_mode or "auto"
         # Fork: when the claude backend points at a custom ANTHROPIC_BASE_URL
         # (e.g. a local router), the model id is the router's own namespace and
         # the claude-agent-acp adapter rejects it in set_config_option. Skip
@@ -2279,7 +2364,16 @@ class AcpClient:
             # (computer-use / browser screenshot tools return image blocks the
             # SDK forwards upstream, where the text-only provider rejects
             # them). Disable the screenshot-producing tools for this session.
-            if self._model in self._text_only_models:
+            from kiro_crew.acp.vision import decide_image_input_mode
+
+            if (
+                decide_image_input_mode(
+                    self._model,
+                    image_input_mode=self._image_input_mode,
+                    text_only_models=self._text_only_models,
+                )
+                == "text"
+            ):
                 disabled = set(data.get("disabledTools") or [])
                 for tool in _TEXT_ONLY_DISABLED_TOOLS:
                     disabled.add(tool)
@@ -4803,19 +4897,22 @@ class AcpClient:
         # Shared with AcpSessionHandle.prompt via prompt_blocks so the two paths
         # cannot drift.
         # Fork: text-only router models (oc/deepseek-v4-flash, ol/…) reject
-        # image content upstream with a 400. When the active model is text-only
-        # and the message carries an image path, dispatch the image to a
-        # one-shot VISION subagent (cmc/mimo-v2.5) and inject its text
-        # description in place of the image. The main session keeps its
+        # image content upstream with a 400. When the active model is not
+        # vision-capable and the message carries an image path, dispatch the
+        # image to a one-shot VISION subagent (cmc/mimo-v2.5) and inject its
+        # text description in place of the image. The main session keeps its
         # text-only model; the subagent session is spawned on demand and torn
         # down after the turn.
         model_id = self._model or ""
-        is_text_only = model_id in self._text_only_models
-        if (
-            self._image_redirect != "off"
-            and is_text_only
-            and _message_has_image_path(message)
-        ):
+        from kiro_crew.acp.vision import decide_image_input_mode
+
+        image_mode = decide_image_input_mode(
+            model_id,
+            image_input_mode=self._image_input_mode,
+            text_only_models=self._text_only_models,
+        )
+        needs_redirect = image_mode == "text" and _message_has_image_path(message)
+        if self._image_redirect != "off" and needs_redirect:
             if self._image_redirect == "subagent":
                 try:
                     message = await self._describe_images_with_vision(message)
@@ -4849,7 +4946,9 @@ class AcpClient:
                 # upstream. This is the session-start guard: text-only models
                 # cannot carry images in the conversation at all.
                 "prompt": await asyncio.to_thread(
-                    build_prompt_blocks, message, allow_image=not is_text_only
+                    build_prompt_blocks,
+                    message,
+                    allow_image=image_mode == "native",
                 ),
             },
         )
@@ -4857,13 +4956,13 @@ class AcpClient:
     async def _describe_images_with_vision(self, message: str) -> str:
         """Replace each image path in *message* with a vision-subagent description.
 
-        Spawns a one-shot claude-agent-acp session on the configured
-        vision-capable fallback model (default ``cmc/mimo-v2.5``, same proxy
-        env as this client), sends it the image with a describe prompt,
-        collects the text reply, and substitutes
-        ``[image: <name>: <description>]`` for the path in the message. The
-        subagent process is shut down afterwards, so the main session keeps its
-        text-only model. Raises on any failure so the caller can fall back.
+        Spawns one-shot claude-agent-acp sessions on the configured vision
+        fallback chain (default ``cmc/mimo-v2.5``, same proxy env as this
+        client), sends each image with a describe prompt, collects the text
+        reply, and substitutes ``[image: <name>: <description>]`` for the path
+        in the message. The subagent processes are shut down afterwards, so the
+        main session keeps its text-only model. Raises on any failure so the
+        caller can fall back.
         """
         from kiro_crew.acp.prompt_blocks import _PATH_RE
 
@@ -4872,7 +4971,7 @@ class AcpClient:
             return message
         replacement = message
         for path in paths:
-            description = await self._vision_subagent_describe(path)
+            description = await self._describe_image_via_chain(path)
             name = Path(path).name
             marker = f"[image: {name}: {description.strip() or 'unavailable'}]"
             # Replace the FIRST occurrence of the literal path; the regex may
@@ -4880,6 +4979,28 @@ class AcpClient:
             # anchored literal replace is safer than a global regex sub.
             replacement = replacement.replace(path, marker, 1)
         return replacement
+
+    async def _describe_image_via_chain(self, image_ref: str) -> str:
+        """Describe *image_ref* via the configured vision provider chain.
+
+        Builds the ordered chain from ``agent.vision_providers`` + the legacy
+        ``vision_fallback_model`` (see :func:`~kiro_crew.acp.vision.resolve_vision_providers`)
+        and returns the first successful description, else ``"unavailable"``.
+        """
+        from kiro_crew.acp.vision import describe_image_via_chain, resolve_vision_providers
+
+        providers = resolve_vision_providers(
+            vision_providers=self._vision_providers,
+            vision_fallback_model=self._vision_fallback_model,
+            main_env=self._extra_env,
+            main_backend=self._acp_backend,
+        )
+        return await describe_image_via_chain(
+            image_ref,
+            providers,
+            work_dir=self._work_dir / "vision-subagent",
+            sandbox_mode=self._sandbox_mode,
+        )
 
     async def _switch_to_vision_model(self) -> None:
         """Switch this session to the configured vision fallback model."""
@@ -4895,37 +5016,16 @@ class AcpClient:
 
     async def _vision_subagent_describe(self, image_path: str) -> str:
         """One-shot vision subagent: describe *image_path* on the vision model."""
-        from kiro_crew.acp.client import AcpClient as _Self  # noqa: F811
+        from kiro_crew.acp.vision import vision_subagent_describe
 
-        # Fresh env: drop the PARENT's ANTHROPIC_MODEL (which belongs to the
-        # text-only model) so this client derives its own model via
-        # _model_via_env -> ANTHROPIC_MODEL=<stripped mimo id>. Keep the base
-        # URL + key.
-        sub_env = dict(self._extra_env or {})
-        sub_env.pop("ANTHROPIC_MODEL", None)
-        sub = _Self(
+        return await vision_subagent_describe(
+            image_path,
+            vision_model=self._vision_fallback_model,
             work_dir=self._work_dir / "vision-subagent",
-            # Picker spelling — the client strips the prefix to the raw id for
-            # the wire and validates config options against the picker form.
-            model=self._vision_fallback_model,
-            sandbox_mode=self._sandbox_mode,
-            extra_env=sub_env,
+            extra_env=self._extra_env,
             acp_backend=self._acp_backend,
-            audit_source="vision-subagent",
+            sandbox_mode=self._sandbox_mode,
         )
-        try:
-            chunks: list[str] = []
-            async for chunk in sub.send_message_stream(
-                f"Describe this image in 1-3 short sentences: {image_path}",
-                timeout=120.0,
-            ):
-                chunks.append(chunk)
-            return "".join(chunks).strip()
-        finally:
-            try:
-                await sub.shutdown()
-            except Exception:
-                logger.debug("vision subagent shutdown failed", exc_info=True)
 
     async def _read_prompt_response(self, req_id: int, timeout: float) -> str:
         output: list[str] = []

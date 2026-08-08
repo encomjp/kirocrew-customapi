@@ -133,6 +133,92 @@ _PIL_SAVE_FORMAT: dict[str, str] = {
     "image/gif": "PNG",
 }
 
+#: Formats every major vision provider accepts natively. Anything outside this
+#: set (AVIF, HEIC, TIFF, ICO, …) has to be transcoded to PNG before it is
+#: inlined, or the backend returns 400 "Could not process image". Mirrors the
+#: wire contract in docs/reference/kiro-cli/acp.md.
+_UNIVERSALLY_SUPPORTED_MIMES: frozenset[str] = frozenset(
+    {"image/png", "image/jpeg", "image/gif", "image/webp"}
+)
+
+
+def _sniff_mime_from_bytes(raw: bytes) -> str | None:
+    """Detect image MIME from magic bytes, or None when unrecognized.
+
+    Filename-suffix detection is unreliable when a channel lies about
+    content-type — Discord serves proxied/animated stickers, custom-emoji
+    previews and some bot uploads as PNG bytes with ``content_type=image/webp``,
+    and Anthropic strictly validates that the declared media type matches the
+    actual bytes (HTTP 400 on mismatch). The suffix is only a fallback; the
+    bytes are authoritative.
+    """
+    if not raw:
+        return None
+    # PNG: 89 50 4E 47 0D 0A 1A 0A
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    # JPEG: FF D8 FF
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    # GIF87a / GIF89a
+    if raw[:6] in {b"GIF87a", b"GIF89a"}:
+        return "image/gif"
+    # WEBP: "RIFF" .... "WEBP"
+    if len(raw) >= 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    # BMP: "BM"
+    if raw.startswith(b"BM"):
+        return "image/bmp"
+    # ISO-BMFF family (HEIC/HEIF/AVIF): bytes 4..8 == 'ftyp', major brand at 8..12
+    if len(raw) >= 12 and raw[4:8] == b"ftyp":
+        brand = raw[8:12]
+        if brand in {b"avif", b"avis"}:
+            return "image/avif"
+        if brand in {
+            b"heic", b"heix", b"hevc", b"hevx",
+            b"mif1", b"msf1", b"heim", b"heis",
+        }:
+            return "image/heic"
+    # TIFF: II*\0 (little-endian) or MM\0* (big-endian)
+    if raw[:4] in {b"II*\x00", b"MM\x00*"}:
+        return "image/tiff"
+    # ICO: 00 00 01 00 (reserved=0, type=1=icon)
+    if raw[:4] == b"\x00\x00\x01\x00":
+        return "image/x-icon"
+    # SVG: text-based, look for an <svg tag near the start (skip BOM/whitespace)
+    head = raw[:512].lstrip().lower()
+    if head.startswith(b"<?xml") or head.startswith(b"<svg"):
+        if b"<svg" in head:
+            return "image/svg+xml"
+    return None
+
+
+def _transcode_to_png(raw: bytes, mime: str) -> bytes | None:
+    """Decode *raw* with Pillow and re-encode as PNG.
+
+    Used for formats outside :data:`_UNIVERSALLY_SUPPORTED_MIMES` — AVIF/HEIC
+    (needs an optional Pillow plugin), TIFF, ICO, BMP. Returns None when Pillow
+    is missing, cannot decode the bytes, or the format is a vector (SVG), so
+    the caller fails CLOSED (keeps the suffix as text) rather than shipping a
+    payload the backend refuses.
+    """
+    try:
+        from PIL import Image
+
+        with Image.open(io.BytesIO(raw)) as img:
+            # Transparency is preserved where the source had it; a source with
+            # no alpha stays in a compact mode instead of being forced to RGBA.
+            src = img.convert("RGBA") if img.mode not in {"RGB", "RGBA", "L", "LA", "P"} else img
+            buf = io.BytesIO()
+            src.save(buf, format="PNG", optimize=False)
+            return buf.getvalue()
+    except Exception:
+        logger.warning(
+            "acp prompt: could not transcode %s to PNG; leaving as path", mime, exc_info=True
+        )
+        return None
+
+
 # Absolute paths ending in a supported raster suffix.
 #
 # Two properties are load-bearing, and BOTH were learned from real defects:
@@ -378,6 +464,36 @@ def build_prompt_blocks(
                 # stays in the text; it is NOT inlined.
                 logger.warning("acp prompt: image read refused for %s", path.name)
                 continue
+            # Magic-byte sniff is authoritative: a channel that lies about
+            # content-type (Discord serving PNG bytes as webp) would otherwise
+            # inline a payload the backend rejects with 400. When the real
+            # format differs from the suffix, transcode non-universal formats
+            # (AVIF/HEIC/TIFF/ICO/…) to PNG so the declared mime matches the
+            # bytes.
+            sniffed = _sniff_mime_from_bytes(raw_bytes)
+            if sniffed and sniffed != mime:
+                logger.debug(
+                    "acp prompt: %s declares %s but bytes are %s",
+                    path.name,
+                    mime,
+                    sniffed,
+                )
+                mime = sniffed
+            if mime not in _UNIVERSALLY_SUPPORTED_MIMES:
+                transcoded = _transcode_to_png(raw_bytes, mime)
+                if transcoded is None:
+                    # Fail CLOSED: an untranscodable format (SVG, missing
+                    # HEIC/AVIF plugin) stays as a text path rather than
+                    # shipping bytes the backend refuses.
+                    logger.warning(
+                        "acp prompt: image %s is %s and could not be transcoded - "
+                        "sending path, not inline",
+                        path.name,
+                        mime,
+                    )
+                    continue
+                raw_bytes = transcoded
+                mime = "image/png"
             downscaled = _fit_encoded_budget(
                 raw_bytes, mime, max_image_edge, max_image_b64_bytes
             )
