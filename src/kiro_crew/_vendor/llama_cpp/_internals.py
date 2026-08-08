@@ -26,6 +26,27 @@ from ._utils import suppress_stdout_stderr
 import llama_cpp.llama_cpp as llama_cpp
 
 
+def _safe_llama_call(name: str, *args):
+    """Invoke a ``llama_cpp`` C-extension function, tolerating interpreter teardown.
+
+    At Python shutdown module globals are set to ``None`` before lingering
+    ``__del__`` hooks run, so ``llama_cpp.llama_model_free(...)`` inside a
+    destructor raises ``TypeError: 'NoneType' object is not callable`` and the
+    process exits non-zero. This helper is only used on teardown paths
+    (``close``/``__del__``) where skipping the free is harmless — the OS reclaims
+    the memory anyway.
+    """
+    if llama_cpp is None:
+        return None
+    fn = getattr(llama_cpp, name, None)
+    if fn is None:
+        return None
+    try:
+        return fn(*args)
+    except Exception:  # pragma: no cover - teardown-only guard
+        return None
+
+
 # Python wrappers over llama.h structs
 
 
@@ -72,7 +93,7 @@ class LlamaModel:
         def free_model():
             if self.model is None:
                 return
-            llama_cpp.llama_model_free(self.model)
+            _safe_llama_call("llama_model_free", self.model)
             self.model = None
 
         self._exit_stack.callback(free_model)
@@ -81,7 +102,7 @@ class LlamaModel:
         if self.sampler is not None:
             # NOTE: Must remove custom samplers before free or llama.cpp will try to free them
             for i, _ in reversed(self.custom_samplers):
-                llama_cpp.llama_sampler_chain_remove(self.sampler, i)
+                _safe_llama_call("llama_sampler_chain_remove", self.sampler, i)
             self.custom_samplers.clear()
         self._exit_stack.close()
 
@@ -272,7 +293,7 @@ class LlamaContext:
         def free_ctx():
             if self.ctx is None:
                 return
-            llama_cpp.llama_free(self.ctx)
+            _safe_llama_call("llama_free", self.ctx)
             self.ctx = None
 
         self._exit_stack.callback(free_ctx)
@@ -485,7 +506,7 @@ class LlamaBatch:
         def free_batch():
             if self.batch is None:
                 return
-            llama_cpp.llama_batch_free(self.batch)
+            _safe_llama_call("llama_batch_free", self.batch)
             self.batch = None
 
         self._exit_stack.callback(free_batch)
@@ -683,8 +704,8 @@ class LlamaSampler:
             if self.sampler is not None:
                 # NOTE: Must remove custom samplers before free or llama.cpp will try to free them
                 for i, _ in reversed(self.custom_samplers):
-                    llama_cpp.llama_sampler_chain_remove(self.sampler, i)
-                llama_cpp.llama_sampler_free(self.sampler)
+                    _safe_llama_call("llama_sampler_chain_remove", self.sampler, i)
+                _safe_llama_call("llama_sampler_free", self.sampler)
                 self.sampler = None
 
         self._exit_stack.callback(free_sampler)
