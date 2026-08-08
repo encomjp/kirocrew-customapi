@@ -1682,17 +1682,31 @@ _ROUTER_MODEL_PROVIDERS: dict[str, str] = {
     "ag": "antigravity",
 }
 
-# (Legacy prefix aliases were removed with the ocg/ spelling — see git history.)
-_ROUTER_PREFIX_ALIASES: dict[str, str] = {}
+# (Legacy prefix aliases were removed with the ocg/ spelling — see git history.
+# 9router re-introduces ocg/ and ollama/ as its OWN catalog prefixes, so they
+# are mapped here to the fork's canonical picker prefixes.)
+_ROUTER_PREFIX_ALIASES: dict[str, str] = {
+    "ocg": "oc",
+    "ollama": "ol",
+}
 
 # owned_by group in the proxy's /v1/models catalog -> picker prefix. The
 # Codex OAuth models are grouped under owned_by "openai" in that catalog.
+# The 9router aggregator reports the group as the prefix itself (ocg, ollama,
+# ag, cx, cmc, cu, gemini) — every group here maps to the fork's canonical
+# picker prefix so an already-prefixed 9router id is recognized.
 _ROUTER_OWNED_BY_TO_PREFIX: dict[str, str] = {
     "commandcode": "cmc",
     "opencode-go": "oc",
+    "ocg": "oc",  # 9router's group for the opencode-go provider
     "ollama-cloud": "ol",
+    "ollama": "ol",  # 9router's group for the ollama provider
     "openai": "cx",
     "antigravity": "ag",
+    "ag": "ag",
+    "cx": "cx",
+    "cmc": "cmc",
+    "gemini": "ag",  # 9router gemini group rides the antigravity account
 }
 
 # Raw model ids per provider, exactly as the proxy advertises them in
@@ -1735,13 +1749,57 @@ _ROUTER_RAW_MODEL_IDS: dict[str, tuple[str, ...]] = {
         "gpt-5.6-luna",
     ),
     "oc": (
+        # Full opencode-go (/zen/go/v1) catalog — every model this provider
+        # serves, so the picker can select any of them. Raw ids, exactly as
+        # the catalog advertises them; the picker shows them prefixed (oc/).
+        "minimax-m3",
+        "minimax-m2.7",
+        "minimax-m2.5",
+        "kimi-k3",
+        "kimi-k2.7-code",
+        "kimi-k2.6",
+        "kimi-k2.5",
+        "glm-5.2",
+        "glm-5.1",
+        "glm-5",
+        "deepseek-v4-pro",
         "deepseek-v4-flash",
+        "qwen3.7-max",
+        "qwen3.8-max",
+        "qwen3.7-plus",
+        "qwen3.6-plus",
+        "qwen3.5-plus",
+        "mimo-v2-pro",
+        "mimo-v2-omni",
+        "mimo-v2.5-pro",
         "mimo-v2.5",
+        "hy3",
+        "hy3-preview",
+        "gpt-5.6-luna",
+        "grok-4.5",
     ),
     "ol": (
-        # Only the 0731 build is exposed from ollama; the plain and kimi/glm
-        # entries are deliberately absent (operator preference).
+        # Full ollama-cloud (/v1) catalog. The plain and kimi/glm entries were
+        # previously hidden (operator preference); they are now exposed so the
+        # picker can select any ollama model.
+        "nemotron-3-ultra",
+        "deepseek-v4-flash:preview",
+        "minimax-m2.7",
+        "qwen3.5:397b",
+        "glm-5.2",
+        "deepseek-v4-pro",
         "deepseek-v4-flash:0731",
+        "gpt-oss:20b",
+        "kimi-k3",
+        "gpt-oss:120b",
+        "gemma4:31b",
+        "nemotron-3-super",
+        "nemotron-3-nano:30b",
+        "minimax-m3",
+        "glm-5.1",
+        "kimi-k2.7-code",
+        "kimi-k2.6",
+        "mistral-large-3:675b",
     ),
     "cx": (
         "gpt-5.6-luna",
@@ -1808,16 +1866,39 @@ def strip_router_model_prefix(model_id: str) -> str:
 
 
 def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
-    """Map a raw ``/v1/models`` entry to its prefixed picker id (or None).
+    """Map a ``/v1/models`` entry to its prefixed picker id (or None).
 
-    The proxy catalog groups entries by ``owned_by``; the group picks the
-    prefix (``openai`` = the Codex OAuth group -> ``cx/``). The raw id must be
-    a known entry of that provider, so the catalog can never advertise a model
-    the whitelist does not show. When ``owned_by`` is absent or unknown, fall
-    back to scanning the raw-id sets and require an unambiguous match —
-    ``gpt-5.6-luna`` is served by both commandcode and Codex, so the raw id
-    alone cannot disambiguate.
+    Handles BOTH catalog formats:
+
+    * **CLIProxyAPI (raw ids + owned_by):** the entry is a raw id like
+      ``deepseek/deepseek-v4-pro`` and ``owned_by`` names the provider group
+      (``openai`` = Codex -> ``cx/``). The raw id must be a known entry of
+      that provider, so the catalog can never advertise a model the whitelist
+      does not show.
+    * **9router (already-prefixed ids):** the entry already carries the group
+      prefix (``ocg/kimi-k2.6``, ``ollama/glm-5.2``, ``ag/gemini-3.6-flash-high``)
+      and ``owned_by`` matches it. The source prefix is normalized to the
+      fork's canonical picker prefix (``ocg`` -> ``oc``, ``ollama`` -> ``ol``)
+      and the rest checked against that provider's whitelist.
+
+    When ``owned_by`` is absent or unknown, fall back to scanning the raw-id
+    sets and require an unambiguous match — ``gpt-5.6-luna`` is served by both
+    commandcode and Codex, so the raw id alone cannot disambiguate.
     """
+    # An already-prefixed 9router id: the leading group IS the source prefix.
+    source_prefix, _, rest = model_id.partition("/")
+    if rest:
+        prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(owned_by, "")
+        if not prefix:
+            # Fall back to recognizing the embedded prefix directly.
+            prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(source_prefix, "")
+        if prefix:
+            if rest not in _ROUTER_RAW_MODEL_IDS.get(prefix, ()):
+                return None
+            return _router_picker_id(prefix, rest)
+        # Unknown owned_by + unknown prefix: the id is not a recognized model.
+        return None
+
     prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(owned_by, "")
     if prefix:
         if model_id not in _ROUTER_RAW_MODEL_IDS.get(prefix, ()):

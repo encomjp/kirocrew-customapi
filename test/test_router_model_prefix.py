@@ -130,20 +130,53 @@ class TestRouterModelWhitelistPrefixed:
         for raw in self._RAW_ONLY_ABSENT:
             assert raw not in wl, f"raw-only id {raw!r} must not appear in the picker"
 
-    def test_ollama_exposes_only_deepseek_v4_flash_0731(self) -> None:
+    def test_ollama_exposes_full_catalog(self) -> None:
+        from kiro_crew.acp.client import _ROUTER_RAW_MODEL_IDS
+
         wl = AcpClient.router_model_whitelist()
         ol_ids = {m for m in wl if m.startswith("ol/")}
-        assert ol_ids == {"ol/deepseek-v4-flash:0731"}
-        # the old 9router-spelling ollama entries are gone too
-        for old in (
-            "ollama/deepseek-v4-flash",
-            "ollama/glm-5.2",
-            "ollama/kimi-k2.6",
-            "ollama/kimi-k2.7-code",
-        ):
-            assert old not in wl
-        for raw in ("glm-5.2", "kimi-k2.6", "kimi-k2.7-code"):
-            assert raw not in wl
+        # The ollama whitelist exposes the full /v1 catalog so the picker can
+        # select any ollama model, not just the 0731 deepseek build.
+        assert "ol/deepseek-v4-flash:0731" in ol_ids
+        assert "ol/glm-5.2" in ol_ids
+        assert "ol/kimi-k2.6" in ol_ids
+        assert "ol/kimi-k2.7-code" in ol_ids
+        assert "ol/minimax-m3" in ol_ids
+        assert "ol/gpt-oss:120b" in ol_ids
+        assert "ol/gemma4:31b" in ol_ids
+        # Every ol/ picker id maps to a whitelisted raw id.
+        for mid in ol_ids:
+            prefix, _, rest = mid.partition("/")
+            assert rest in _ROUTER_RAW_MODEL_IDS.get(prefix, ()), mid
+
+    def test_opencode_exposes_full_catalog(self) -> None:
+        wl = AcpClient.router_model_whitelist()
+        oc_ids = {m for m in wl if m.startswith("oc/")}
+        # The opencode-go whitelist exposes the full /zen/go/v1 catalog.
+        assert "oc/mimo-v2.5" in oc_ids
+        assert "oc/kimi-k2.6" in oc_ids
+        assert "oc/glm-5.2" in oc_ids
+        assert "oc/deepseek-v4-flash" in oc_ids
+        assert "oc/qwen3.7-max" in oc_ids
+        assert "oc/minimax-m3" in oc_ids
+
+    def test_9router_prefixed_ids_normalize(self) -> None:
+        from kiro_crew.acp.client import prefixed_router_model_id, strip_router_model_prefix
+
+        # 9router serves already-prefixed ids; they must normalize to the
+        # fork's canonical picker prefix and strip to the wire id.
+        assert prefixed_router_model_id("ollama/glm-5.2", "ollama") == "ol/glm-5.2"
+        assert prefixed_router_model_id("ocg/kimi-k2.6", "ocg") == "oc/kimi-k2.6"
+        assert prefixed_router_model_id("ocg/mimo-v2.5", "ocg") == "oc/mimo-v2.5"
+        assert (
+            prefixed_router_model_id("ag/gemini-3.6-flash-high", "ag")
+            == "ag/gemini-3.6-flash-high"
+        )
+        assert strip_router_model_prefix("ollama/glm-5.2") == "glm-5.2"
+        assert strip_router_model_prefix("ocg/kimi-k2.6") == "kimi-k2.6"
+        assert strip_router_model_prefix("ocg/mimo-v2.5") == "mimo-v2.5"
+        assert strip_router_model_prefix("ol/glm-5.2") == "glm-5.2"
+        assert strip_router_model_prefix("oc/mimo-v2.5") == "mimo-v2.5"
 
     def test_gpt_5_3_codex_spark_absent(self) -> None:
         # verified to 400 upstream, so neither spelling may be offered
