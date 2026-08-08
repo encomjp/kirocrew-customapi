@@ -4682,6 +4682,7 @@ class KiroCrewConfig:
                 vision_fallback_model=agent_data.get(
                     "vision_fallback_model", "cmc/mimo-v2.5"
                 ),
+                vision_providers=list(agent_data.get("vision_providers") or []),
                 text_only_models=list(
                     agent_data.get(
                         "text_only_models",
@@ -4689,6 +4690,7 @@ class KiroCrewConfig:
                     )
                     or []
                 ),
+                image_input_mode=agent_data.get("image_input_mode", "auto"),
                 default_agent=agent_data.get("default_agent", ""),
                 sandbox=agent_data.get("sandbox", "auto"),
                 sandbox_allow_no_isolation=bool(
