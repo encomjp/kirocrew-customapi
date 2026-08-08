@@ -147,6 +147,11 @@ interface RawModel {
    *  gateway/kiro-cli predating the field simply omits it, and we render no
    *  badge rather than inventing a price (see ModelInfo.rateMultiplier). */
   rate_multiplier?: number
+  /** Vision capability, when the backend knows it. router → enriched via
+   *  decided image_input_mode; providers that don't report it simply omit it. */
+  supports_vision?: boolean
+  supportsVision?: boolean
+  vision_capable?: boolean
 }
 
 /** The window a /api/models row reports, or 0 when it reports none. */
@@ -162,6 +167,16 @@ function rowWindow(m: RawModel): number {
  *  isPricedMultiplier). */
 function rowMultiplier(m: RawModel): number | undefined {
   return isPricedMultiplier(m.rate_multiplier) ? m.rate_multiplier : undefined
+}
+
+/** Vision flag a /api/models row reports, or undefined when unknown. */
+function rowVision(m: RawModel): boolean | undefined {
+  const mm = m as RawModel & Record<string, unknown>
+  for (const k of ['supports_vision', 'supportsVision', 'vision_capable'] as const) {
+    const v = mm[k]
+    if (typeof v === 'boolean') return v
+  }
+  return undefined
 }
 
 export class AcpAdapter implements ProviderAdapter {
@@ -358,6 +373,7 @@ export class AcpAdapter implements ProviderAdapter {
           description: m.description || '',
           contextWindow: reported || MODEL_TOKENS[m.model_name] || DEFAULT_CONTEXT,
           rateMultiplier: rowMultiplier(m),
+          supportsVision: rowVision(m),
         }
       })
       writeCachedModels(result) // remember this good live list for next hiccup
