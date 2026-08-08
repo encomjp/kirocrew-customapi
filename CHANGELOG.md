@@ -2,6 +2,34 @@
 
 All notable changes to KiroCrew are documented in this file.
 
+## [0.2.0-customapi.4] — 2026-08-08
+
+The kirocrew-customapi fork: Kiro Crew with the Claude Code ACP backend re-enabled for self-hosted LLM routers (9router, CLIProxyAPI, OpenCode Zen, Ollama Cloud, and any Anthropic/OpenAI-compatible endpoint).
+
+### Fixed
+
+- **Endless loading in chat (OpenCode backend)** — the OpenCode ACP process now runs in an isolated `HOME`, so user-installed plugins (Honcho) and MCP servers can no longer stall the session.
+- **Ollama Cloud 405/Unauthorized** — Ollama Cloud's Anthropic endpoint rejects cloud API keys; the wire format is now forced to OpenAI (`/v1/chat/completions`) which accepts the same keys and models.
+- **Provider preset reset to "custom"** — the preset now derives from the saved URL, so it stays selected after save + reload.
+- **"connection failed: undefined" on Test** — the provider test now uses the stored API key when no draft key is entered.
+- **Stale model from old provider** — switching provider clears the default model and model whitelist, so old ids (e.g. `deepseek-v4-flash:0731`, `oc/mimo`) no longer leak into the new provider's picker.
+- **Router-prefixed models in kiro-native** — `cx/`, `oc/`, `ol/` prefixed models are cleared on provider switch and no longer appear in the kiro-native model list.
+
+### Added
+
+- **Provider binary warnings** — Settings > Chat now warns when the selected backend's binary (OpenCode CLI or claude-agent-acp) is not installed.
+- **New provider presets** — Ollama Cloud (OpenAI wire), OpenCode Zen/Go, commandcode.ai, 9router, CLIProxyAPI, OmniRouter, Anthropic, OpenRouter, xAI, Mistral, DeepSeek, Together, OpenAI, Groq.
+
+### Verified
+
+- 767 Python tests + frontend tests pass.
+- Live AppImage chat returns instantly.
+- All 14 provider URLs verified (200 or auth-required).
+
+## [0.2.0-customapi.1] — 2026-08-06
+
+Initial kirocrew-customapi fork. Re-enabled the dormant `claude_code` provider (the `ACP_BACKEND_CLAUDE` seam) so Kiro Crew can drive your own model router speaking the Anthropic API instead of Kiro's built-in Bedrock catalog.
+
 ## [0.4.0] — 2026-08-21
 
 The dashboard became a place to work on code rather than only talk about it: real
