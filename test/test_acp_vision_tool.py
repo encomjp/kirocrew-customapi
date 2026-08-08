@@ -53,6 +53,34 @@ class TestDecideImageInputMode:
             == "text"
         )
 
+    def test_raw_model_matches_prefixed_denylist(self):
+        """The config model is often written raw (no prefix) while
+        text_only_models uses the prefixed picker form; they must match. A miss
+        means the redirect never fires and the text-only model 400s."""
+        assert (
+            decide_image_input_mode(
+                "deepseek-v4-flash:0731",
+                text_only_models={"ol/deepseek-v4-flash:0731"},
+            )
+            == "text"
+        )
+        assert (
+            decide_image_input_mode(
+                "deepseek-v4-flash",
+                text_only_models={"oc/deepseek-v4-flash"},
+            )
+            == "text"
+        )
+
+    def test_prefixed_model_matches_raw_denylist(self):
+        assert (
+            decide_image_input_mode(
+                "ol/deepseek-v4-flash:0731",
+                text_only_models={"deepseek-v4-flash:0731"},
+            )
+            == "text"
+        )
+
     def test_unknown_router_model_native(self):
         # Fail open on capability: an unlisted router model is treated as
         # vision-capable (a genuine 400 is actionable; silent text-routing of
@@ -338,6 +366,57 @@ class TestDescribeImageViaChain:
         assert out == "second works"
         assert calls == ["a", "b"]
 
+    @pytest.mark.asyncio
+    async def test_first_provider_raises_then_second_succeeds(self, monkeypatch):
+        """A provider that RAISES (not returns 'unavailable') must still fail
+        over to the next one — describe_image_via_vision catches it."""
+        import kiro_crew.acp.vision as vision_mod
+        from kiro_crew.acp.vision import VisionProvider, describe_image_via_chain
+
+        calls: list[str] = []
+
+        async def fake_subagent(image_ref, **kw):
+            calls.append(kw.get("vision_model", ""))
+            if kw["vision_model"] == "bad":
+                raise RuntimeError("vision http describe: 401")
+            return "the good description"
+
+        monkeypatch.setattr(vision_mod, "vision_subagent_describe", fake_subagent)
+        out = await describe_image_via_chain(
+            "/tmp/a.png",
+            [
+                VisionProvider("custom", "bad", {"ANTHROPIC_BASE_URL": "http://x"}, "opencode"),
+                VisionProvider("custom", "good", {"ANTHROPIC_BASE_URL": "http://y"}, "opencode"),
+            ],
+        )
+        assert out == "the good description"
+        assert calls == ["bad", "good"]
+
+    @pytest.mark.asyncio
+    async def test_empty_chain_returns_unavailable(self):
+        from kiro_crew.acp.vision import describe_image_via_chain
+
+        out = await describe_image_via_chain("/tmp/a.png", [])
+        assert out == "unavailable"
+
+    @pytest.mark.asyncio
+    async def test_all_fail_with_exceptions_returns_unavailable(self, monkeypatch):
+        import kiro_crew.acp.vision as vision_mod
+        from kiro_crew.acp.vision import VisionProvider, describe_image_via_chain
+
+        async def fake_subagent(image_ref, **kw):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(vision_mod, "vision_subagent_describe", fake_subagent)
+        out = await describe_image_via_chain(
+            "/tmp/a.png",
+            [
+                VisionProvider("custom", "a", {"ANTHROPIC_BASE_URL": "http://x"}, "opencode"),
+                VisionProvider("custom", "b", {"ANTHROPIC_BASE_URL": "http://y"}, "opencode"),
+            ],
+        )
+        assert out == "unavailable"
+
 
 class TestHttpDescribe:
     @pytest.mark.asyncio
@@ -454,3 +533,182 @@ class TestHttpDescribe:
             acp_backend="",
         )
         assert out == "described via acp"
+
+    @pytest.mark.asyncio
+    async def test_http_error_surfaces_clean_error(self, monkeypatch, tmp_path):
+        """A 401/404 from the vision endpoint becomes a clean RuntimeError,
+        not a raw HTTPError."""
+        from kiro_crew.acp.vision import _http_describe_image
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"pngbytes")
+
+        import urllib.error
+        import urllib.request
+
+        def fake_urlopen(req, timeout=None):
+            raise urllib.error.HTTPError(req.full_url, 401, "Unauthorized", {}, None)
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        with pytest.raises(RuntimeError, match="401"):
+            await _http_describe_image(
+                str(img),
+                vision_model="kimi-k2.6",
+                env={"ANTHROPIC_BASE_URL": "https://ollama.com/v1", "ANTHROPIC_API_KEY": "bad"},
+                timeout=15,
+            )
+
+    @pytest.mark.asyncio
+    async def test_network_error_surfaces_clean_error(self, monkeypatch, tmp_path):
+        from kiro_crew.acp.vision import _http_describe_image
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"pngbytes")
+
+        import urllib.error
+        import urllib.request
+
+        def fake_urlopen(req, timeout=None):
+            raise urllib.error.URLError("connection refused")
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        with pytest.raises(RuntimeError, match="network error"):
+            await _http_describe_image(
+                str(img),
+                vision_model="kimi-k2.6",
+                env={"ANTHROPIC_BASE_URL": "https://ollama.com/v1", "ANTHROPIC_API_KEY": "k"},
+                timeout=15,
+            )
+
+    @pytest.mark.asyncio
+    async def test_non_json_reply_raises(self, monkeypatch, tmp_path):
+        from kiro_crew.acp.vision import _http_describe_image
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"pngbytes")
+
+        import urllib.request
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return b"<html>not json</html>"
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: _Resp())
+        with pytest.raises(RuntimeError, match="non-JSON"):
+            await _http_describe_image(
+                str(img),
+                vision_model="kimi-k2.6",
+                env={"ANTHROPIC_BASE_URL": "https://ollama.com/v1", "ANTHROPIC_API_KEY": "k"},
+                timeout=15,
+            )
+
+    @pytest.mark.asyncio
+    async def test_empty_content_with_reasoning_surfaces_reasoning(self, monkeypatch, tmp_path):
+        """A reasoning model that runs out of tokens returns empty content but
+        a non-empty reasoning field; surface that instead of a silent ''."""
+        from kiro_crew.acp.vision import _http_describe_image
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"pngbytes")
+
+        import json
+        import urllib.request
+
+        payload = json.dumps(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "",
+                            "reasoning": "Let me think about the color of this image carefully...",
+                        }
+                    }
+                ]
+            }
+        ).encode()
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return payload
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: _Resp())
+        out = await _http_describe_image(
+            str(img),
+            vision_model="kimi-k2.6",
+            env={"ANTHROPIC_BASE_URL": "https://ollama.com/v1", "ANTHROPIC_API_KEY": "k"},
+            timeout=15,
+        )
+        assert "reasoning" in out
+        assert "color" in out
+
+    @pytest.mark.asyncio
+    async def test_empty_content_no_reasoning_raises(self, monkeypatch, tmp_path):
+        from kiro_crew.acp.vision import _http_describe_image
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"pngbytes")
+
+        import json
+        import urllib.request
+
+        payload = json.dumps({"choices": [{"message": {"content": ""}}]}).encode()
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return payload
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: _Resp())
+        with pytest.raises(RuntimeError, match="empty reply"):
+            await _http_describe_image(
+                str(img),
+                vision_model="kimi-k2.6",
+                env={"ANTHROPIC_BASE_URL": "https://ollama.com/v1", "ANTHROPIC_API_KEY": "k"},
+                timeout=15,
+            )
+
+    @pytest.mark.asyncio
+    async def test_missing_choices_raises(self, monkeypatch, tmp_path):
+        from kiro_crew.acp.vision import _http_describe_image
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"pngbytes")
+
+        import json
+        import urllib.request
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return json.dumps({"error": "model not found"}).encode()
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: _Resp())
+        with pytest.raises(RuntimeError, match="unexpected reply shape"):
+            await _http_describe_image(
+                str(img),
+                vision_model="kimi-k2.6",
+                env={"ANTHROPIC_BASE_URL": "https://ollama.com/v1", "ANTHROPIC_API_KEY": "k"},
+                timeout=15,
+            )

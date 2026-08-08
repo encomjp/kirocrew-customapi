@@ -202,6 +202,21 @@ def _coerce_image_input_mode(raw: Any) -> str:
     return "auto"
 
 
+#: Router picker prefixes, mirroring acp.client._ROUTER_MODEL_PROVIDERS. A
+#: prefixed id ("ol/deepseek-v4-flash:0731") and its raw wire form
+#: ("deepseek-v4-flash:0731") name the same model; the denylist match must
+#: treat them as equal regardless of which spelling a config uses.
+_ROUTER_PREFIXES = frozenset({"cmc", "oc", "ol", "cx", "ag"})
+
+
+def _strip_router_prefix(model_id: str) -> str:
+    """Strip a known router picker prefix from *model_id*, if present."""
+    prefix, _, rest = model_id.partition("/")
+    if rest and prefix in _ROUTER_PREFIXES:
+        return rest
+    return model_id
+
+
 def decide_image_input_mode(
     model_id: str,
     *,
@@ -247,8 +262,15 @@ def decide_image_input_mode(
     except Exception:  # pragma: no cover - registry load is defensive
         logger.debug("vision: model_supports_vision lookup failed for %s", model_id, exc_info=True)
 
-    if text_only_models and model_id in set(text_only_models):
-        return "text"
+    if text_only_models:
+        # Match BOTH the picker spelling and the raw wire id. The config model
+        # may be written raw ("deepseek-v4-flash:0731") while text_only_models
+        # uses the prefixed picker form ("ol/deepseek-v4-flash:0731") — or vice
+        # versa — and a miss means the image redirect never fires and the
+        # text-only model 400s. Normalize the prefix away on both sides.
+        denylist = {_strip_router_prefix(m) for m in text_only_models}
+        if _strip_router_prefix(model_id) in denylist:
+            return "text"
     return "native"
 
 
@@ -393,7 +415,24 @@ async def _http_describe_image(
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.read()
 
-    body = await asyncio.to_thread(_post)
+    try:
+        body = await asyncio.to_thread(_post)
+    except urllib.error.HTTPError as exc:
+        # A non-2xx from the vision endpoint (bad key, unknown model, rate
+        # limit) must surface as a clean error, not a raw HTTPError — the
+        # chain treats it as "this provider failed, try the next one".
+        try:
+            detail = exc.read().decode("utf-8", "replace")[:200]
+        except Exception:
+            detail = ""
+        raise RuntimeError(
+            f"vision http describe: {exc.code} from {base_url}"
+            + (f": {detail}" if detail else "")
+        ) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(
+            f"vision http describe: network error reaching {base_url}: {exc.reason}"
+        ) from exc
     try:
         parsed = json.loads(body)
     except (TypeError, ValueError) as exc:
@@ -402,7 +441,21 @@ async def _http_describe_image(
         text = parsed["choices"][0]["message"].get("content") or ""
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(f"vision http describe: unexpected reply shape: {body[:200]!r}") from exc
-    return text.strip()
+    text = text.strip()
+    if not text:
+        # Reasoning models (kimi, deepseek-reasoner) put the thinking pass in
+        # `reasoning` and can finish with an empty `content` when the token
+        # budget runs out. Surface that instead of a silently-empty string so
+        # the caller can distinguish "no answer" from "vision failed".
+        reasoning = ""
+        try:
+            reasoning = str(parsed["choices"][0]["message"].get("reasoning") or "").strip()
+        except (KeyError, IndexError, TypeError):
+            reasoning = ""
+        if reasoning:
+            return f"(empty answer; model reasoning: {reasoning[:120]}...)" if len(reasoning) > 120 else f"(empty answer; model reasoning: {reasoning})"
+        raise RuntimeError("vision http describe: empty reply content")
+    return text
 
 
 async def describe_image_via_vision(
