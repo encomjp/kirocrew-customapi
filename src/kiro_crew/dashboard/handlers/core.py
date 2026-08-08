@@ -2116,9 +2116,13 @@ async def api_kirocrew_config_patch(request: web.Request) -> web.Response:
             agent_section = cfg_data.get("agent", {})
             if agent_section.get("model"):
                 agent_section["model"] = ""
-                cfg_data["agent"] = agent_section
-                _atomic_json_write(config_path(), cfg_data)
-                logger.info("Cleared agent.model on provider switch (was %r)", cfg.agent.model)
+            # Also clear the model whitelist — old provider's prefixed models
+            # (oc/mimo, cx/..., etc.) are invalid for the new provider.
+            if agent_section.get("model_whitelist"):
+                agent_section["model_whitelist"] = []
+            cfg_data["agent"] = agent_section
+            _atomic_json_write(config_path(), cfg_data)
+            logger.info("Cleared agent.model + model_whitelist on provider switch")
         logger.info(
             "Provider switched to %s — config rebuilt, factory reloaded, slot models cleared", value
         )
