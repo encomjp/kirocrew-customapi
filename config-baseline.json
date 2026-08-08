@@ -29,6 +29,7 @@
           "oc/deepseek-v4-flash",
           "ol/deepseek-v4-flash:0731"
         ],
+        "image_input_mode": "auto",
         "default_agent": "",
         "sandbox": "off",
         "sandbox_allow_no_isolation": false,
@@ -301,6 +302,24 @@
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": null
+    },
+    {
+      "path": "agent.image_input_mode",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Image Input Mode",
+      "help": "How user-attached images are presented to the model. 'auto' (default): attach natively when the active model is vision-capable (registry metadata or not in text_only_models), else run the vision-subagent describe pipeline. 'native': always attach the image as pixels (the model must accept image content). 'text': always describe via the vision subagent and inject the text.",
+      "hasChildren": false,
+      "enumValues": [
+        "auto",
+        "native",
+        "text"
+      ],
+      "defaultValue": "auto"
     },
     {
       "path": "agent.default_agent",

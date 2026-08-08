@@ -235,18 +235,32 @@ def _provider_effectively_alive(provider: Any) -> bool:
 
 
 def _model_is_text_only_for_session(cfg: "KiroCrewConfig", model: str | None) -> bool:
-    """True when *model* is in the configured text-only router model list.
+    """True when *model* cannot take image content for the session's routing.
 
     Text-only models reject image content upstream, so sessions on them must
     never resume history that may contain image blocks (the SDK replays stored
-    image blocks and the upstream 400s).
+    image blocks and the upstream 400s). Uses the same
+    :func:`~kiro_crew.acp.vision.decide_image_input_mode` decision as the
+    prompt path so a registry-known vision model (Anthropic Claude) resumes
+    normally while the router text-only denylist stays protected.
     """
     if not model:
         return False
     try:
-        return model in set(getattr(cfg.agent, "text_only_models", []) or [])
+        from kiro_crew.acp.vision import decide_image_input_mode
+
+        return (
+            decide_image_input_mode(
+                model,
+                image_input_mode=getattr(cfg.agent, "image_input_mode", "auto"),
+                text_only_models=getattr(cfg.agent, "text_only_models", None) or [],
+            )
+            == "text"
+        )
     except Exception:
-        return False
+        # Fail toward the safe side: an unknown model's image history must not
+        # resume into a rejecting upstream.
+        return True
 
 
 def detect_provider_switch(session_map: "SessionMap", session_key: str, new_provider: str) -> bool:
