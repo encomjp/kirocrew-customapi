@@ -1911,6 +1911,7 @@ class AcpClient:
         permission_mode: str | None = None,
         image_redirect: str = "subagent",
         vision_fallback_model: str = "cmc/mimo-v2.5",
+        vision_providers: list[dict[str, Any]] | None = None,
         text_only_models: list[str] | None = None,
         image_input_mode: str = "auto",
     ):
@@ -1931,6 +1932,7 @@ class AcpClient:
         # constants so direct constructions behave like before.
         self._image_redirect = image_redirect or "subagent"
         self._vision_fallback_model = vision_fallback_model or "cmc/mimo-v2.5"
+        self._vision_providers = list(vision_providers or [])
         self._text_only_models = frozenset(text_only_models or _DEFAULT_TEXT_ONLY_MODELS)
         self._image_input_mode = image_input_mode or "auto"
         # Fork: when the claude backend points at a custom ANTHROPIC_BASE_URL
@@ -4873,13 +4875,13 @@ class AcpClient:
     async def _describe_images_with_vision(self, message: str) -> str:
         """Replace each image path in *message* with a vision-subagent description.
 
-        Spawns a one-shot claude-agent-acp session on the configured
-        vision-capable fallback model (default ``cmc/mimo-v2.5``, same proxy
-        env as this client), sends it the image with a describe prompt,
-        collects the text reply, and substitutes
-        ``[image: <name>: <description>]`` for the path in the message. The
-        subagent process is shut down afterwards, so the main session keeps its
-        text-only model. Raises on any failure so the caller can fall back.
+        Spawns one-shot claude-agent-acp sessions on the configured vision
+        fallback chain (default ``cmc/mimo-v2.5``, same proxy env as this
+        client), sends each image with a describe prompt, collects the text
+        reply, and substitutes ``[image: <name>: <description>]`` for the path
+        in the message. The subagent processes are shut down afterwards, so the
+        main session keeps its text-only model. Raises on any failure so the
+        caller can fall back.
         """
         from kiro_crew.acp.prompt_blocks import _PATH_RE
 
@@ -4888,7 +4890,7 @@ class AcpClient:
             return message
         replacement = message
         for path in paths:
-            description = await self._vision_subagent_describe(path)
+            description = await self._describe_image_via_chain(path)
             name = Path(path).name
             marker = f"[image: {name}: {description.strip() or 'unavailable'}]"
             # Replace the FIRST occurrence of the literal path; the regex may
@@ -4896,6 +4898,28 @@ class AcpClient:
             # anchored literal replace is safer than a global regex sub.
             replacement = replacement.replace(path, marker, 1)
         return replacement
+
+    async def _describe_image_via_chain(self, image_ref: str) -> str:
+        """Describe *image_ref* via the configured vision provider chain.
+
+        Builds the ordered chain from ``agent.vision_providers`` + the legacy
+        ``vision_fallback_model`` (see :func:`~kiro_crew.acp.vision.resolve_vision_providers`)
+        and returns the first successful description, else ``"unavailable"``.
+        """
+        from kiro_crew.acp.vision import describe_image_via_chain, resolve_vision_providers
+
+        providers = resolve_vision_providers(
+            vision_providers=self._vision_providers,
+            vision_fallback_model=self._vision_fallback_model,
+            main_env=self._extra_env,
+            main_backend=self._acp_backend,
+        )
+        return await describe_image_via_chain(
+            image_ref,
+            providers,
+            work_dir=self._work_dir / "vision-subagent",
+            sandbox_mode=self._sandbox_mode,
+        )
 
     async def _switch_to_vision_model(self) -> None:
         """Switch this session to the configured vision fallback model."""

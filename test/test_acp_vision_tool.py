@@ -185,3 +185,155 @@ class TestVisionSubagentDescribe:
             vision_model="cmc/mimo-v2.5",
         )
         assert out == "unavailable"
+
+
+class TestResolveVisionProviders:
+    def test_empty_config_appends_fallback(self):
+        from kiro_crew.acp.vision import resolve_vision_providers
+
+        providers = resolve_vision_providers(main_env={"ANTHROPIC_BASE_URL": "http://r:1"})
+        assert len(providers) == 1
+        assert providers[0].model == "cmc/mimo-v2.5"
+        assert providers[0].provider == "router"
+        assert providers[0].extra_env["ANTHROPIC_BASE_URL"] == "http://r:1"
+
+    def test_explicit_fallback_model(self):
+        from kiro_crew.acp.vision import resolve_vision_providers
+
+        providers = resolve_vision_providers(
+            vision_fallback_model="ag/gemini-3.6-flash-high",
+            main_env={"ANTHROPIC_BASE_URL": "http://r:1"},
+        )
+        assert [p.model for p in providers] == ["ag/gemini-3.6-flash-high"]
+
+    def test_configured_entries_then_fallback(self):
+        from kiro_crew.acp.vision import resolve_vision_providers
+
+        providers = resolve_vision_providers(
+            vision_providers=[
+                {"provider": "custom", "model": "qwen-vl-7b", "base_url": "http://127.0.0.1:8000/v1"},
+                {"provider": "router", "model": "cmc/mimo-v2.5"},
+            ],
+            vision_fallback_model="ag/gemini-3.6-flash-high",
+            main_env={"ANTHROPIC_BASE_URL": "http://r:1"},
+        )
+        # 3 providers: custom, router (deduped against fallback), then fallback
+        assert len(providers) == 3
+        assert providers[0].provider == "custom"
+        assert providers[0].extra_env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:8000/v1"
+        assert providers[1].model == "cmc/mimo-v2.5"
+        assert providers[1].extra_env["ANTHROPIC_BASE_URL"] == "http://r:1"
+        assert providers[2].model == "ag/gemini-3.6-flash-high"
+
+    def test_router_entry_uses_main_env(self):
+        from kiro_crew.acp.vision import resolve_vision_providers
+
+        providers = resolve_vision_providers(
+            vision_providers=[{"provider": "router", "model": "cmc/mimo-v2.5"}],
+            main_env={"ANTHROPIC_BASE_URL": "http://r:1", "ANTHROPIC_API_KEY": "k"},
+        )
+        assert len(providers) == 1
+        assert providers[0].extra_env["ANTHROPIC_BASE_URL"] == "http://r:1"
+        assert providers[0].extra_env["ANTHROPIC_API_KEY"] == "k"
+
+    def test_dedupes_duplicate_models(self):
+        from kiro_crew.acp.vision import resolve_vision_providers
+
+        providers = resolve_vision_providers(
+            vision_providers=[
+                {"provider": "router", "model": "cmc/mimo-v2.5"},
+                {"provider": "router", "model": "cmc/mimo-v2.5"},
+            ],
+            main_env={"ANTHROPIC_BASE_URL": "http://r:1"},
+        )
+        assert len(providers) == 1
+
+    def test_skips_entry_without_model_or_endpoint(self):
+        from kiro_crew.acp.vision import resolve_vision_providers
+
+        providers = resolve_vision_providers(
+            vision_providers=[
+                {},
+                {"provider": "custom", "model": "qwen-vl-7b"},  # no base_url
+            ],
+            main_env={"ANTHROPIC_BASE_URL": "http://r:1"},
+        )
+        # custom without base_url is unusable -> only the fallback remains
+        assert len(providers) == 1
+        assert providers[0].provider == "router"
+        assert providers[0].model == "cmc/mimo-v2.5"
+
+
+class TestDescribeImageViaChain:
+    @pytest.mark.asyncio
+    async def test_first_success_wins(self, monkeypatch):
+        from kiro_crew.acp.vision import VisionProvider, describe_image_via_chain
+
+        calls: list[str] = []
+
+        async def fake_describe(image_ref, **kw):
+            calls.append(kw.get("vision_model", ""))
+            if kw["vision_model"] == "qwen-vl-7b":
+                return "first description"
+            return "unavailable"
+
+        monkeypatch.setattr(
+            "kiro_crew.acp.vision.describe_image_via_vision", fake_describe
+        )
+        out = await describe_image_via_chain(
+            "/tmp/a.png",
+            [
+                VisionProvider("custom", "qwen-vl-7b", {"ANTHROPIC_BASE_URL": "http://x"}),
+                VisionProvider("router", "cmc/mimo-v2.5", {}),
+            ],
+        )
+        assert out == "first description"
+        assert calls == ["qwen-vl-7b"]
+
+    @pytest.mark.asyncio
+    async def test_all_fail_returns_unavailable(self, monkeypatch):
+        from kiro_crew.acp.vision import VisionProvider, describe_image_via_chain
+
+        calls: list[str] = []
+
+        async def fake_describe(image_ref, **kw):
+            calls.append(kw.get("vision_model", ""))
+            return "unavailable"
+
+        monkeypatch.setattr(
+            "kiro_crew.acp.vision.describe_image_via_vision", fake_describe
+        )
+        out = await describe_image_via_chain(
+            "/tmp/a.png",
+            [
+                VisionProvider("custom", "a", {"ANTHROPIC_BASE_URL": "http://x"}),
+                VisionProvider("router", "b", {}),
+            ],
+        )
+        assert out == "unavailable"
+        assert calls == ["a", "b"]
+
+    @pytest.mark.asyncio
+    async def test_falls_through_to_second_on_first_failure(self, monkeypatch):
+        from kiro_crew.acp.vision import VisionProvider, describe_image_via_chain
+
+        calls: list[str] = []
+
+        async def fake_describe(image_ref, **kw):
+            calls.append(kw.get("vision_model", ""))
+            if kw["vision_model"] == "b":
+                return "second works"
+            return "unavailable"
+
+        monkeypatch.setattr(
+            "kiro_crew.acp.vision.describe_image_via_vision", fake_describe
+        )
+        out = await describe_image_via_chain(
+            "/tmp/a.png",
+            [
+                VisionProvider("custom", "a", {"ANTHROPIC_BASE_URL": "http://x"}),
+                VisionProvider("router", "b", {}),
+            ],
+        )
+        assert out == "second works"
+        assert calls == ["a", "b"]
