@@ -62,6 +62,31 @@
 
 ---
 
+## Vision — image models, natively
+
+<p align="center">
+  <img src="assets/vision-tool.png" alt="Vision — Vision image input group in the picker + Settings → Chat → Vision controls" width="900">
+</p>
+
+Every model reports whether it takes images natively. The **model picker** groups **Vision — image input** (muted **Image** pill) above **Text**, so a vision model feels native, not bolted on. The new **Settings → Chat → Vision** card governs what happens on text-only models:
+
+- **Image input mode** — `Auto` (vision-aware) / `Native` (always pixels) / `Text` (always describe via a vision subagent)
+- **On text-only models** — `Describe via vision subagent` / `Switch session to vision model` / `Off`
+- **Vision fallback model** — any `cmc/`/`oc/`/`ol`/`ag`/`cx` picker id, default `cmc/mimo-v2.5`
+
+Attach any image via the composer's `+` / drag-drop (the native `FilePreviewStrip` with numbered thumbs) — it rides as real pixels on vision models (`prompt_blocks` downscales to model limits) or as a one-shot `vision_subagent_describe` on text-only ones. The **main agent** can also call **`vision_analyze({ path|url })`** directly to describe any screenshot it just captured — the image never hits the text-only upstream.
+
+<div align="center">
+
+| | |
+|---|---|
+| **Works** | Vision picker grouping · Settings → Vision card · `vision_analyze` MCP tool · `agent.image_input_mode` / `image_redirect` / `vision_fallback_model` in `config.json` |
+| **Bundled** | Fresh AppImage `0.2.0-customapi.5` (vite + PBS 397M) — no dev fallback, `supports_vision` on every `GET /api/models` row |
+
+</div>
+
+---
+
 ## Why
 
 kirocrew-customapi re-enables the dormant `claude_code` provider (the
