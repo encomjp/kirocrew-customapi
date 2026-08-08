@@ -33,13 +33,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0-customapi.2.AppImage">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest">
     <img alt="Download Linux AppImage" src="https://img.shields.io/badge/Linux-AppImage-3b82f6?style=for-the-badge&logo=linux&logoColor=white">
   </a>
-  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0-customapi.2-arm64.dmg">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest">
     <img alt="Download macOS DMG" src="https://img.shields.io/badge/macOS-Apple%20Silicon-a3a3a3?style=for-the-badge&logo=apple&logoColor=white">
   </a>
-  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-Setup-0.2.0-customapi.2.exe">
+  <a href="https://github.com/encomjp/kirocrew-customapi/releases/latest">
     <img alt="Download Windows Setup" src="https://img.shields.io/badge/Windows-Setup%20.exe-00b4d8?style=for-the-badge&logo=windows&logoColor=white">
   </a>
 </p>
@@ -52,29 +52,35 @@
 
 ---
 
+<p align="center">
+  <strong>Point it at your own model router — Anthropic-compatible or OpenAI-compatible — and pick from its catalog.</strong>
+</p>
+
+<p align="center">
+  <img src="assets/model-selector.png" alt="Model selector: choose your backend (Claude Code / OpenCode / kiro-native) and pick a provider preset" width="820">
+</p>
+
+---
+
 ## Why
 
-kirocrew-customapi's public build hard-caps `agent.provider` to `"acp"` (the kiro-cli backend), and model selection
-goes through Kiro's own AWS Bedrock catalog — you must log in with a Kiro account and your agent traffic
-leaves your network. The underlying code for a Claude Code backend (`ACP_BACKEND_CLAUDE`, `_is_claude`,
-`claude-agent-acp` protocol support) has always existed but was deliberately left dormant, with comments
-reserving it for "an internal companion".
+kirocrew-customapi re-enables the dormant `claude_code` provider (the
+`ACP_BACKEND_CLAUDE` seam) and adds an `opencode` backend, so you can drive
+Kiro Crew through **your own model router** — Anthropic-compatible or
+OpenAI-compatible — instead of Kiro's built-in AWS Bedrock catalog and account.
 
-This fork re-adds the missing glue:
+This fork adds:
 
-- `agent.provider` accepts **`claude_code`** in addition to `acp`
-- new config fields **`agent.provider_base_url`** and **`agent.provider_api_key`**
-- the provider factory spawns **claude-agent-acp** (which drives the real Claude Code CLI) pointed at your
-  base URL, with the model id passed through unchanged (router namespaces are not registry-translated)
-- `settings.local.json` seeding so Claude Code honors the router model (see Troubleshooting for the
-  `availableModels` pitfall)
-- `kirocrew doctor` reports claude-acp as the active backend when configured
-- the GUI model picker shows **prefixed model ids** (`cmc/`, `oc/`, `ol/`, `cx/`, `ag/`); kirocrew-customapi strips
-  the prefix before the request leaves, so CLIProxyAPI always receives the provider's raw model id
+- `agent.provider` accepts **`claude_code`** and **`opencode`** in addition to the default `acp` (kiro-cli)
+- new config fields **`agent.provider_base_url`** and **`agent.provider_api_key`** (+ `provider_api_format` for OpenAI-compatible wire)
+- the provider factory spawns **claude-agent-acp** (Claude Code) or **opencode acp**, pointed at your base URL, with the model id passed through unchanged (router namespaces are not registry-translated)
+- **Settings → Chat provider picker** — pick a backend, then a preset (Ollama Cloud, OpenCode Zen/Go, commandcode.ai, 9router, CLIProxyAPI, OpenRouter, xAI, Mistral, DeepSeek, Together, Groq, OpenAI, Anthropic), test the connection, and allowlist models
+- the GUI model picker shows **prefixed model ids** (`cmc/`, `oc/`, `ol/`, `cx/`, `ag/`); the prefix is stripped before the request leaves
 - `CLIPROXY_API_KEY` env var feeds the local proxy when `provider_api_key` / `ANTHROPIC_API_KEY` are unset
+- **image redirect** — when a text-only model (e.g. deepseek-flash) gets an image prompt, it's routed to a vision-capable fallback model (default `cmc/mimo-v2.5`) via `agent.image_redirect` / `agent.vision_fallback_model` / `agent.text_only_models`
 
-Everything else — desktop app, dashboard, cron, memory, skills, subagents, apps — is untouched upstream
-kirocrew-customapi.
+Everything else — desktop app, dashboard, cron, memory, skills, subagents, apps — is upstream
+kirodotdev/KiroCrew.
 
 ## How it works
 
@@ -371,8 +377,9 @@ behavior.
 ## Upstream
 
 This repository is a fork of [kirodotdev/KiroCrew](https://github.com/kirodotdev/KiroCrew) (Apache 2.0).
-The `feat/claude-code-provider` branch contains all fork changes; rebasing onto newer upstream releases
-should stay clean as long as the dormant seam (comments referencing `ACP_BACKEND_CLAUDE`) is preserved.
+Fork changes live on `main` (with `testing` for pre-release work), rebased onto
+upstream `kirodotdev/KiroCrew` `main`. Rebase conflicts stay small as long as
+the dormant seam (comments referencing `ACP_BACKEND_CLAUDE`) is preserved.
 
 - Upstream: https://github.com/kirodotdev/KiroCrew
 - License: [Apache 2.0](LICENSE)
@@ -386,6 +393,11 @@ xAI, Mistral, DeepSeek, Together, Groq, OpenAI …), a connection test, and a
 model allowlist so the picker only shows the models you actually use.
 
 ![Provider settings](assets/provider-selection.png)
+
+Model selection — pick a backend, then choose your provider and model from the
+catalog your router exposes:
+
+![Model selector](assets/model-selector.png)
 
 ## Updating from the fork
 
