@@ -1377,6 +1377,7 @@ export const api = {
   saveKirocrewConfig: (agent: object) => put('/api/config/kirocrew', { agent }).then(j),
   patchConfig: (path: string, value: unknown) => fetch('/api/config/kirocrew', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, value }) }).then(j),
   providerTest: (body: { url: string; api_key?: string; format?: string }) => post('/api/provider/test', body).then(j),
+  providerStatus: () => fetch('/api/provider/status').then(j),
   // Optional integrations — backend endpoints are graceful no-ops on a public
   // install (AIM / kiro usage are stubbed). Kept so the UI compiles and
   // degrades gracefully (panels render empty when the feature is absent).

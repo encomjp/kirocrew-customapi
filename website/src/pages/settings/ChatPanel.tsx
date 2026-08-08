@@ -279,6 +279,14 @@ export function ChatPanel() {
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_completion_keep_mode')),
   })
 
+  // Check which ACP backends have their binary installed so we can warn the
+  // user before they select a backend that will fail at chat time.
+  const { data: providerStatus } = useQuery({
+    queryKey: ['provider-status'],
+    queryFn: () => api.providerStatus(),
+    staleTime: 30_000,
+  })
+
   // ── Default model + default reasoning effort ──
   // These are the DEFAULTS for new sessions. A session's own model/effort
   // picker still overrides them per-slot; nothing here touches live sessions.
@@ -521,6 +529,17 @@ export function ChatPanel() {
               </button>
             ))}
           </div>
+
+          {effBackend === 'opencode' && providerStatus && !providerStatus.opencode && (
+            <p className="mt-2 text-[13px] text-warning">
+              OpenCode CLI not found. Install it with <code className="text-text-strong">npm i -g opencode-ai</code> or set <code className="text-text-strong">OPENCODE_BIN</code> to its path.
+            </p>
+          )}
+          {effBackend === 'claude_code' && providerStatus && !providerStatus.claude_code && (
+            <p className="mt-2 text-[13px] text-warning">
+              claude-agent-acp not found. Install it with <code className="text-text-strong">npm i -g @agentclientprotocol/claude-agent-acp</code>.
+            </p>
+          )}
 
           {effBackend === 'acp' ? (
             <p className="mt-3 text-[13px] text-muted">{i18nT('pages.settings.chatPanel.provider_managed_by_kiro_cli')}</p>
