@@ -337,3 +337,120 @@ class TestDescribeImageViaChain:
         )
         assert out == "second works"
         assert calls == ["a", "b"]
+
+
+class TestHttpDescribe:
+    @pytest.mark.asyncio
+    async def test_opencode_backend_uses_http(self, monkeypatch, tmp_path):
+        """An opencode-backend provider must describe via direct HTTP, because
+        opencode's ACP adapter drops image parts (verified on the wire)."""
+        from kiro_crew.acp.vision import vision_subagent_describe
+
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"fakepngbytes")
+
+        captured: dict = {}
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":" a red square "}}]}'
+
+        def fake_urlopen(req, timeout=None):
+            captured["url"] = req.full_url
+            captured["data"] = req.data
+            return _Resp()
+
+        import json
+        import urllib.request
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        out = await vision_subagent_describe(
+            str(img),
+            vision_model="kimi-k2.6",
+            extra_env={
+                "ANTHROPIC_BASE_URL": "https://ollama.com/v1",
+                "ANTHROPIC_API_KEY": "k",
+            },
+            acp_backend="opencode",
+        )
+        assert out == "a red square"
+        assert captured["url"] == "https://ollama.com/v1/chat/completions"
+        body = json.loads(captured["data"])
+        assert body["model"] == "kimi-k2.6"
+        content = body["messages"][0]["content"]
+        assert content[0]["type"] == "text"
+        assert content[1]["type"] == "image_url"
+        assert content[1]["image_url"]["url"].startswith("data:image/png;base64,")
+
+    @pytest.mark.asyncio
+    async def test_url_ref_passed_through(self, monkeypatch):
+        from kiro_crew.acp.vision import vision_subagent_describe
+
+        captured: dict = {}
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"ok"}}]}'
+
+        def fake_urlopen(req, timeout=None):
+            captured["url"] = req.full_url
+            captured["data"] = req.data
+            return _Resp()
+
+        import json
+        import urllib.request
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        out = await vision_subagent_describe(
+            "https://example.com/a.png",
+            vision_model="kimi-k2.6",
+            extra_env={
+                "ANTHROPIC_BASE_URL": "https://ollama.com/v1",
+                "ANTHROPIC_API_KEY": "k",
+            },
+            acp_backend="opencode",
+        )
+        assert out == "ok"
+        content = json.loads(captured["data"])["messages"][0]["content"]
+        assert content[1]["image_url"]["url"] == "https://example.com/a.png"
+
+    @pytest.mark.asyncio
+    async def test_non_opencode_backend_uses_acp_subagent(self, monkeypatch):
+        """kiro-cli (acp_backend='') keeps the ACP subagent path."""
+        from kiro_crew.acp.vision import vision_subagent_describe
+
+        async def fake_stream(*args, **kwargs):
+            yield "described via acp"
+
+        class FakeClient:
+            def __init__(self, **kwargs):
+                pass
+
+            def send_message_stream(self, *a, **kw):
+                return fake_stream(*a, **kw)
+
+            async def shutdown(self):
+                return None
+
+        monkeypatch.setattr("kiro_crew.acp.client.AcpClient", FakeClient, raising=False)
+        # kiro-cli path sends the path as text; the HTTP branch must NOT fire
+        # even though ANTHROPIC_BASE_URL is present.
+        out = await vision_subagent_describe(
+            "/tmp/a.png",
+            vision_model="cmc/mimo-v2.5",
+            extra_env={"ANTHROPIC_BASE_URL": "http://router:8317"},
+            acp_backend="",
+        )
+        assert out == "described via acp"

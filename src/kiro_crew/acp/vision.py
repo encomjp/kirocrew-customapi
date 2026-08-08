@@ -107,7 +107,10 @@ def _coerce_vision_provider_entry(
             provider=provider or "custom",
             model=model,
             extra_env=env,
-            acp_backend="",  # a custom endpoint is always anthropic-compatible
+            # A custom endpoint speaks the OpenAI-compatible HTTP contract; the
+            # ``opencode`` marker routes it through the direct-HTTP describe
+            # path (opencode's own ACP adapter drops image parts).
+            acp_backend="opencode",
         )
     return None
 
@@ -261,23 +264,39 @@ async def vision_subagent_describe(
 ) -> str:
     """Describe *image_ref* (a local path or http(s) URL) on *vision_model*.
 
-    Spawns a one-shot :class:`~kiro_crew.acp.client.AcpClient` on the given
-    vision-capable model against the same proxy env as the caller, sends it the
-    image with a describe prompt, collects the text reply, and shuts the
-    subagent down. The caller's own ``ANTHROPIC_MODEL`` (which belongs to the
-    text-only main model) is dropped so the subagent derives its own model via
-    ``_model_via_env`` -> ``ANTHROPIC_MODEL=<stripped vision id>`` while keeping
-    the base URL + API key.
+    Two transports, chosen by the provider:
+
+    * **Direct HTTP** — when ``extra_env`` carries ``ANTHROPIC_BASE_URL`` and the
+      backend is a custom/OpenAI-compatible endpoint (``opencode`` backend or a
+      ``custom`` ``vision_providers`` entry). POSTs an OpenAI ``image_url``
+      content part to ``{base_url}/chat/completions``. This is the ONLY reliable
+      path for these providers: opencode's ACP adapter drops ``image`` parts
+      before they reach the model (it rewrites them to a text error), so an ACP
+      subagent on opencode cannot see the image at all.
+    * **ACP subagent** — otherwise (kiro-cli ``acp`` backend, or a ``claude``
+      backend whose adapter inlines image paths itself). Spawns a one-shot
+      :class:`~kiro_crew.acp.client.AcpClient` on the vision model against the
+      same proxy env as the caller and shuts it down after the turn.
+
+    The caller's own ``ANTHROPIC_MODEL`` (which belongs to the text-only main
+    model) is dropped on the ACP path so the subagent derives its own model.
 
     Returns the trimmed description text. Raises on any failure — callers
     decide the fallback (legacy redirect falls back to a session switch; the
     tool returns an ``Error:`` string).
     """
+    env = dict(extra_env or {})
+    base_url = (env.get("ANTHROPIC_BASE_URL") or "").strip()
+    if base_url and acp_backend == "opencode":
+        return await _http_describe_image(
+            image_ref, vision_model=vision_model, env=env, timeout=timeout
+        )
+
     # Deferred import: acp.client pulls in providers/agent/config which would
     # cycle when mcp_core (already deep in config) imports this module.
     from kiro_crew.acp.client import AcpClient
 
-    sub_env = dict(extra_env or {})
+    sub_env = dict(env)
     sub_env.pop("ANTHROPIC_MODEL", None)
     sub = AcpClient(
         work_dir=work_dir,  # None -> AcpClient's default (config_dir()/workspace)
@@ -302,6 +321,88 @@ async def vision_subagent_describe(
             await sub.shutdown()
         except Exception:
             logger.debug("vision subagent shutdown failed", exc_info=True)
+
+
+async def _http_describe_image(
+    image_ref: str,
+    *,
+    vision_model: str,
+    env: dict[str, str],
+    timeout: float = VISION_DESCRIBE_TIMEOUT,
+) -> str:
+    """Describe *image_ref* by POSTing an OpenAI ``image_url`` part directly.
+
+    Targets ``{ANTHROPIC_BASE_URL}/chat/completions`` (the OpenAI-compatible
+    shape every such endpoint speaks). A local path is read and inlined as a
+    ``data:`` URL; an http(s) URL is passed through. Uses stdlib
+    ``urllib.request`` in a thread so the caller's event loop is never blocked,
+    and offloads the read through ``hooks.safe_read_file_bytes`` so the
+    sensitive-path gate still applies.
+
+    Returns the trimmed description text, or raises on any failure (network,
+    non-2xx, empty reply).
+    """
+    import asyncio
+    import base64
+    import json
+    import urllib.error
+    import urllib.request
+
+    base_url = (env.get("ANTHROPIC_BASE_URL") or "").strip().rstrip("/")
+    api_key = (env.get("ANTHROPIC_API_KEY") or "").strip()
+    if not base_url:
+        raise RuntimeError("vision http describe: no ANTHROPIC_BASE_URL")
+
+    content: list[dict[str, Any]] = [
+        {"type": "text", "text": _VISION_DESCRIBE_PROMPT.format(ref=image_ref)}
+    ]
+    if image_ref.startswith("http://") or image_ref.startswith("https://"):
+        content.append({"type": "image_url", "image_url": {"url": image_ref}})
+    else:
+        from kiro_crew.hooks import safe_read_file_bytes
+
+        raw = await asyncio.to_thread(safe_read_file_bytes, image_ref)
+        if not raw:
+            raise RuntimeError(f"vision http describe: cannot read image {image_ref}")
+        b64 = base64.b64encode(raw).decode("ascii")
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{b64}"},
+            }
+        )
+
+    payload = json.dumps(
+        {
+            "model": vision_model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": 1024,
+        }
+    ).encode()
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    def _post() -> bytes:
+        req = urllib.request.Request(
+            f"{base_url}/chat/completions",
+            data=payload,
+            headers=headers,
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read()
+
+    body = await asyncio.to_thread(_post)
+    try:
+        parsed = json.loads(body)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"vision http describe: non-JSON reply: {body[:200]!r}") from exc
+    try:
+        text = parsed["choices"][0]["message"].get("content") or ""
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(f"vision http describe: unexpected reply shape: {body[:200]!r}") from exc
+    return text.strip()
 
 
 async def describe_image_via_vision(
