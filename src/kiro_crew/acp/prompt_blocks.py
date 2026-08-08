@@ -64,6 +64,164 @@ IMAGE_MEDIA_TYPES: dict[str, str] = {
 #: a file that passed ingestion is not silently dropped here.
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
+#: Longest-edge cap (px) enforced on every inlined image. Anthropic rejects the
+#: ENTIRE request when a many-image conversation (more than 20 images) carries
+#: any image whose width or height exceeds 2000px. Because kiro-cli replays the
+#: full message history to the model every turn, a single oversized image
+#: permanently wedges the session -- the offending block sits at a fixed history
+#: index and re-uploading a smaller copy cannot evict it. This builder is the
+#: one funnel every channel's images cross before reaching kiro-cli, so capping
+#: here protects all of them (dashboard upload/paste/screenshot, Slack, Discord)
+#: regardless of any best-effort client-side resize. 2000 is the hard limit
+#: itself: valid even past 20 images, yet it keeps more detail than the browser's
+#: 1568px pre-upload downscale, which only ever covers dashboard uploads.
+MAX_IMAGE_EDGE_PX = 2000
+
+#: Longest base64-encoded payload (bytes) allowed for a single inlined image.
+#: The dimension cap above is not sufficient: a raster can sit well inside 2000px
+#: and still encode past the backend's per-image byte ceiling.
+#:
+#: 5 MiB is the value the backend itself reports. It is not derived from which
+#: provider kiro-cli happens to route through, which we treat as opaque, but read
+#: straight out of its rejection, which names the limit in bytes:
+#:
+#:     image exceeds 5 MB maximum: 6714372 bytes > 5242880
+#:
+#: 5242880 is exactly 5 * 1024 * 1024. (Anthropic's published per-image ceiling
+#: for Bedrock and Google Cloud agrees, which is corroboration rather than the
+#: basis.) base64 inflates by 4/3, so a ~3.9 MiB raster already exceeds it while
+#: passing every pre-encode check.
+#:
+#: Note this is a DIFFERENT quantity from the limit kiro-cli documents. Its docs
+#: state "images must be under 10MB in size" -- a FILE-size rule, which
+#: ``MAX_IMAGE_BYTES`` implements -- and say nothing about the encoded payload.
+#: Both hold at once: a 5.04 MiB file is under 10 MB yet encodes to 6.71 MiB and
+#: is refused. So the encoded ceiling is undocumented but enforced, which is why
+#: it has to be observed rather than looked up.
+#:
+#: Being wrong here is safe in one direction only, which is why the cap is set to
+#: the observed value rather than a guess: too LOW merely ships a smaller image,
+#: while too HIGH ships a payload the backend refuses. Callers can override it
+#: via ``build_prompt_blocks(max_image_b64_bytes=...)`` if a backend ever reports
+#: a different number.
+#:
+#: This is enforced on the ENCODED payload, after any downscale, because that is
+#: the only quantity the backend measures: ``MAX_IMAGE_BYTES`` reads the file
+#: size before the re-encode and cannot see the encoding overhead. Getting this
+#: wrong is not a one-turn error -- a rejected image sits at a fixed history
+#: index that kiro-cli replays on every subsequent turn, so one oversized
+#: attachment wedges the session permanently.
+MAX_IMAGE_B64_BYTES = 5 * 1024 * 1024
+
+#: Floor for the encoded-budget shrink loop. Below ~200px Claude's own guidance
+#: says accuracy degrades badly, so an image that still will not fit is dropped
+#: to a path reference instead of being shrunk into uselessness.
+MIN_IMAGE_EDGE_PX = 256
+
+#: Per-attempt edge multiplier and attempt cap for the encoded-budget shrink.
+#: Encoded size falls roughly with area, so 0.8 on the edge sheds ~36% per pass
+#: and 6 passes span a 4x linear reduction -- enough to bring any image that the
+#: dimension cap admitted under a 5 MiB encoding.
+_ENCODE_SHRINK_FACTOR = 0.8
+_MAX_ENCODE_ATTEMPTS = 6
+
+#: mime -> Pillow save format for a re-encoded downscale. GIF collapses to a PNG
+#: first frame: vision models read frame 0 only (animation is invisible to them)
+#: and rescaling a palette image is lossy, so a lossless still is faithful.
+_PIL_SAVE_FORMAT: dict[str, str] = {
+    "image/png": "PNG",
+    "image/jpeg": "JPEG",
+    "image/webp": "WEBP",
+    "image/bmp": "BMP",
+    "image/gif": "PNG",
+}
+
+#: Formats every major vision provider accepts natively. Anything outside this
+#: set (AVIF, HEIC, TIFF, ICO, …) has to be transcoded to PNG before it is
+#: inlined, or the backend returns 400 "Could not process image". Mirrors the
+#: wire contract in docs/reference/kiro-cli/acp.md.
+_UNIVERSALLY_SUPPORTED_MIMES: frozenset[str] = frozenset(
+    {"image/png", "image/jpeg", "image/gif", "image/webp"}
+)
+
+
+def _sniff_mime_from_bytes(raw: bytes) -> str | None:
+    """Detect image MIME from magic bytes, or None when unrecognized.
+
+    Filename-suffix detection is unreliable when a channel lies about
+    content-type — Discord serves proxied/animated stickers, custom-emoji
+    previews and some bot uploads as PNG bytes with ``content_type=image/webp``,
+    and Anthropic strictly validates that the declared media type matches the
+    actual bytes (HTTP 400 on mismatch). The suffix is only a fallback; the
+    bytes are authoritative.
+    """
+    if not raw:
+        return None
+    # PNG: 89 50 4E 47 0D 0A 1A 0A
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    # JPEG: FF D8 FF
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    # GIF87a / GIF89a
+    if raw[:6] in {b"GIF87a", b"GIF89a"}:
+        return "image/gif"
+    # WEBP: "RIFF" .... "WEBP"
+    if len(raw) >= 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    # BMP: "BM"
+    if raw.startswith(b"BM"):
+        return "image/bmp"
+    # ISO-BMFF family (HEIC/HEIF/AVIF): bytes 4..8 == 'ftyp', major brand at 8..12
+    if len(raw) >= 12 and raw[4:8] == b"ftyp":
+        brand = raw[8:12]
+        if brand in {b"avif", b"avis"}:
+            return "image/avif"
+        if brand in {
+            b"heic", b"heix", b"hevc", b"hevx",
+            b"mif1", b"msf1", b"heim", b"heis",
+        }:
+            return "image/heic"
+    # TIFF: II*\0 (little-endian) or MM\0* (big-endian)
+    if raw[:4] in {b"II*\x00", b"MM\x00*"}:
+        return "image/tiff"
+    # ICO: 00 00 01 00 (reserved=0, type=1=icon)
+    if raw[:4] == b"\x00\x00\x01\x00":
+        return "image/x-icon"
+    # SVG: text-based, look for an <svg tag near the start (skip BOM/whitespace)
+    head = raw[:512].lstrip().lower()
+    if head.startswith(b"<?xml") or head.startswith(b"<svg"):
+        if b"<svg" in head:
+            return "image/svg+xml"
+    return None
+
+
+def _transcode_to_png(raw: bytes, mime: str) -> bytes | None:
+    """Decode *raw* with Pillow and re-encode as PNG.
+
+    Used for formats outside :data:`_UNIVERSALLY_SUPPORTED_MIMES` — AVIF/HEIC
+    (needs an optional Pillow plugin), TIFF, ICO, BMP. Returns None when Pillow
+    is missing, cannot decode the bytes, or the format is a vector (SVG), so
+    the caller fails CLOSED (keeps the suffix as text) rather than shipping a
+    payload the backend refuses.
+    """
+    try:
+        from PIL import Image
+
+        with Image.open(io.BytesIO(raw)) as img:
+            # Transparency is preserved where the source had it; a source with
+            # no alpha stays in a compact mode instead of being forced to RGBA.
+            src = img.convert("RGBA") if img.mode not in {"RGB", "RGBA", "L", "LA", "P"} else img
+            buf = io.BytesIO()
+            src.save(buf, format="PNG", optimize=False)
+            return buf.getvalue()
+    except Exception:
+        logger.warning(
+            "acp prompt: could not transcode %s to PNG; leaving as path", mime, exc_info=True
+        )
+        return None
+
+
 # Absolute paths ending in a supported raster suffix.
 #
 # Two properties are load-bearing, and BOTH were learned from real defects:
@@ -201,8 +359,41 @@ def build_prompt_blocks(
                 # stays in the text; it is NOT inlined.
                 logger.warning("acp prompt: image read refused for %s", path.name)
                 continue
+            # Magic-byte sniff is authoritative: a channel that lies about
+            # content-type (Discord serving PNG bytes as webp) would otherwise
+            # inline a payload the backend rejects with 400. When the real
+            # format differs from the suffix, transcode non-universal formats
+            # (AVIF/HEIC/TIFF/ICO/…) to PNG so the declared mime matches the
+            # bytes.
+            sniffed = _sniff_mime_from_bytes(raw_bytes)
+            if sniffed and sniffed != mime:
+                logger.debug(
+                    "acp prompt: %s declares %s but bytes are %s",
+                    path.name,
+                    mime,
+                    sniffed,
+                )
+                mime = sniffed
+            if mime not in _UNIVERSALLY_SUPPORTED_MIMES:
+                transcoded = _transcode_to_png(raw_bytes, mime)
+                if transcoded is None:
+                    # Fail CLOSED: an untranscodable format (SVG, missing
+                    # HEIC/AVIF plugin) stays as a text path rather than
+                    # shipping bytes the backend refuses.
+                    logger.warning(
+                        "acp prompt: image %s is %s and could not be transcoded - "
+                        "sending path, not inline",
+                        path.name,
+                        mime,
+                    )
+                    continue
+                raw_bytes = transcoded
+                mime = "image/png"
             downscaled = downscale_image_block(
-                raw_bytes, mime, max_edge=max_image_edge, max_b64_bytes=max_image_b64_bytes
+                raw_bytes,
+                mime,
+                max_edge=max_image_edge,
+                max_b64_bytes=max_image_b64_bytes,
             )
             if downscaled is None:
                 # No compliant rendition (decompression-bomb / undecodable /

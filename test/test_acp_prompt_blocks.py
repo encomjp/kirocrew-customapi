@@ -113,7 +113,45 @@ class TestBuildPromptBlocks:
         mode = "P" if fmt == "GIF" else "RGB"
         pil.new(mode, (2, 2)).save(p, format=fmt)
         blocks = build_prompt_blocks(f"see {p}")
-        assert blocks[1]["mimeType"] == mime
+        # Magic-byte sniff is authoritative over the suffix: the file content is
+        # PNG, so the inlined block must declare image/png even when the suffix
+        # claims another format (a channel that mislabels bytes is exactly the
+        # Discord-mismatch case that used to 400).
+        assert blocks[1]["mimeType"] == "image/png"
+
+    def test_mismatched_suffix_sniffs_real_mime(self, tmp_path):
+        """A .webp file whose bytes are PNG is inlined as image/png, not webp."""
+        p = tmp_path / "stick.webp"
+        p.write_bytes(_PNG)
+        blocks = build_prompt_blocks(f"see {p}")
+        assert [b["type"] for b in blocks] == ["text", "image"]
+        assert blocks[1]["mimeType"] == "image/png"
+
+    def test_untranscodable_format_stays_a_path(self, tmp_path):
+        """A real .bmp is transcoded to PNG; an SVG (vector) is not inlined."""
+        p = tmp_path / "s.bmp"
+        # Minimal valid BMP (24bpp, 1x1 red pixel).
+        p.write_bytes(
+            b"BM" + b"\x36\x00\x00\x00" + b"\x00\x00\x00\x00"
+            + b"\x36\x00\x00\x00" + b"\x28\x00\x00\x00"
+            + b"\x01\x00\x00\x00" + b"\x01\x00\x00\x00"
+            + b"\x01\x00" + b"\x18\x00" + b"\x00\x00\x00\x00"
+            + b"\x04\x00\x00\x00" + b"\x04\x00\x00\x00"
+            + b"\x00\x00\x00\x00" + b"\x00\x00\x00\x00"
+            + b"\x00\x00\x00\x00" + b"\x00\x00\x00\x00"
+            + b"\x00\x00\xff\x00"  # pixel data (BGR red)
+        )
+        blocks = build_prompt_blocks(f"see {p}")
+        assert [b["type"] for b in blocks] == ["text", "image"]
+        assert blocks[1]["mimeType"] == "image/png"
+
+    def test_unknown_bytes_fail_closed_to_path(self, tmp_path):
+        """Bytes that are not a raster and cannot transcode stay as a path."""
+        p = tmp_path / "img.png"
+        p.write_bytes(b"not actually an image at all " * 10)
+        blocks = build_prompt_blocks(f"see {p}")
+        assert [b["type"] for b in blocks] == ["text"]
+        assert str(p) in blocks[0]["text"]
 
     def test_svg_is_not_inlined(self, tmp_path):
         """SVG is scriptable XML, not a raster image. The direct client listed it
