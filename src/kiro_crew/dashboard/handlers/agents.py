@@ -2175,3 +2175,16 @@ async def api_provider_test(request: web.Request) -> web.Response:
                 return web.json_response({"ok": True, "models": models})
     except Exception as exc:  # noqa: BLE001 - surfaced to the UI verbatim
         return web.json_response({"ok": False, "error": str(exc)[:200]})
+
+
+async def api_provider_status(request: web.Request) -> web.Response:
+    """GET /api/provider/status — check which ACP backends have their
+    required binary installed.  Returns ``{opencode: bool, claude_code: bool}``
+    so the frontend can warn users who select a backend without the binary.
+    """
+    from kiro_crew.acp.client import _resolve_opencode_bin, _resolve_claude_acp_bin
+
+    opencode_ok = _resolve_opencode_bin() is not None
+    # claude-agent-acp resolution can be slow (npm glob); run off the loop.
+    claude_ok = await asyncio.to_thread(lambda: _resolve_claude_acp_bin() is not None)
+    return web.json_response({"opencode": opencode_ok, "claude_code": claude_ok})
