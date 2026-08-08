@@ -299,6 +299,61 @@ export function ChatPanel() {
     },
   })
 
+  // ── Vision (agent.image_input_mode / image_redirect / vision_fallback_model) ──
+  // Same card that owns the model picker, so Vision reads as a first-class
+  // section there rather than a hidden config.json toggle. The picker already
+  // groups by supports_vision; these controls govern HOW image prompts are
+  // handled on text-only models (the runtime's decide_image_input_mode + ACP
+  // redirect). Wrong-mode images veto session resume (SessionConfig), so the
+  // values here have UI-visible consequences — they deserve UI.
+  const IMAGE_MODE_OPTIONS: ('auto' | 'native' | 'text')[] = ['auto', 'native', 'text']
+  const IMAGE_MODE_LABELS = ['Auto (vision-aware)', 'Native (always pixels)', 'Text (always describe)']
+  const REDIRECT_OPTIONS = ['subagent', 'switch', 'off'] as const
+  const REDIRECT_LABELS = ['Describe via vision subagent', 'Switch session to vision model', 'Off (send through — may 400)']
+  const visionMode = (mcCfg?.agent as Record<string, unknown> | undefined)?.image_input_mode as string | undefined ?? 'auto'
+  const visionRedirect = (mcCfg?.agent as Record<string, unknown> | undefined)?.image_redirect as string | undefined ?? 'subagent'
+  const visionFallback = (mcCfg?.agent as Record<string, unknown> | undefined)?.vision_fallback_model as string | undefined ?? 'cmc/mimo-v2.5'
+  const fallbackOptions = ['cmc/mimo-v2.5', 'cmc/Kimi-K2.6', 'cmc/GLM-5.2', 'cmc/deepseek-v4-pro', 'ol/kimi-k2.6', 'ol/glm-5.2', 'oc/kimi-k2.6', 'oc/glm-5.2', 'oc/mimo-v2.5', 'ag/gemini-3-flash', 'ag/gemini-3.6-flash-high', 'cx/gpt-5.6-luna']
+  const visionModeMut = useMutation({
+    mutationFn: (v: string) => api.patchConfig('agent.image_input_mode', v),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_vision_mode')),
+  })
+  const visionRedirectMut = useMutation({
+    mutationFn: (v: string) => api.patchConfig('agent.image_redirect', v),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_vision_redirect')),
+  })
+  const visionFallbackMut = useMutation({
+    mutationFn: (v: string) => api.patchConfig('agent.vision_fallback_model', v),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_vision_fallback')),
+  })
+
+  const [localChunkBudget, setLocalChunkBudget] = useState('')
+  const chunkBudgetInitRef = useRef(false)
+  useEffect(() => {
+    if (mcQ.data && !chunkBudgetInitRef.current) {
+      chunkBudgetInitRef.current = true
+      setLocalChunkBudget(
+        String(mcQ.data.knowledge?.auto_ingest_chunk_budget ?? CHUNK_BUDGET_DEFAULT)
+      )
+    }
+  }, [mcQ.data])
+
+  const knowledgeMut = useMutation({
+    mutationFn: ({ path, value }: { path: string; value: boolean | number }) =>
+      api.patchConfig(path, value),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: () => {
+      setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_knowledge_setting'))
+      setLocalChunkBudget(
+        String(mcCfg?.knowledge?.auto_ingest_chunk_budget ?? CHUNK_BUDGET_DEFAULT)
+      )
+    },
+  })
+  const knowledgeDisabled = !mcQ.isSuccess || knowledgeMut.isPending
+
   const keepModeMut = useMutation({
     mutationFn: (v: CompletionKeepMode) => api.patchConfig('agent.completion_keep', v),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
@@ -844,6 +899,39 @@ export function ChatPanel() {
             <SettingsSelect label={i18nT('pages.settings.chatPanel.restore_window')} description={i18nT('pages.settings.chatPanel.time_window_for_session_restoration')} value={String(dashCfg.restore_window_minutes)} options={RESTORE_OPTIONS} optionLabels={restoreLabels()} onChange={v => setDash({ restore_window_minutes: Number(v) })} disabled={dashDisabled} />
           )}
           <SettingsToggle label={i18nT('pages.settings.chatPanel.session_summaries')} description={i18nT('pages.settings.chatPanel.summarize_each_session_by_intent_in_the_right_pa')} checked={summaryEnabled} onChange={v => summaryMut.mutate(v)} disabled={!mcQ.isSuccess || summaryMut.isPending} />
+        </SettingsCard>
+      </SettingsSection>
+
+      <SettingsSection title="Vision">
+        <SettingsCard>
+          <SettingsSelect
+            label="Image input mode"
+            description="How user-attached images are presented to the model."
+            value={visionMode}
+            options={[...IMAGE_MODE_OPTIONS]}
+            optionLabels={IMAGE_MODE_LABELS}
+            onChange={v => visionModeMut.mutate(v)}
+            disabled={!mcQ.isSuccess}
+          />
+          <SettingsSelect
+            label="On text-only models"
+            description="What to do when the active model cannot take images."
+            value={visionRedirect}
+            options={[...REDIRECT_OPTIONS]}
+            optionLabels={[...REDIRECT_LABELS]}
+            onChange={v => visionRedirectMut.mutate(v)}
+            disabled={!mcQ.isSuccess}
+          />
+          <SettingsSelect
+            label="Vision fallback model"
+            description="Picker-spelling id the describe/switch path uses (must be vision-capable)."
+            value={visionFallback}
+            options={fallbackOptions.includes(visionFallback) ? fallbackOptions : [visionFallback, ...fallbackOptions]}
+            optionLabels={fallbackOptions.includes(visionFallback) ? fallbackOptions : [visionFallback, ...fallbackOptions]}
+            onChange={v => visionFallbackMut.mutate(v)}
+            disabled={!mcQ.isSuccess}
+          />
+          <p className="text-[12px] text-muted">Vision section mirrors the picker grouping (Vision — image input with an Image badge, then Text). On text-only models the active policy's fallback model is used; the text input stays the same — images ride the same composer attachment.</p>
         </SettingsCard>
       </SettingsSection>
 
