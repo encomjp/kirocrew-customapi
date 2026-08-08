@@ -1211,24 +1211,32 @@ class TestSetupTimezone:
         monkeypatch.setattr(builtins, "__import__", _no_tzlocal)
         assert cli_setup._detect_system_timezone() == ""
 
-    def test_input_or_skip_returns_none_on_eof(self, monkeypatch):
-        """A closed/piped stdin must skip the step, not raise EOFError into a
-        raw traceback mid-wizard (the Windows first-run failure)."""
-        from kiro_crew.cli_setup import _input_or_skip
+    def test_input_or_skip_returns_none_on_empty_and_raises_on_eof(self, monkeypatch):
+        """Empty input keeps the caller's default (returns None as the "skip"
+        sentinel). A closed/piped stdin raises _SetupAborted so the wizard exits
+        cleanly at the top level rather than tracebacking at the NEXT bare
+        input() call in a later step."""
+        from kiro_crew.cli_setup import _input_or_skip, _SetupAborted
+
+        monkeypatch.setattr("builtins.input", lambda _p: "")
+        assert _input_or_skip("tz: ") is None
 
         def _raise_eof(_prompt):
             raise EOFError
 
         monkeypatch.setattr("builtins.input", _raise_eof)
-        assert _input_or_skip("tz: ") is None
+        with pytest.raises(_SetupAborted):
+            _input_or_skip("tz: ")
 
-    def test_timezone_retry_eof_skips_without_crash(self, tmp_path, monkeypatch):
-        """An invalid entry followed by EOF on the retry prompt skips cleanly."""
+    def test_timezone_retry_eof_propagates_setup_aborted(self, tmp_path, monkeypatch):
+        """EOF on any prompt inside a step propagates _SetupAborted so the
+        top-level catch can exit cleanly with one line, rather than leaving the
+        next step to traceback."""
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text("{}")
         monkeypatch.setattr("kiro_crew.cli_setup.config_path", lambda: cfg_file)
 
-        from kiro_crew.cli_setup import _setup_timezone
+        from kiro_crew.cli_setup import _setup_timezone, _SetupAborted
 
         answers = iter(["Not/AZone"])
 
@@ -1240,7 +1248,8 @@ class TestSetupTimezone:
 
         with patch("builtins.input", _input):
             with patch("kiro_crew.cli_setup._detect_system_timezone", return_value=""):
-                _setup_timezone()  # must not raise
+                with pytest.raises(_SetupAborted):
+                    _setup_timezone()
 
         # Skipped: no timezone persisted.
         data = json.loads(cfg_file.read_text(encoding="utf-8"))
@@ -4223,15 +4232,32 @@ class TestWaitGatewayReady:
         Otherwise the operator is sent looking for a live process that no longer
         exists, with no exit status to explain it.
         """
+        import types
+
         from kiro_crew import cli_server
 
         proc = MagicMock()
         # Alive for the loop's entry poll, exited by the deadline re-poll.
         proc.poll.side_effect = [None, 3]
 
+        # The clock is stubbed on cli_server's OWN attribute rather than through
+        # `cli_server.time.monotonic`: that path resolves to the shared `time`
+        # module, so it would swap the clock for every caller in the process --
+        # including background threads -- and a finite side_effect list them lets
+        # steal a value and raise StopIteration here. This stub is scoped to the
+        # module under test and answers any number of calls: the first reads the
+        # loop's entry time, every later one is past the deadline.
+        calls: list[float] = []
+
+        def clock() -> float:
+            calls.append(0.0)
+            return 0.0 if len(calls) == 1 else 100.0
+
+        fake_time = types.SimpleNamespace(monotonic=clock, sleep=lambda _seconds: None)
+
         with (
             patch("kiro_crew.cli_server._probe_gateway_ready", return_value=503),
-            patch("kiro_crew.cli_server.time.monotonic", side_effect=[0.0, 100.0]),
+            patch.object(cli_server, "time", fake_time),
         ):
             verdict, status = cli_server._wait_gateway_ready(proc, 7777, None, 0.0)
 

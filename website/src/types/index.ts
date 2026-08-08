@@ -20,6 +20,18 @@ export interface StatusData {
   update_command?: string
   update_progress?: { step: string; detail: string } | null
   version?: string
+  /**
+   * Which release lane these bytes came from. The gateway resolves it (see
+   * `src/kiro_crew/release_channel.py`) rather than leaving the dashboard to
+   * parse `version`: the same release is stamped as SemVer for the desktop app
+   * and PEP 440 for wheels, and neither PEP 440 prerelease spelling
+   * (`1.2.3rc4`, `1.2.3.dev<stamp>`) contains a `-`, so a mirror of the rule
+   * here would drift and quietly call a prerelease build stable.
+   *
+   * Optional because an older gateway does not send it — treat a missing value
+   * as "unknown", never as "stable".
+   */
+  release_channel?: 'nightly' | 'insider' | 'stable'
   branch?: string
   commit?: string
   platform?: string
@@ -73,6 +85,7 @@ export interface CronJob {
   skip_dates?: string[] | null
   script?: string | null; command?: string | null; last_result?: string | null; last_error?: string | null
   is_running?: boolean; running_since?: number | null
+  folder_id?: string
 }
 
 export interface Lesson {
@@ -105,6 +118,28 @@ export interface Skill {
    *  SKILL.md path.  Empty list means no agent loads it via kiro-cli's
    *  native ``skill://`` loader (it may still load via KiroCrew text-injection). */
   loaded_by_agents?: string[]
+}
+
+/** Response shape for GET /api/skills/budget — the control-plane cost data. */
+export interface SkillBudgetRow {
+  key: string
+  name: string
+  size_bytes: number
+  deliveries: number | null
+  /** null when the cost is not measurable: an `always: true` skill is injected
+   *  every turn but that injection is never recorded in the usage ledger. */
+  chars: number | null
+  inject_on_trigger: boolean
+  always: boolean
+  owned: boolean
+  source: string
+  folded_from?: string[]
+  idle_days: number | null
+}
+export interface SkillBudgetResponse {
+  window_days: number
+  total_chars: number
+  rows: SkillBudgetRow[]
 }
 
 /** A single entry in a skill folder's tree listing. */

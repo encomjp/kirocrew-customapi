@@ -731,9 +731,18 @@ class AcpModelUnavailable(AcpError):  # noqa: N818
         self.model_id = model_id
         self.advertised = list(advertised or [])
         usable = ", ".join(self.advertised) if self.advertised else "none advertised"
+        # The identity hint is CONDITIONAL by construction ("if you expected") and
+        # names only a read-only probe. A user genuinely on a free tier is
+        # correctly served by the first sentence and should not be nudged toward
+        # re-authenticating, so this must never read as an instruction to log out:
+        # `whoami` answers "which tier am I actually on" for the user who signed in
+        # to the wrong one, and merely confirms the situation for everyone else.
         super().__init__(
             f"The model {model_id!r} is not available on your account. "
-            f"Available models: {usable}.",
+            f"Available models: {usable}. "
+            f"If you expected this model to be included in your plan, check which "
+            f"account you are signed in as with `kiro-cli whoami` — a Builder ID "
+            f"sign-in carries a different entitlement than organization SSO.",
             transient=False,
         )
 
@@ -816,6 +825,35 @@ _RE_5XX_STATUS = re.compile(r"(?:HTTP|status)\s*(?:code\s*)?(?:50[0234]|529)\b",
 # a transport envelope, not a signal about the failure inside it; classification
 # now reads the inner detail (see _provider_detail).
 _RE_5XX_HINT = re.compile(r"(please try again)", re.IGNORECASE)
+# Session expiry, by HTTP status. An expired session is rejected with 401/403,
+# and nothing else in this module recognised those codes: the error fell through
+# to the 5xx family (a co-occurring DispatchFailure/ConnectionReset from the
+# aborted request is enough to match) and the user was told to retry or switch
+# models, neither of which can succeed against an expired login. Status is the
+# primary signal because the rejection carries no explanatory wording.
+_RE_AUTH_STATUS = re.compile(r"(?:HTTP|status)\s*(?:code\s*)?(?:401|403)\b", re.IGNORECASE)
+# Session expiry, by wording. Complements the status match for backends that
+# describe the expiry in prose without a machine-readable code. Deliberately
+# excludes Bedrock's named exceptions, which _RE_AUTH already owns.
+_RE_SESSION_EXPIRED = re.compile(
+    r"\b(?:session\s+(?:has\s+)?expired|session\s+timed?\s*out"
+    r"|login\s+(?:has\s+)?expired|authentication\s+(?:has\s+)?expired"
+    r"|not\s+logged\s+in|not\s+authenticated"
+    r"|re-?authenticate|login\s+required|auth(?:entication)?\s+required)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_session_expired(haystack: str) -> bool:
+    """True when the failure is an expired session rather than a backend fault.
+
+    Both signals are terminal: retrying cannot refresh a login. Checked before
+    the 5xx family so an aborted request's transport error does not shadow the
+    real cause.
+    """
+    return bool(_RE_AUTH_STATUS.search(haystack) or _RE_SESSION_EXPIRED.search(haystack))
+
+
 # Account/plan capacity is EXHAUSTED — terminal. Distinct from a throttle: a
 # throttle clears in seconds and a retry is the right move, whereas a spent
 # monthly allowance does not come back until it resets, so retrying only adds
@@ -937,6 +975,9 @@ def _is_transient_raw_error(
         return True
     if _RE_AUTH.search(haystack):
         # Auth is terminal — a retry can't fix an expired/denied credential.
+        return False
+    if _is_session_expired(haystack):
+        # Session expiry is terminal — retrying can't refresh an expired login.
         return False
     return bool(
         _RE_5XX_NAMED.search(haystack)
@@ -1144,6 +1185,17 @@ def _format_acp_error(error: object, available_models: Sequence[str] | None = No
                 "(e.g. re-run your SSO/login or 'aws sso login'), then retry. If "
                 "the failure persists, check that the configured AWS profile has "
                 "Bedrock InvokeModel access."
+                f"{req_id_suffix}"
+            )
+        elif _is_session_expired(haystack):
+            # Session expiry (401/403, or prose saying as much) — distinct from
+            # the Bedrock credential errors above. Retrying or switching models
+            # cannot succeed, so the message must not suggest either.
+            formatted = (
+                "Your session has expired. Run `kiro-cli login` in your "
+                "terminal to sign back in, then start a new chat. "
+                "Retrying or switching models will not help — this is a "
+                "sign-in issue, not a backend error."
                 f"{req_id_suffix}"
             )
         elif (
@@ -4141,16 +4193,7 @@ class AcpClient:
         await self.ensure_ready()
 
         req_id = await self._send_prompt(message)
-        prev_pct = self.last_prompt_stats.context_pct
-        _prev_used = self.last_prompt_stats.context_used_tokens
-        _prev_window = self.last_prompt_stats.context_window_tokens
-        _prev_from_usage = self.last_prompt_stats.context_tokens_from_usage
-        self.last_prompt_stats = AcpPromptStats(
-            context_pct=prev_pct,
-            context_used_tokens=_prev_used,
-            context_window_tokens=_prev_window,
-            context_tokens_from_usage=_prev_from_usage,
-        )
+        self.last_prompt_stats = self.last_prompt_stats.carry_over()
 
         # aclosing(): _prompt_loop holds _turn_lock and releases it in its
         # finally. Consumers below `return` on "complete" without exhausting the
@@ -4222,16 +4265,7 @@ class AcpClient:
         extract_agent_from_result: bool = False,
     ) -> AsyncIterator[AcpEvent]:
         """Shared event dispatch loop for prompts and commands."""
-        prev_pct = self.last_prompt_stats.context_pct
-        _prev_used = self.last_prompt_stats.context_used_tokens
-        _prev_window = self.last_prompt_stats.context_window_tokens
-        _prev_from_usage = self.last_prompt_stats.context_tokens_from_usage
-        self.last_prompt_stats = AcpPromptStats(
-            context_pct=prev_pct,
-            context_used_tokens=_prev_used,
-            context_window_tokens=_prev_window,
-            context_tokens_from_usage=_prev_from_usage,
-        )
+        self.last_prompt_stats = self.last_prompt_stats.carry_over()
         self._tool_call_inputs.clear()
         self._tool_call_is_shell.clear()
         self._tool_call_mcp_server.clear()
@@ -4895,16 +4929,7 @@ class AcpClient:
 
     async def _read_prompt_response(self, req_id: int, timeout: float) -> str:
         output: list[str] = []
-        prev_pct = self.last_prompt_stats.context_pct
-        _prev_used = self.last_prompt_stats.context_used_tokens
-        _prev_window = self.last_prompt_stats.context_window_tokens
-        _prev_from_usage = self.last_prompt_stats.context_tokens_from_usage
-        self.last_prompt_stats = AcpPromptStats(
-            context_pct=prev_pct,
-            context_used_tokens=_prev_used,
-            context_window_tokens=_prev_window,
-            context_tokens_from_usage=_prev_from_usage,
-        )
+        self.last_prompt_stats = self.last_prompt_stats.carry_over()
 
         async for action, msg in self._prompt_loop(req_id, timeout):
             if action == "complete":
@@ -5051,6 +5076,7 @@ class AcpClient:
                 # Mark the counts authoritative so a later metadata
                 # contextUsagePercentage cannot clobber this token-derived pct.
                 self.last_prompt_stats.context_tokens_from_usage = True
+                self.last_prompt_stats.note_pct_reported()
             else:
                 logger.debug("usage_update missing used/size: %s", update)
         elif kind == UPDATE_CONFIG_OPTION:
@@ -5809,6 +5835,7 @@ class AcpClient:
                 # valid JSON). NaN is caught by its self-inequality.
                 pct_f = 0.0 if pct_f != pct_f else min(max(pct_f, 0.0), 100.0)
                 self.last_prompt_stats.context_pct = pct_f
+                self.last_prompt_stats.note_pct_reported()
                 self._backfill_context_window(pct_f)
             except (TypeError, ValueError):
                 pass

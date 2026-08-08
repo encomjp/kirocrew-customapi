@@ -438,6 +438,35 @@ export interface SecurityPostureData {
   counts: Record<string, number | null>
 }
 
+/**
+ * GET /api/tailnet/status — whether this machine's Tailscale MagicDNS name is in
+ * the dashboard's Origin allow-list.
+ *
+ * `state` is derived SERVER-SIDE and the UI must render off it directly rather
+ * than recomputing it from the other fields: one owner for the state machine
+ * means the two layers cannot disagree about what "active" means. Precedence is
+ * `pinned` > `off` > `unresolved` > `active`.
+ *
+ * `host` / `origin` / `resolved_at` describe the STARTUP resolution — the value
+ * that actually went into `build_allowed_origins` — not a fresh probe. A live
+ * probe could report a name the running origin set does not contain (daemon came
+ * up after the gateway), and rendering that as trusted is the same
+ * checked-but-never-ran defect the posture registry guards against.
+ */
+export interface TailnetStatusData {
+  /** `dashboard.tailscale.enabled` as actually loaded, post-hydration. */
+  enabled: boolean
+  /** `capabilities.tailnet_origin` pinned off at the POLICY layer. */
+  governance_pinned: boolean
+  /** MagicDNS name resolved at startup; `''` when none was. */
+  host: string
+  /** `https://<host>`; `''` when `host` is `''`. */
+  origin: string
+  /** Epoch seconds of that startup resolution; `0` when it never resolved. */
+  resolved_at: number
+  state: 'pinned' | 'off' | 'unresolved' | 'active'
+}
+
 let _sessionExpiredShown = false
 
 /**
@@ -839,6 +868,7 @@ export interface KiroPrerequisiteStatus {
    * a translated command cannot be typed.
    */
   login_command: string
+  sso_login_command: string
   setup_allowed: boolean
   /**
    * True when the CLI binary is present and executable but could not be
@@ -1076,6 +1106,11 @@ export const api = {
   // means "temporarily unresolvable", never "zero".
   securityStats: () => get('/api/security/stats').then(j) as Promise<{ denied_commands: number | null; suspicious_patterns: number | null; tool_schemas: number | null; redaction_paths: number | null }>,
   securityPosture: () => get('/api/security/posture').then(j) as Promise<SecurityPostureData>,
+  // Tailnet origin (Settings → Security). READ ONLY here: the toggle writes
+  // `dashboard.tailscale.enabled` through the generic config PATCH, because the
+  // setting IS a config value and the status endpoint only reports what the
+  // running server resolved from it at startup.
+  tailnetStatus: () => get('/api/tailnet/status').then(j) as Promise<TailnetStatusData>,
   // Denied commands (Settings → Security). Every endpoint returns the full
   // refreshed snapshot so callers can seed their query cache from the response.
   deniedCommands: () => get('/api/security/denied-commands').then(j) as Promise<DeniedCommandsData>,
@@ -1159,8 +1194,10 @@ export const api = {
     sessions: {
       key: string; title: string; slot_key: string; untitled: boolean
       agent: string; pid: number | null; owns_runtime: boolean; prompts: number
+      channel: string
       rss_mb: number | null; procs: number | null; mcp: number | null
       cpu_cores: number | null; uptime_s: number | null
+      credits: number | null; turns: number | null
     }[]
     tasks: {
       id: string; task: string; agent: string; parent: string
@@ -1171,6 +1208,9 @@ export const api = {
       rss_mb: number; runtimes: number; host_mb: number | null
       host_pct: number | null; rss_is_upper_bound: boolean
     }
+    unattributed: {
+      procs: number; rss_mb: number | null; oldest_uptime_s: number | null
+    } | null
     history: { t: number; mb: number }[]
   }>,
   sessionsUsage: () => fetch('/api/sessions/usage').then(j),
@@ -1258,6 +1298,13 @@ export const api = {
     return fetch('/api/crons/history' + (p.toString() ? '?' + p : ''), { headers: { ..._sk } }).then(j)
   },
 
+  // Cron Folders
+  cronFolders: () => fetch('/api/cron-folders').then(j),
+  createCronFolder: (name: string) => post('/api/cron-folders', { name }).then(j),
+  updateCronFolder: (id: string, body: { name?: string }) =>
+    fetch('/api/cron-folders/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(j),
+  deleteCronFolder: (id: string) => del('/api/cron-folders/' + id).then(j),
+
   // Lessons
   lessons: () => fetch('/api/lessons').then(j),
   createLesson: (rule: string, category: string) => post('/api/lessons', { rule, category }).then(j),
@@ -1318,6 +1365,8 @@ export const api = {
    *  `inject: false` reduces the skill to a one-line pointer on a match. */
   setSkillInjectOnTrigger: (name: string, inject: boolean) =>
     post('/api/skills/-/inject-on-trigger', { name, inject }).then(j),
+  /** Context budget: cost data for the skill control plane. */
+  skillsBudget: () => get('/api/skills/-/budget').then(j) as Promise<import('../types').SkillBudgetResponse>,
   /** Multi-provider skill discovery (skills.sh, etc.) */
   discoverSkills: (query: string, opts?: { provider?: string; limit?: number }) =>
     get(`/api/skills/-/discover?q=${encodeURIComponent(query)}${opts?.provider ? `&provider=${opts.provider}` : ''}${opts?.limit ? `&limit=${opts.limit}` : ''}`).then(j) as Promise<import('../types').DiscoverSkillsResponse>,
@@ -1374,7 +1423,7 @@ export const api = {
   defaultAgent: () => fetch('/api/config/default-agent').then(j),
   setDefaultAgent: (agent: string) => put('/api/config/default-agent', { agent }).then(j),
   kirocrewConfig: () => fetch('/api/config/kirocrew').then(j),
-  saveKirocrewConfig: (agent: object) => put('/api/config/kirocrew', { agent }).then(j),
+  saveKirocrewConfig: (agent: object) => put('/api/config/kirocrew', { agent }).then(j) as Promise<{ ok?: boolean; restart_required?: boolean; error?: string }>,
   patchConfig: (path: string, value: unknown) => fetch('/api/config/kirocrew', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, value }) }).then(j),
   providerTest: (body: { url: string; api_key?: string; format?: string }) => post('/api/provider/test', body).then(j),
   providerStatus: () => fetch('/api/provider/status').then(j),
