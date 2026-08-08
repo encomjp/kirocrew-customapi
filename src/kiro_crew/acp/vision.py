@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,148 @@ _VISION_DESCRIBE_PROMPT = "Describe this image in 1-3 short sentences: {ref}"
 #: (initialize + session/new + prompt), so a long image can legitimately take a
 #: while; 120s is the same bound the legacy ``_vision_subagent_describe`` used.
 VISION_DESCRIBE_TIMEOUT = 120.0
+
+#: Default vision-capable router fallback. cmc/mimo-v2.5 (commandcode) accepts
+#: images (verified 200) and is fast. Mirrors client._DEFAULT_VISION_FALLBACK_MODEL.
+DEFAULT_VISION_FALLBACK_MODEL = "cmc/mimo-v2.5"
+
+
+@dataclass(frozen=True)
+class VisionProvider:
+    """One vision-capable backend in the fallback chain.
+
+    ``model`` is the picker spelling the AcpClient accepts (the client strips a
+    known router prefix to the raw wire id). ``extra_env`` carries the endpoint
+    wiring: for a ``router`` entry it is the main session's router env; for a
+    ``custom`` entry it is ``ANTHROPIC_BASE_URL`` / ``ANTHROPIC_API_KEY`` for
+    the explicit endpoint.
+    """
+
+    provider: str
+    model: str
+    extra_env: dict[str, str]
+    acp_backend: str = ""
+
+
+def _coerce_vision_provider_entry(
+    entry: Any,
+    *,
+    main_env: dict[str, str],
+    main_backend: str,
+) -> VisionProvider | None:
+    """Normalize one ``agent.vision_providers`` dict entry into a provider.
+
+    Returns None when the entry is unusable (missing model, or a non-router
+    entry with no base_url) so the chain builder can skip it rather than fail.
+    """
+    if not isinstance(entry, dict):
+        return None
+    model = str(entry.get("model") or "").strip()
+    if not model:
+        return None
+    provider = str(entry.get("provider") or "").strip().lower()
+    base_url = str(entry.get("base_url") or "").strip()
+    api_key = str(entry.get("api_key") or "").strip()
+
+    if provider == "router" or (not base_url and provider in ("", "auto")):
+        # Reuse the main session's router endpoint; the model is a picker id.
+        return VisionProvider(
+            provider=provider or "router",
+            model=model,
+            extra_env=dict(main_env),
+            acp_backend=main_backend,
+        )
+    if base_url:
+        env: dict[str, str] = {}
+        if base_url:
+            env["ANTHROPIC_BASE_URL"] = base_url
+        if api_key:
+            env["ANTHROPIC_API_KEY"] = api_key
+        return VisionProvider(
+            provider=provider or "custom",
+            model=model,
+            extra_env=env,
+            acp_backend="",  # a custom endpoint is always anthropic-compatible
+        )
+    return None
+
+
+def resolve_vision_providers(
+    *,
+    vision_providers: Iterable[dict[str, Any]] | None = None,
+    vision_fallback_model: str = "",
+    main_env: dict[str, str] | None = None,
+    main_backend: str = "",
+) -> list[VisionProvider]:
+    """Build the ordered vision fallback chain from config.
+
+    Order: configured ``agent.vision_providers`` entries first (in list order),
+    then the legacy ``agent.vision_fallback_model`` as the final entry (kept so
+    a single-model setup — the pre-chain behavior — works unchanged). When no
+    custom entry pins its own endpoint, every entry rides the main session's
+    router env, so a bare ``[{"model": "cmc/mimo-v2.5"}]`` behaves exactly like
+    the old ``vision_fallback_model``.
+
+    Duplicate models are kept (each entry is a distinct attempt), but an entry
+    with no model or no usable endpoint is skipped. Returns an empty list when
+    nothing is configured.
+    """
+    out: list[VisionProvider] = []
+    seen: set[tuple[str, str]] = set()
+    main_env = dict(main_env or {})
+
+    for entry in vision_providers or []:
+        prov = _coerce_vision_provider_entry(entry, main_env=main_env, main_backend=main_backend)
+        if prov is None:
+            continue
+        key = (prov.model, prov.extra_env.get("ANTHROPIC_BASE_URL", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(prov)
+
+    fallback = (vision_fallback_model or DEFAULT_VISION_FALLBACK_MODEL).strip()
+    if fallback:
+        key = (fallback, main_env.get("ANTHROPIC_BASE_URL", ""))
+        if key not in seen:
+            out.append(
+                VisionProvider(
+                    provider="router",
+                    model=fallback,
+                    extra_env=dict(main_env),
+                    acp_backend=main_backend,
+                )
+            )
+    return out
+
+
+async def describe_image_via_chain(
+    image_ref: str,
+    providers: Iterable[VisionProvider],
+    *,
+    work_dir: str | Path | None = None,
+    sandbox_mode: str = "auto",
+    timeout: float = VISION_DESCRIBE_TIMEOUT,
+) -> str:
+    """Describe *image_ref* trying each provider in *providers* until one succeeds.
+
+    Returns the first non-empty description. Returns ``"unavailable"`` when every
+    provider fails or returns nothing, so callers (the ``[image: …]`` marker and
+    the ``vision_analyze`` tool) read one vocabulary.
+    """
+    for prov in providers:
+        description = await describe_image_via_vision(
+            image_ref,
+            vision_model=prov.model,
+            work_dir=work_dir,
+            extra_env=prov.extra_env,
+            acp_backend=prov.acp_backend,
+            sandbox_mode=sandbox_mode,
+            timeout=timeout,
+        )
+        if description and description != "unavailable":
+            return description
+    return "unavailable"
 
 
 def _coerce_image_input_mode(raw: Any) -> str:
@@ -169,6 +312,7 @@ async def describe_image_via_vision(
     extra_env: dict[str, str] | None = None,
     acp_backend: str = "",
     sandbox_mode: str = "auto",
+    timeout: float = VISION_DESCRIBE_TIMEOUT,
 ) -> str:
     """Best-effort wrapper: describe *image_ref* or return ``"unavailable"``.
 
@@ -184,6 +328,7 @@ async def describe_image_via_vision(
             extra_env=extra_env,
             acp_backend=acp_backend,
             sandbox_mode=sandbox_mode,
+            timeout=timeout,
         )
     except Exception:
         logger.warning("vision describe failed for %s", image_ref, exc_info=True)
