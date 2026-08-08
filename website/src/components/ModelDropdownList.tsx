@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react'
-import { Check } from 'lucide-react'
+import { useRef, useEffect, useMemo } from 'react'
+import { Check, Image as ImageIcon } from 'lucide-react'
 
 import { isPricedMultiplier } from '../providers/modelList'
 import type { ModelInfo } from '../providers/types'
@@ -16,7 +16,7 @@ import { i18nT } from '../i18n/t'
  * only the shapes are pinned.
  */
 export type ModelItem =
-  Pick<ModelInfo, 'name'> & Partial<Pick<ModelInfo, 'description' | 'rateMultiplier'>>
+  Pick<ModelInfo, 'name'> & Partial<Pick<ModelInfo, 'description' | 'rateMultiplier' | 'supportsVision'>>
 
 /** The multiplier Auto is pinned at, and the baseline the badges are relative to. */
 const BASELINE = 1
@@ -103,6 +103,81 @@ const TIER_BORDER: Record<ReturnType<typeof costTier>, string> = {
   premium: 'border-warn',
 }
 
+/** Vision rows: a muted, rounded pill with an image glyph — native, not loud.
+ *  The composer's `FilePreviewStrip` already reads as an image surface (80px
+ *  thumbs with numbered accent circles), so the picker should echo that surface
+ *  with one small tag. Border-only, muted: it must not compete with the credit
+ *  multiplier that sits at the same trailing edge, and it stays legible on any
+ *  theme because the glyph is `text-muted` against `bg-bg-elevated`. */
+function VisionBadge() {
+  return (
+    <span aria-hidden="true" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-border bg-bg-elevated text-[10px] leading-none text-muted">
+      <ImageIcon size={10} className="lucide-inline" />
+      Image
+    </span>
+  )
+}
+
+/** A provider-coloured top accent for grouped sections — one thin bar, not a chip.
+ *  Uses the existing chat palette (accent / ok / info / warn) so the picker
+ *  reads as themeless, like ContextBar's layered bar. No new colour system. */
+function GroupLabel({ label, accentClass }: { label: string; accentClass: string }) {
+  return (
+    <div className="flex items-center gap-2 px-2.5 pt-3 pb-1">
+      <span className={`inline-block h-3 w-1 rounded-full ${accentClass}`} aria-hidden="true" />
+      <span className="text-[10.5px] font-semibold tracking-wide uppercase text-muted">{label}</span>
+    </div>
+  )
+}
+
+function ModelRow({
+  model, active, activeRef, onSelect,
+}: {
+  model: ModelItem
+  active: boolean
+  activeRef: React.Ref<HTMLButtonElement> | undefined
+  onSelect: (name: string) => void
+}) {
+  const mult = model.rateMultiplier
+  const vision = model.supportsVision === true
+  return (
+    <button
+      key={model.name}
+      ref={active ? activeRef : undefined}
+      role="option"
+      aria-selected={active}
+      tabIndex={-1}
+      data-vision={vision ? '1' : undefined}
+      data-model-name={model.name}
+      className={`w-full text-left px-2.5 py-2 flex flex-col gap-0.5 rounded-md cursor-pointer transition-all border-none bg-transparent ${active ? 'bg-accent-subtle' : 'hover:bg-bg-hover'}`}
+      onClick={() => onSelect(model.name)}
+    >
+      <div className="flex items-center gap-2">
+        <span data-model-name className={`text-[13px] font-mono font-semibold truncate ${active ? 'text-accent' : 'text-text'}`}>{model.name}</span>
+        {active && <span className="text-accent text-[12px]"><Check className="lucide-inline" /></span>}
+        <span className="ml-auto inline-flex items-center gap-1.5 shrink-0">
+          {vision && <VisionBadge />}
+          {isPricedMultiplier(mult) && (
+            <span className={`shrink-0 min-w-[2.9rem] text-center px-1.5 py-[3px] rounded-full border bg-bg-elevated font-mono font-semibold tabular-nums text-[10.5px] leading-none text-text ${TIER_BORDER[costTier(mult)]}`}>
+              <span aria-hidden="true">{formatMultiplier(mult)}</span>
+              <span className="sr-only">{i18nT(
+                model.name === 'auto'
+                  ? 'components.modelDropdownList.credit_multiplier_baseline'
+                  : 'components.modelDropdownList.credit_multiplier',
+                { value: formatMultiplier(mult) },
+              )}</span>
+            </span>
+          )}
+        </span>
+      </div>
+      {model.name === 'auto'
+        ? <span className="text-[12px] text-muted leading-tight">{i18nT('components.modelDropdownList.auto_default')}</span>
+        : model.description && <span className="text-[12px] text-muted leading-tight">{model.description}</span>}
+      <span className="sr-only">{vision ? 'Supports image input' : ''}</span>
+    </button>
+  )
+}
+
 /** Shared model list used in dropdown portals across AgentsPage and ChatPage */
 export default function ModelDropdownList({ models, activeModel, onSelect }: {
   models: ModelItem[]; activeModel: string; onSelect: (name: string) => void
@@ -111,54 +186,60 @@ export default function ModelDropdownList({ models, activeModel, onSelect }: {
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: 'center', behavior: 'instant' })
   }, [])
+  const groups = useMemo(() => {
+    // Group the already-ordered list (withAutoFirst's order is canonical) so the
+    // existing provider ordering is kept, but vision rows sit under a native-
+    // feeling Vision section. Unknown rows (no flag) fall into Text-only so a
+    // member whose gateway predates the flag does not lose its rows to a phantom.
+    const vision = models.filter(m => m.supportsVision === true)
+    const text = models.filter(m => m.supportsVision !== true)
+    if (vision.length === 0) return null
+    if (text.length === 0) return { vision, text: null as ModelItem[] | null }
+    return { vision, text }
+  }, [models])
+  if (groups) {
+    return (
+      <div className="overflow-y-auto flex flex-col gap-0.5">
+        <GroupLabel label="Vision — image input" accentClass="bg-accent" />
+        {groups.vision.map(m => (
+          <ModelRow
+            key={m.name}
+            model={m}
+            active={activeModel === m.name}
+            activeRef={activeModel === m.name ? activeRef : undefined}
+            onSelect={onSelect}
+          />
+        ))}
+        {groups.text && groups.text.length > 0 && (
+          <>
+            <GroupLabel label="Text" accentClass="bg-muted" />
+            {groups.text.map(m => (
+              <ModelRow
+                key={m.name}
+                model={m}
+                active={activeModel === m.name}
+                activeRef={activeModel === m.name ? activeRef : undefined}
+                onSelect={onSelect}
+              />
+            ))}
+          </>
+        )}
+        {models.length === 0 && <div className="px-3 py-2 text-[13px] text-muted italic">{i18nT('components.modelDropdownList.no_matches')}</div>}
+      </div>
+    )
+  }
   return (
     <div className="overflow-y-auto flex flex-col gap-0.5">
       {models.map(m => {
         const active = activeModel === m.name
-        const mult = m.rateMultiplier
         return (
-          <button key={m.name} ref={active ? activeRef : undefined} role="option" aria-selected={active} tabIndex={-1} className={`w-full text-left px-2.5 py-2 flex flex-col gap-0.5 rounded-md cursor-pointer transition-all border-none bg-transparent ${active ? 'bg-accent-subtle' : 'hover:bg-bg-hover'}`} onClick={() => onSelect(m.name)}>
-            <div className="flex items-center gap-2">
-              <span data-model-name className={`text-[13px] font-mono font-semibold truncate ${active ? 'text-accent' : 'text-text'}`}>{m.name}</span>
-              {active && <span className="text-accent text-[12px]"><Check className="lucide-inline" /></span>}
-              {/* Credit multiplier. Rendered only when the backend reported a
-                  usable one — a cold-start or pre-feature cached row has none,
-                  and an absent badge is the honest state (see
-                  ModelInfo.rateMultiplier).
-                  min-w + centred + tabular-nums: without a floor the pills size
-                  to their content, so "1.0×" is visibly narrower than "0.05×"
-                  and the column gets a ragged left edge instead of reading as a
-                  column.
-                  bg-bg-elevated, not transparent: on the active row the
-                  popover's accent-subtle wash would otherwise show through and
-                  muddy the border hue that carries the tier. */}
-              {isPricedMultiplier(mult) && (
-                <span className={`ml-auto shrink-0 min-w-[2.9rem] text-center px-1.5 py-[3px] rounded-full border bg-bg-elevated font-mono font-semibold tabular-nums text-[10.5px] leading-none text-text ${TIER_BORDER[costTier(mult)]}`}>
-                  <span aria-hidden="true">{formatMultiplier(mult)}</span>
-                  {/* The visible glyph alone reads as a bare "2.2 times" to a
-                      screen reader. The option's accessible name is built from
-                      its contents, so the explanation goes in the tree as
-                      sr-only text rather than a title= tooltip. Auto gets its
-                      own phrasing — "1.0× the credit cost of Auto" on the Auto
-                      row compares it to itself. */}
-                  <span className="sr-only">{i18nT(
-                    m.name === 'auto'
-                      ? 'components.modelDropdownList.credit_multiplier_baseline'
-                      : 'components.modelDropdownList.credit_multiplier',
-                    { value: formatMultiplier(mult) },
-                  )}</span>
-                </span>
-              )}
-            </div>
-            {/* Auto's label is a catalog key resolved HERE, not a literal carried
-                on the row: kiro's own Auto description is long enough to unbalance
-                the list, and translating it at fetch time would freeze the language
-                in the React Query cache. Static key, so it stays statically
-                resolvable for check-i18n-keys. */}
-            {m.name === 'auto'
-              ? <span className="text-[12px] text-muted leading-tight">{i18nT('components.modelDropdownList.auto_default')}</span>
-              : m.description && <span className="text-[12px] text-muted leading-tight">{m.description}</span>}
-          </button>
+          <ModelRow
+            key={m.name}
+            model={m}
+            active={active}
+            activeRef={active ? activeRef : undefined}
+            onSelect={onSelect}
+          />
         )
       })}
       {models.length === 0 && <div className="px-3 py-2 text-[13px] text-muted italic">{i18nT('components.modelDropdownList.no_matches')}</div>}

@@ -109,6 +109,8 @@ export interface ModelInfo {
   description: string
   contextWindow?: number
   supportsExtendedContext?: boolean
+  /** True when the model can take images natively (not via a describe subagent). */
+  supportsVision?: boolean
   /**
    * Relative credit cost of a turn on this model, with Auto as the 1.0
    * baseline — kiro's `rate_multiplier` from `chat --list-models`, passed

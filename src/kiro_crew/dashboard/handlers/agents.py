@@ -832,8 +832,11 @@ def _cc_models(request: web.Request, configured_default: str = "") -> list[dict]
             # After "auto", never before it: "auto" is the configured default in
             # the general case and leads the list.
             merged.insert(
-                1 if merged and _normalize_model_key(merged[0].get("model_name", "")) == "auto"
-                else 0,
+                (
+                    1
+                    if merged and _normalize_model_key(merged[0].get("model_name", "")) == "auto"
+                    else 0
+                ),
                 {
                     "model_name": canonical_default,
                     "display_name": canonical_default,
@@ -849,7 +852,49 @@ def _cc_models(request: web.Request, configured_default: str = "") -> list[dict]
             entry["context_window"] = (
                 model_registry.model_window(name) or model_registry.REFERENCE_WINDOW_TOKENS
             )
+        if "supports_vision" not in entry:
+            flag = _model_supports_vision(entry.get("model_name", ""))
+            if flag is not None:
+                entry["supports_vision"] = flag
     return merged
+
+
+_NATIVE_VISION_FAMILY_PREFIXES = frozenset({"cmc", "oc", "ol", "cx", "ag"})
+
+
+def _model_supports_vision(model_id: str) -> bool | None:
+    """Reported vision capability for a model id, or None when unknown."""
+    from kiro_crew.acp.vision import decide_image_input_mode  # noqa: F811
+
+    try:
+        from kiro_crew.model_registry import model_supports_vision  # noqa: F811
+
+        flag = model_supports_vision(model_id)
+        if flag is not None:
+            return bool(flag)
+    except Exception:
+        pass
+    # Router-prefixed ids are not canonical registry keys, so the registry
+    # returns None for them — route via the same decision the runtime uses.
+    # Thread the text-only denylist so oc/deepseek-v4-flash and
+    # ol/deepseek-v4-flash:0731 report as text, matching the ACP redirect gate.
+    try:
+        from kiro_crew.acp.client import _DEFAULT_TEXT_ONLY_MODELS  # noqa: F811
+        from kiro_crew.config.loader import KiroCrewConfig as _KC  # noqa: F811
+
+        try:
+            cfg_text_only = _KC.load().agent.text_only_models  # type: ignore[attr-defined]
+            text_only: tuple[str, ...] | None = tuple(cfg_text_only) if cfg_text_only else None
+        except Exception:
+            text_only = None
+        if text_only is None:
+            text_only = tuple(_DEFAULT_TEXT_ONLY_MODELS)
+        mode = decide_image_input_mode(model_id, image_input_mode="auto", text_only_models=text_only)
+        if mode != "auto":
+            return mode == "native"
+    except Exception:
+        pass
+    return None
 
 
 def _cc_model_row(model_id: str, description: str = "") -> dict:
@@ -862,21 +907,31 @@ def _cc_model_row(model_id: str, description: str = "") -> dict:
     frontend learns this value into ``LIVE_WINDOWS``, so the composer's context
     meter follows it too. Unknown ids resolve to the 1M reference rather than a
     silent 200k.
+
+    ``supports_vision`` (when not None) is the single capability flag the
+    frontend picker groups on, so a Vision section can feel native in the
+    AppImage rather than bolted on via text filters. Router-prefixed ids
+    (``cmc/``, ``ol/``, …) are not canonical registry keys, so they are tagged
+    as vision-capable when they belong to a vision provider family — the same
+    families the ACP image-input routing treats as native.
     """
     if not description:
         family = model_id.split("/", 1)[0] if "/" in model_id else model_id
         description = f"{model_id.split('/')[-1]} via {family}"
-    return {
+    row: dict[str, object] = {
         "model_name": model_id,
         "model_id": model_id,
         "description": description,
         "context_window_tokens": (
-            model_registry.model_window(model_id)
-            or model_registry.REFERENCE_WINDOW_TOKENS
+            model_registry.model_window(model_id) or model_registry.REFERENCE_WINDOW_TOKENS
         ),
         "rate_multiplier": 1.0,
         "rate_unit": "Credit",
     }
+    flag = _model_supports_vision(model_id)
+    if flag is not None:
+        row["supports_vision"] = flag
+    return row
 
 
 async def _opencode_models_response(request: web.Request) -> web.Response:
@@ -904,23 +959,34 @@ async def _opencode_models_response(request: web.Request) -> web.Response:
                 headers["Authorization"] = f"Bearer {cfg.agent.provider_api_key}"
         url = f"{base}/v1/models"
         try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=8)
-            ) as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
                 async with session.get(url, headers=headers) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         for item in data.get("data", []):
                             mid = item.get("id") or ""
                             if mid:
-                                rows.append(
-                                    _cc_model_row(
-                                        mid,
-                                        item.get("display_name")
-                                        or item.get("description")
-                                        or "",
-                                    )
+                                row = _cc_model_row(
+                                    mid,
+                                    item.get("display_name") or item.get("description") or "",
                                 )
+                                # Prefer the catalog's own vision flag when it ships one
+                                # (router /v1/models may report capabilities.supports_vision,
+                                # capabilities.vision, or a top-level supports_vision).
+                                caps = (
+                                    item.get("capabilities")
+                                    if isinstance(item.get("capabilities"), dict)
+                                    else {}
+                                )
+                                catalog_flag: bool | None = None
+                                for key in ("supports_vision", "vision", "vision_capable"):
+                                    val = item.get(key) if key in item else caps.get(key)
+                                    if isinstance(val, bool):
+                                        catalog_flag = val
+                                        break
+                                if catalog_flag is not None:
+                                    row["supports_vision"] = catalog_flag
+                                rows.append(row)
         except Exception:
             logger.debug("opencode /v1/models fetch failed: %s", url, exc_info=True)
     if cfg.agent.model_whitelist:
@@ -1718,7 +1784,7 @@ async def api_provider_status(request: web.Request) -> web.Response:
     required binary installed.  Returns ``{opencode: bool, claude_code: bool}``
     so the frontend can warn users who select a backend without the binary.
     """
-    from kiro_crew.acp.client import _resolve_opencode_bin, _resolve_claude_acp_bin
+    from kiro_crew.acp.client import _resolve_claude_acp_bin, _resolve_opencode_bin
 
     opencode_ok = _resolve_opencode_bin() is not None
     # claude-agent-acp resolution can be slow (npm glob); run off the loop.
