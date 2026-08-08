@@ -1,8 +1,9 @@
-"""Tests for the ``vision_analyze`` kirocrew-core MCP tool.
+"""Tests for the ``vision_analyze`` kirocrew-core MCP tool + vision routing.
 
-Covers the schema gate (exactly one of path/url, http(s) only) and the
-handler's dispatch through the shared vision subagent helper, with the
-subagent mocked so no real ACP session or network is touched.
+Covers the schema gate (exactly one of path/url, http(s) only), the handler's
+dispatch through the shared vision subagent helper (subagent mocked so no real
+ACP session or network is touched), and the :func:`decide_image_input_mode`
+routing decision (registry metadata, config override, router text-only list).
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from kiro_crew.acp.vision import (
+    decide_image_input_mode,
     describe_image_via_vision,
     vision_subagent_describe,
 )
@@ -27,6 +29,58 @@ def _tool_spec() -> dict:
         if spec.get("name") == "vision_analyze":
             return spec
     raise AssertionError("vision_analyze not advertised in _list_tools()")
+
+
+class TestDecideImageInputMode:
+    def test_registry_vision_model_native(self):
+        # Claude models are declared vision-capable in model_registry.json.
+        assert decide_image_input_mode("claude-opus-4.8") == "native"
+        assert decide_image_input_mode("claude-haiku-4.5") == "native"
+
+    def test_router_text_only_model_text(self):
+        assert (
+            decide_image_input_mode(
+                "oc/deepseek-v4-flash",
+                text_only_models={"oc/deepseek-v4-flash", "ol/deepseek-v4-flash:0731"},
+            )
+            == "text"
+        )
+        assert (
+            decide_image_input_mode(
+                "ol/deepseek-v4-flash:0731",
+                text_only_models={"oc/deepseek-v4-flash", "ol/deepseek-v4-flash:0731"},
+            )
+            == "text"
+        )
+
+    def test_unknown_router_model_native(self):
+        # Fail open on capability: an unlisted router model is treated as
+        # vision-capable (a genuine 400 is actionable; silent text-routing of
+        # every image forever is not).
+        assert decide_image_input_mode("cmc/mimo-v2.5") == "native"
+
+    def test_pinned_mode_wins(self):
+        assert decide_image_input_mode("claude-opus-4.8", image_input_mode="text") == "text"
+        assert (
+            decide_image_input_mode(
+                "oc/deepseek-v4-flash",
+                image_input_mode="native",
+                text_only_models={"oc/deepseek-v4-flash"},
+            )
+            == "native"
+        )
+
+    def test_registry_flag_override_wins(self):
+        # Caller-supplied capability (e.g. router /v1/models capabilities)
+        # beats the registry lookup.
+        assert decide_image_input_mode("claude-opus-4.8", registry_supports_vision=False) == "text"
+        assert (
+            decide_image_input_mode("oc/deepseek-v4-flash", registry_supports_vision=True)
+            == "native"
+        )
+
+    def test_invalid_mode_coerces_to_auto(self):
+        assert decide_image_input_mode("cmc/mimo-v2.5", image_input_mode="bogus") == "native"
 
 
 class TestVisionAnalyzeToolRegistration:

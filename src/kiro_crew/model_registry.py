@@ -730,6 +730,22 @@ def supports_effort(canonical_or_id: str) -> bool | None:
     return bool(val) if val is not None else None
 
 
+def model_supports_vision(canonical_or_id: str) -> bool | None:
+    """Registry-declared vision support for a model, or None if not declared.
+
+    None means "unknown" — callers (the image-input-mode decision) fall back to
+    their per-model text-only list / router metadata rather than guessing.
+    Router-prefixed picker ids (``cmc/…``, ``oc/…``) are NOT canonical registry
+    keys, so this returns None for them and the router whitelist in
+    ``acp.client`` stays authoritative for those.
+    """
+    key = _resolve_canonical(canonical_or_id, "claude_code")
+    if key is None:
+        return None
+    val = _REGISTRY[key].get("supports_vision")
+    return bool(val) if val is not None else None
+
+
 def display_list(provider: str) -> list[dict[str, str]]:
     """Dropdown rows ``{model_name(canonical), display_name, description}``.
 
