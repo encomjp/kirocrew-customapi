@@ -1488,24 +1488,22 @@ def _validate_args(name: str, args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _run_vision_analyze(args: dict[str, Any]) -> str:
-    """Describe an image (path or url) via the configured vision fallback model.
+    """Describe an image (path or url) via the configured vision provider chain.
 
     Runs synchronously in the MCP stdio worker thread: the vision subagent is a
-    one-shot ``AcpClient`` on ``agent.vision_fallback_model`` (default
-    ``cmc/mimo-v2.5``) against the same router proxy the main session uses, and
-    is torn down after the turn. The subagent env mirrors what
-    ``config.loader`` ``_acp`` factory builds for the claude_code/opencode
-    backends (``ANTHROPIC_BASE_URL`` + ``ANTHROPIC_API_KEY``), so the tool
-    works on any backend the main session uses. A text-only main model never
-    sees the image — only the returned description.
+    one-shot ``AcpClient`` on the configured vision fallback chain (default
+    ``cmc/mimo-v2.5``) against the same router proxy the main session uses (or
+    each ``vision_providers`` entry's own Anthropic-compatible endpoint), and
+    is torn down after the turn. A text-only main model never sees the image —
+    only the returned description.
     """
     import asyncio
 
-    from kiro_crew.acp.vision import describe_image_via_vision
+    from kiro_crew.acp.vision import describe_image_via_chain, resolve_vision_providers
 
     ref = args.get("path") or args.get("url") or ""
     cfg = KiroCrewConfig.load()
-    vision_model = (cfg.agent.vision_fallback_model or "").strip() or "cmc/mimo-v2.5"
+    vision_fallback = (cfg.agent.vision_fallback_model or "").strip() or "cmc/mimo-v2.5"
 
     # Mirror the provider factory's env wiring for the vision subagent: the
     # router base URL + API key (config key > ANTHROPIC_API_KEY env >
@@ -1529,6 +1527,15 @@ def _run_vision_analyze(args: dict[str, Any]) -> str:
     if backend == "opencode":
         env.setdefault("OPENCODE_API_FORMAT", cfg.agent.provider_api_format or "openai")
 
+    providers = resolve_vision_providers(
+        vision_providers=list(cfg.agent.vision_providers or []),
+        vision_fallback_model=vision_fallback,
+        main_env=env,
+        main_backend=backend,
+    )
+    if not providers:
+        return "Error: no vision provider configured"
+
     # For a local path, verify readability + sensitive-path gate up front so a
     # bad ref returns a clean error instead of a subagent spawn failure.
     if args.get("path"):
@@ -1546,11 +1553,9 @@ def _run_vision_analyze(args: dict[str, Any]) -> str:
 
     try:
         description = asyncio.run(
-            describe_image_via_vision(
+            describe_image_via_chain(
                 ref,
-                vision_model=vision_model,
-                extra_env=env,
-                acp_backend=backend,
+                providers,
                 sandbox_mode=cfg.agent.sandbox,
             )
         )

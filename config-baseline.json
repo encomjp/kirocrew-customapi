@@ -329,6 +329,34 @@
       "defaultValue": "cmc/mimo-v2.5"
     },
     {
+      "path": "agent.vision_providers",
+      "kind": "core",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Vision Providers",
+      "help": "Ordered fallback chain of vision-capable backends used to describe images on text-only models. Each entry is {provider, model, base_url?, api_key?}. 'router' reuses the main session's router endpoint and model must be a picker id; 'custom' (or any entry with a base_url) targets an Anthropic-compatible endpoint (e.g. a local Qwen-VL/LLaVA/Pixtral server). Entries are tried in order; the first successful description wins. Empty = fall back to agent.vision_fallback_model.",
+      "hasChildren": true,
+      "enumValues": null,
+      "defaultValue": []
+    },
+    {
+      "path": "agent.vision_providers.*",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "*",
+      "help": "",
+      "hasChildren": true,
+      "enumValues": null,
+      "defaultValue": null
+    },
+    {
       "path": "agent.text_only_models",
       "kind": "core",
       "type": "array",

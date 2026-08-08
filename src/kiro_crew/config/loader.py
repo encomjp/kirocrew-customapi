@@ -25,7 +25,7 @@ from collections.abc import Callable, Iterable, MutableMapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import urlsplit as _urlsplit
 
 from kiro_crew import __version__, model_registry, platform_compat
@@ -1508,6 +1508,20 @@ class AgentConfig:
             "Picker-spelling model id used for image redirects (subagent or "
             "switch mode). Must be a vision-capable router model served by the "
             "local proxy.",
+        ),
+    )
+    vision_providers: list[dict[str, Any]] = field(
+        default_factory=list,
+        metadata=_meta(
+            "Vision Providers",
+            "Ordered fallback chain of vision-capable backends used to describe "
+            "images on text-only models. Each entry is {provider, model, "
+            "base_url?, api_key?}. 'router' reuses the main session's router "
+            "endpoint and model must be a picker id; 'custom' (or any entry "
+            "with a base_url) targets an Anthropic-compatible endpoint (e.g. a "
+            "local Qwen-VL/LLaVA/Pixtral server). Entries are tried in order; "
+            "the first successful description wins. Empty = fall back to "
+            "agent.vision_fallback_model.",
         ),
     )
     text_only_models: list[str] = field(
@@ -8474,6 +8488,7 @@ extra_env=_env,
                 # image prompts to a vision-capable model).
                 image_redirect=self.agent.image_redirect,
                 vision_fallback_model=self.agent.vision_fallback_model,
+                vision_providers=list(self.agent.vision_providers or []),
                 text_only_models=list(self.agent.text_only_models),
                 image_input_mode=self.agent.image_input_mode,
             )

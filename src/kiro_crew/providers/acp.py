@@ -298,6 +298,7 @@ class AcpProvider(LLMProvider):
         crew_agent: str | None = None,
         image_redirect: str = "subagent",
         vision_fallback_model: str = "cmc/mimo-v2.5",
+        vision_providers: list[dict[str, Any]] | None = None,
         text_only_models: list[str] | None = None,
         image_input_mode: str = "auto",
     ) -> None:
@@ -327,6 +328,7 @@ class AcpProvider(LLMProvider):
             # Fork: image-redirect configuration.
             "image_redirect": image_redirect,
             "vision_fallback_model": vision_fallback_model,
+            "vision_providers": list(vision_providers or []),
             "text_only_models": list(text_only_models or []),
             "image_input_mode": image_input_mode,
         }
