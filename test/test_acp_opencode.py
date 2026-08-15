@@ -129,6 +129,7 @@ def test_set_model_falls_back_to_default_when_unadvertised():
     client._model = "cmc/deepseek-v4-pro"
     client._resolved_model_id = ""
     client.last_prompt_stats = MagicMock()
+
     async def _fake_send(*a, **k):
         return None
 

@@ -205,6 +205,15 @@ def add_contributors(
     login on the opt-out list is skipped even when absent from the README.
     """
     optout = optout or set()
+    # Nothing to add? A no-candidate run (e.g. a fresh fork with no merged PRs
+    # yet) must succeed without touching the README at all -- in particular it
+    # must NOT require a contributor block to exist. Requiring the block only
+    # guards an actual INSERT, where guessing the wrong place would corrupt the
+    # file. (Observed: on this fork the daily add-contributor run failed with
+    # "no contributor anchor block found in README" because the rebrand dropped
+    # the upstream Contributors block while zero merged PRs produced no records.)
+    if not records:
+        return text, []
     # Preserve the file's original newline style and trailing-newline state.
     newline = "\r\n" if "\r\n" in text else "\n"
     had_trailing_newline = text.endswith(("\n", "\r"))
