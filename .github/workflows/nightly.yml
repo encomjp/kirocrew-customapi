@@ -56,9 +56,23 @@ jobs:
           STAMP_TIME="${STAMP:8:6}"       # HHMMSS   (both)
           STAMP_FULL="${STAMP:0:14}"      # YYYYMMDDHHMMSS (wheel .dev<N>)
           BASE=$(grep -m1 '__version__' src/kiro_crew/__init__.py | sed -E 's/.*= *"([^"]+)".*/\1/')
+          # The pip wheel needs valid PEP 440; the fork's base version can carry a
+          # semver prerelease ("0.2.0-customapi.5"), which setuptools rejects -- the
+          # nightly wheel build was failing daily on exactly this. Map it the same
+          # way release.yml maps tags: 0.2.0-customapi.5 -> 0.2.0rc5. A plain base
+          # (no dash) is already valid PEP 440 and passes through unchanged.
+          WHEEL_BASE="${BASE%%-*}"
+          if [ "$WHEEL_BASE" != "$BASE" ]; then
+            PRE="${BASE#*-}"
+            N="${PRE##*.}"
+            case "$N" in
+              ''|*[!0-9]*) N=0 ;;
+            esac
+            WHEEL_BASE="${WHEEL_BASE}rc${N}"
+          fi
           # Desktop/Squirrel needs semver; the pip wheel needs PEP 440. Emit both:
           #   nightly_version (semver):  <base>-nightly.<YYYYMMDD>t<HHMMSS> -> Electron app + S3 build path
-          #   wheel_version   (PEP 440): <base>.dev<YYYYMMDDHHMMSS>      -> pip wheel, unique per RUN
+          #   wheel_version   (PEP 440): <wheel_base>.dev<YYYYMMDDHHMMSS> -> pip wheel, unique per RUN
           # The desktop stamp carries the same seconds precision as the wheel:
           # a date-only stamp meant two nightlies on one UTC date overwrote the
           # same signed/<channel>/<version>/ and notarized/<channel>/<version>/
@@ -113,9 +127,9 @@ jobs:
           # packaging/build-desktop.sh's *-nightly.* glob all match on it.
           # test/test_nightly_version_contract.py pins every property above.
           echo "version=${BASE}-nightly.${STAMP_DATE}t${STAMP_TIME}" >> "$GITHUB_OUTPUT"
-          echo "wheel_version=${BASE}.dev${STAMP_FULL}" >> "$GITHUB_OUTPUT"
+          echo "wheel_version=${WHEEL_BASE}.dev${STAMP_FULL}" >> "$GITHUB_OUTPUT"
           echo "Nightly (semver): ${BASE}-nightly.${STAMP_DATE}t${STAMP_TIME}"
-          echo "Wheel (PEP 440):  ${BASE}.dev${STAMP_FULL}"
+          echo "Wheel (PEP 440):  ${WHEEL_BASE}.dev${STAMP_FULL}"
 
   dependency-vulnerability-gate:
     name: Production Dependency Vulnerability Gate
