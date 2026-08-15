@@ -93,6 +93,18 @@ def test_invalid_logins_dropped(login):
     assert out == text
 
 
+def test_empty_records_requires_no_block():
+    # A fork with no merged PRs yet feeds an empty author list. The daily
+    # add-contributor run must succeed even when the README has no Contributors
+    # block at all -- nothing is being inserted, so there is nothing to
+    # misplace. Before this guard the run failed with "no contributor anchor
+    # block found in README" every night.
+    text = "# README\n\nno contributors here\n"
+    out, added = uc.add_contributors(text, [])
+    assert added == []
+    assert out == text
+
+
 def test_valid_login_edges():
     text = _readme(("bob", "Bob"))
     ok = ["a", "A1", "abc-def", "a" * 39, "0", "user-name-1"]

@@ -193,7 +193,7 @@ def test_stamp_orders_chronologically() -> None:
 def test_wheel_version_stays_pep440_and_separate() -> None:
     """The desktop semver change must not leak into the pip wheel stamp."""
     text = _workflow_text()
-    match = re.search(r'echo "wheel_version=\$\{BASE\}([^"]+)" >> "\$GITHUB_OUTPUT"', text)
+    match = re.search(r'echo "wheel_version=\$\{WHEEL_BASE\}([^"]+)" >> "\$GITHUB_OUTPUT"', text)
     assert match, "nightly.yml no longer emits a wheel_version output"
     suffix = match.group(1)
     assert suffix.startswith(".dev"), (
