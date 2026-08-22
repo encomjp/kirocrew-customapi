@@ -337,7 +337,7 @@ async def start_shim(host: str, port: int, openai_base_url: str, api_key: str) -
     """Bind the shim on loopback. Returns ``(runner, site)`` — keep a reference
     to both for the process lifetime; cancel/``runner.cleanup()`` at shutdown."""
     runner = web.AppRunner(build_shim_app(openai_base_url, api_key),
-                           access_log_class=None)
+                           access_log=None)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
