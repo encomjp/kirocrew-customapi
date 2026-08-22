@@ -81,7 +81,7 @@ Attach any image via the composer's `+` / drag-drop (the native `FilePreviewStri
 | | |
 |---|---|
 | **Works** | Vision picker grouping · Settings → Vision card · `vision_analyze` MCP tool · `agent.image_input_mode` / `image_redirect` / `vision_fallback_model` in `config.json` |
-| **Bundled** | Fresh AppImage `0.2.0-customapi.5` (vite + PBS 397M) — no dev fallback, `supports_vision` on every `GET /api/models` row |
+| **Bundled** | Fresh AppImage `0.5.0-customapi.1` (vite + PBS 397M) — no dev fallback, `supports_vision` on every `GET /api/models` row |
 
 </div>
 
@@ -405,6 +405,13 @@ This repository is a fork of [kirodotdev/KiroCrew](https://github.com/kirodotdev
 Fork changes live on `main` (with `testing` for pre-release work), rebased onto
 upstream `kirodotdev/KiroCrew` `main`. Rebase conflicts stay small as long as
 the dormant seam (comments referencing `ACP_BACKEND_CLAUDE`) is preserved.
+
+**Current base:** upstream `v0.5.0` (full-history rebase, 2026-08-22). The fork
+adds the `claude_code` router path, an `opencode` backend with presets, the
+vision redirect pipeline (`vision_analyze`, per-provider fallback chains),
+curated `/api/models` on router paths, and fork-branded releases. Upstream's
+newer mechanisms (Linux frameless windows, modular MCP tools, route-table
+dashboard, channel updater) are taken as-is.
 
 - Upstream: https://github.com/kirodotdev/KiroCrew
 - License: [Apache 2.0](LICENSE)
