@@ -1434,6 +1434,10 @@ Examples:
     register_perf_parser(sub)
     register_bench_parser(sub)
     register_desktop_parser(sub)
+    # Fork: provider API key management (OS keyring).
+    from kiro_crew.cli_secret import register_secret_parser
+
+    register_secret_parser(sub)
 
     kn_parser = sub.add_parser("knowledge", help="Knowledge Base maintenance")
     kn_sub = kn_parser.add_subparsers(dest="knowledge_action")
@@ -2463,6 +2467,12 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
         _consolidate_cmd(args)
     elif args.command == "config":
         _config_cmd(args)
+    elif args.command == "secret":
+        from kiro_crew.cli_secret import secret_cmd
+
+        rc = secret_cmd(args)
+        if rc:
+            raise SystemExit(rc)
     elif args.command == "perf":
         rc = perf_cmd(args)
         if rc:

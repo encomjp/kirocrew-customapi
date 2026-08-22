@@ -299,6 +299,40 @@ export function ChatPanel() {
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_vision_fallback')),
   })
 
+  // ── Security & Shim (agent.safe_mode / use_shim / shim_openai_base_url) ──
+  // Fork-only guardrails + the built-in Anthropic→OpenAI translator. safe_mode
+  // refuses public router endpoints at session construction; the shim lets
+  // provider_base_url point at loopback and drive any OpenAI-shaped backend.
+  const safeMode = (mcCfg?.agent as Record<string, unknown> | undefined)?.safe_mode as boolean | undefined ?? false
+  const useShim = (mcCfg?.agent as Record<string, unknown> | undefined)?.use_shim as boolean | undefined ?? false
+  const shimUrlCfg = (mcCfg?.agent as Record<string, unknown> | undefined)?.shim_openai_base_url as string | undefined ?? 'http://127.0.0.1:11434/v1'
+  const [localShimUrl, setLocalShimUrl] = useState('')
+  const shimUrlInitRef = useRef(false)
+  useEffect(() => {
+    if (mcQ.data && !shimUrlInitRef.current) {
+      shimUrlInitRef.current = true
+      setLocalShimUrl(shimUrlCfg)
+    }
+  }, [mcQ.data])
+  const safeModeMut = useMutation({
+    mutationFn: (v: boolean) => api.patchConfig('agent.safe_mode', v),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: () => setSaveError('Failed to save safe mode'),
+  })
+  const useShimMut = useMutation({
+    mutationFn: (v: boolean) => api.patchConfig('agent.use_shim', v),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: () => setSaveError('Failed to save shim toggle'),
+  })
+  const shimUrlMut = useMutation({
+    mutationFn: (v: string) => api.patchConfig('agent.shim_openai_base_url', v),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: () => setSaveError('Failed to save shim URL'),
+  })
+
+  // Backend default for knowledge.auto_ingest_chunk_budget (config/loader.py).
+  // Definition was lost in the v0.5.0 rebase splice — restored; keep in sync.
+  const CHUNK_BUDGET_DEFAULT = 150
   const [localChunkBudget, setLocalChunkBudget] = useState('')
   const chunkBudgetInitRef = useRef(false)
   useEffect(() => {
@@ -877,6 +911,37 @@ export function ChatPanel() {
             disabled={!mcQ.isSuccess}
           />
           <p className="text-[12px] text-muted">Vision section mirrors the picker grouping (Vision — image input with an Image badge, then Text). On text-only models the active policy's fallback model is used; the text input stays the same — images ride the same composer attachment.</p>
+        </SettingsCard>
+      </SettingsSection>
+
+      <SettingsSection title="Security & Shim">
+        <SettingsCard>
+          <SettingsToggle
+            label="Safe mode (local routers only)"
+            description="Refuse sessions whose provider_base_url resolves to a public address. Loopback, LAN and Tailscale ranges stay allowed."
+            checked={safeMode}
+            onChange={v => safeModeMut.mutate(v)}
+            disabled={!mcQ.isSuccess || safeModeMut.isPending}
+          />
+          <SettingsToggle
+            label="Built-in OpenAI shim"
+            description="Translate Anthropic requests to OpenAI chat completions so provider_base_url can target Ollama, llama.cpp or DeepSeek directly. Gateway restart applies."
+            checked={useShim}
+            onChange={v => useShimMut.mutate(v)}
+            disabled={!mcQ.isSuccess || useShimMut.isPending}
+          />
+          <SettingsInput
+            label="Shim: OpenAI base URL"
+            aria-label="Shim: OpenAI base URL"
+            description="Forward target for the built-in shim (OpenAI-compatible /v1)."
+            value={localShimUrl}
+            placeholder="http://127.0.0.1:11434/v1"
+            onChange={v => setLocalShimUrl(v)}
+            onBlur={() => { if (localShimUrl && localShimUrl !== shimUrlCfg) shimUrlMut.mutate(localShimUrl) }}
+            onKeyDown={e => { if (e.key === 'Enter' && localShimUrl && localShimUrl !== shimUrlCfg) { e.preventDefault(); shimUrlMut.mutate(localShimUrl) } }}
+            disabled={!mcQ.isSuccess}
+          />
+          <p className="text-[12px] text-muted">With the shim on, set Provider URL to http://127.0.0.1:8391 — requests are translated and forwarded to the base URL above. `kirocrew doctor` probes reachability and auth.</p>
         </SettingsCard>
       </SettingsSection>
 

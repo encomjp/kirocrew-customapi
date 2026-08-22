@@ -157,6 +157,11 @@ def anthropic_to_openai(body: dict[str, Any]) -> dict[str, Any]:
         out["tools"] = tools
     stream = bool(body.get("stream"))
     out["stream"] = stream
+    if stream:
+        # Ask compatible backends to append a final usage-only chunk. Servers
+        # that don't know the field ignore it; usage then stays at 0 and the
+        # client sees the same shape it would from any silent backend.
+        out["stream_options"] = {"include_usage": True}
     return out
 
 
@@ -257,7 +262,14 @@ async def handle_messages(request: web.Request) -> web.StreamResponse:
 async def _stream_translation(
     resp, request: web.Request, model: str
 ) -> web.StreamResponse:
-    """Rebuild Anthropic SSE framing from OpenAI chat.completions chunks."""
+    """Rebuild Anthropic SSE framing from OpenAI chat.completions chunks.
+
+    Handles interleaved TEXT and TOOL_CALL streams: OpenAI backends stream
+    tool calls as per-index fragments (``delta.tool_calls[i].function.arguments``
+    arrives in pieces), which we re-emit as Anthropic ``tool_use`` blocks with
+    ``input_json_delta`` partials. Usage, when the backend reports it (final
+    chunk via ``stream_options.include_usage``), lands in ``message_delta``.
+    """
     out = web.StreamResponse(
         headers={
             "content-type": "text/event-stream",
@@ -267,12 +279,20 @@ async def _stream_translation(
     )
     await out.prepare(request)
 
+    EVENT_NAMES = {
+        "message_start": "message_start",
+        "content_block_start": "content_block_start",
+        "content_block_delta": "content_block_delta",
+        "content_block_stop": "content_block_stop",
+        "message_delta": "message_delta",
+        "message_stop": "message_stop",
+        "error": "error",
+    }
+
     def send(event: dict[str, Any]) -> bytes:
-        name = {"message_start": "message_start", "content_block_start": "content_block_start",
-                "content_block_delta": "content_block_delta", "content_block_stop": "content_block_stop",
-                "message_delta": "message_delta", "message_stop": "message_stop",
-                "ping": "ping", "error": "error"}.get(event.get("_t"), "message_stop")
-        return f"event: {name}\ndata: {json.dumps({k: v for k, v in event.items() if k != '_t'})}\n\n".encode()
+        name = EVENT_NAMES.get(event.get("_t"), "message_stop")
+        payload = {k: v for k, v in event.items() if k != "_t"}
+        return f"event: {name}\ndata: {json.dumps(payload)}\n\n".encode()
 
     msg_id = f"msg_{model}_{id(resp)}"
     await out.write(send({
@@ -281,9 +301,54 @@ async def _stream_translation(
                     "model": model, "content": [], "stop_reason": None,
                     "usage": {"input_tokens": 0, "output_tokens": 0}},
     }))
-    await out.write(send({"_t": "content_block_start", "type": "content_block_start",
-                          "index": 0, "content_block": {"type": "text", "text": ""}}))
+
+    # Block state: Anthropic blocks are opened/closed sequentially. ``open_kind``
+    # is None | "text" | ("tool", openai_index). Tool accumulators buffer
+    # argument fragments until their block is opened.
+    next_index = 0
+    open_kind: str | tuple[str, int] | None = None
+    tools: dict[int, dict[str, Any]] = {}   # openai idx -> {id,name,args,opened}
+
+    async def _close_open() -> None:
+        nonlocal open_kind
+        if open_kind is None:
+            return
+        await out.write(send({"_t": "content_block_stop",
+                              "type": "content_block_stop", "index": next_index - 1}))
+        open_kind = None
+
+    async def _open_text() -> int:
+        nonlocal next_index, open_kind
+        await _close_open()
+        idx = next_index
+        next_index += 1
+        await out.write(send({"_t": "content_block_start",
+                              "type": "content_block_start", "index": idx,
+                              "content_block": {"type": "text", "text": ""}}))
+        open_kind = "text"
+        return idx
+
+    async def _ensure_tool_open(idx_oai: int) -> None:
+        nonlocal next_index, open_kind
+        acc = tools[idx_oai]
+        if acc.get("opened"):
+            return
+        await _close_open()
+        a_idx = next_index
+        next_index += 1
+        await out.write(send({
+            "_t": "content_block_start", "type": "content_block_start",
+            "index": a_idx,
+            "content_block": {"type": "tool_use", "id": acc["id"],
+                              "name": acc["name"], "input": {}},
+        }))
+        acc["opened"] = True
+        acc["a_index"] = a_idx
+        open_kind = ("tool", idx_oai)
+
     finish_reason = "stop"
+    usage_in = usage_out = 0
+
     async for raw in resp.content:
         line = raw.decode("utf-8", "replace").strip()
         if not line.startswith("data:"):
@@ -295,25 +360,99 @@ async def _stream_translation(
             chunk = json.loads(data_str)
         except json.JSONDecodeError:
             continue
-        choice = (chunk.get("choices") or [{}])[0]
-        delta = choice.get("delta", {}) or {}
+
+        usage = chunk.get("usage")
+        if usage:
+            usage_in = usage.get("prompt_tokens", usage_in)
+            usage_out = usage.get("completion_tokens", usage_out)
+
+        choices = chunk.get("choices") or []
+        choice = choices[0] if choices else {}
         if choice.get("finish_reason"):
             finish_reason = choice["finish_reason"]
-        if delta.get("content"):
+        delta = choice.get("delta", {}) or {}
+
+        text = delta.get("content")
+        if text:
+            if open_kind != "text":
+                await _close_open()
+                await _open_text()
             await out.write(send({
                 "_t": "content_block_delta", "type": "content_block_delta",
-                "index": 0, "delta": {"type": "text_delta", "text": delta["content"]},
+                "index": next_index - 1,
+                "delta": {"type": "text_delta", "text": text},
             }))
-    await out.write(send({"_t": "content_block_stop", "type": "content_block_stop", "index": 0}))
+
+        for call in delta.get("tool_calls") or []:
+            oai_idx = call.get("index", 0)
+            acc = tools.setdefault(
+                oai_idx, {"id": f"toolu_{oai_idx}", "name": "", "args": "", "opened": False}
+            )
+            if call.get("id"):
+                acc["id"] = call["id"]
+            fn = call.get("function") or {}
+            if fn.get("name"):
+                acc["name"] += fn["name"]
+            fragment = fn.get("arguments") or ""
+            if (fragment or fn.get("name")) and not acc.get("opened"):
+                await _ensure_tool_open(oai_idx)
+            if fragment:
+                await out.write(send({
+                    "_t": "content_block_delta", "type": "content_block_delta",
+                    "index": acc["a_index"],
+                    "delta": {"type": "input_json_delta", "partial_json": fragment},
+                }))
+                acc["args"] += fragment
+
+    # Close any still-open tool blocks (a backend that named a tool but sent
+    # zero argument fragments still gets an empty-input block).
+    for oai_idx, acc in list(tools.items()):
+        if not acc.get("opened") and acc["name"]:
+            await _ensure_tool_open(oai_idx)
+    await _close_open()
+
     await out.write(send({
         "_t": "message_delta", "type": "message_delta",
-        "delta": {"stop_reason": STOP_REASON_MAP.get(finish_reason, "end_turn"), "stop_sequence": None},
-        "usage": {"output_tokens": 0},
+        "delta": {"stop_reason": STOP_REASON_MAP.get(finish_reason, "end_turn"),
+                  "stop_sequence": None},
+        "usage": {"output_tokens": usage_out},
     }))
     await out.write(send({"_t": "message_stop", "type": "message_stop"}))
     await out.write_eof()
     return out
 
+
+async def handle_count_tokens(request: web.Request) -> web.Response:
+    """POST /v1/messages/count_tokens — cheap heuristic estimate.
+
+    ~4 chars/token over system + messages + serialized tool schemas. The
+    claude-agent-acp layer only needs a ballpark for context-window gating;
+    exact tokenizer parity is explicitly NOT a goal here.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response(
+            {"error": {"type": "invalid_request_error", "message": "invalid JSON"}},
+            status=400,
+        )
+    total = len(json.dumps(body.get("system", "")))
+    for msg in body.get("messages") or []:
+        content = msg.get("content")
+        if isinstance(content, str):
+            total += len(content)
+        else:
+            for block in content or []:
+                if isinstance(block, dict):
+                    if block.get("type") == "text":
+                        total += len(block.get("text", ""))
+                    elif block.get("type") == "image":
+                        total += 1600  # ~one image, conservative flat cost
+                    else:
+                        total += len(json.dumps(block))
+    for tool in body.get("tools") or []:
+        total += len(json.dumps(tool))
+    return web.json_response({"input_tokens": max(1, total // 4)})
 
 async def handle_health(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "service": "kirocrew-shim"})
@@ -325,6 +464,7 @@ def build_shim_app(openai_base_url: str, api_key: str) -> web.Application:
     app["client"] = ClientSession()
     app.router.add_get("/health", handle_health)
     app.router.add_post("/v1/messages", handle_messages)
+    app.router.add_post("/v1/messages/count_tokens", handle_count_tokens)
 
     async def _close(app: web.Application) -> None:
         await app["client"].close()
