@@ -1427,6 +1427,45 @@ class AgentConfig:
             enum=["acp", "claude_code", "opencode"],
         ),
     )
+    safe_mode: bool = field(
+        default=False,
+        metadata=_meta(
+            "Safe Mode",
+            "Refuse to start a claude_code/opencode session when "
+            "provider_base_url resolves to a PUBLIC address (fail-closed on "
+            "unresolvable hosts). Loopback, RFC1918, and Tailscale "
+            "(100.64.0.0/10) endpoints are always allowed. Guardrail against "
+            "accidentally pointing the agent at a public router.",
+        ),
+    )
+    use_shim: bool = field(
+        default=False,
+        metadata=_meta(
+            "Anthropic Shim Proxy",
+            "Start the built-in localhost proxy that accepts Anthropic "
+            "/v1/messages requests and translates them to OpenAI-shaped "
+            "chat completions against agent.shim_openai_base_url. Lets the "
+            "claude_code path drive plain OpenAI-compatible backends (Ollama, "
+            "DeepSeek, llama.cpp server) with no external router.",
+        ),
+    )
+    shim_openai_base_url: str = field(
+        default="http://127.0.0.1:11434/v1",
+        metadata=_meta(
+            "Shim: OpenAI Base URL",
+            "Where the built-in Anthropic shim forwards translated chat "
+            "requests. Any OpenAI-compatible endpoint works — Ollama's "
+            "default is shown; DeepSeek: https://api.deepseek.com/v1.",
+        ),
+    )
+    shim_openai_api_key: str = field(
+        default="",
+        metadata=_meta(
+            "Shim: OpenAI API Key",
+            "Bearer token forwarded to the OpenAI-compatible backend by the "
+            "built-in shim. Empty is correct for local Ollama/llama.cpp.",
+        ),
+    )
     provider_base_url: str = field(
         default="",
         metadata=_meta(
@@ -7132,6 +7171,12 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
                 provider_base_url=agent_data.get("provider_base_url", ""),
                 provider_api_key=agent_data.get("provider_api_key", ""),
                 provider_api_format=agent_data.get("provider_api_format", ""),
+                safe_mode=_safe_bool(agent_data.get("safe_mode", False), False),
+                use_shim=_safe_bool(agent_data.get("use_shim", False), False),
+                shim_openai_base_url=agent_data.get(
+                    "shim_openai_base_url", "http://127.0.0.1:11434/v1"
+                ),
+                shim_openai_api_key=agent_data.get("shim_openai_api_key", ""),
                 model_whitelist=list(agent_data.get("model_whitelist") or []),
                 image_redirect=agent_data.get("image_redirect", "subagent"),
                 vision_fallback_model=agent_data.get(
@@ -8320,7 +8365,21 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
         # "claude_code" drives claude-agent-acp through the dormant
         # ACP_BACKEND_CLAUDE seam. (provider_backend is already computed above.)
         provider_base_url = (self.agent.provider_base_url or "").strip()
-        provider_api_key = (self.agent.provider_api_key or "").strip()
+        # Fork: API key precedence lives in ONE place — env > OS keyring >
+        # plaintext config. See kiro_crew.secrets for the rationale.
+        from kiro_crew.provider_secrets import effective_provider_api_key
+
+        provider_api_key = effective_provider_api_key(
+            (self.agent.provider_api_key or "").strip()
+        )
+        # Fork: safe_mode guardrail — refuse public endpoints at construction
+        # time (OFF the event loop: this factory runs in an executor).
+        if provider_backend and provider_base_url:
+            from kiro_crew.provider_guard import assert_endpoint_allowed
+
+            assert_endpoint_allowed(
+                provider_base_url, safe_mode=bool(self.agent.safe_mode)
+            )
         # Global default effort for new sessions. A per-slot override always
         # wins; this only fills in when the slot carries none, so a session that
         # has never touched the effort control still starts at the user's

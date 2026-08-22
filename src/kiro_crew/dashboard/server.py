@@ -3244,6 +3244,30 @@ async def start_dashboard(
     # degrades to TCP-only on any failure — see _start_unix_site).
     _unix_socket_holder["path"] = await _start_unix_site(runner, port)
 
+    # Fork: built-in Anthropic→OpenAI shim. When agent.use_shim is on, bind a
+    # loopback-only translator so provider_base_url can point at
+    # http://127.0.0.1:<shim_port> and drive any OpenAI-shaped backend.
+    try:
+        _cfg0 = KiroCrewConfig.load()
+        if _cfg0.agent.use_shim:
+            from kiro_crew import shim as _shim
+            from kiro_crew.provider_secrets import effective_provider_api_key
+
+            _shim_key = effective_provider_api_key(
+                (_cfg0.agent.shim_openai_api_key or "").strip()
+            )
+            _shim_port = int(os.environ.get("KIROCREW_SHIM_PORT", "8391"))
+            _holder, _site = await _shim.start_shim(
+                "127.0.0.1",
+                _shim_port,
+                _cfg0.agent.shim_openai_base_url,
+                _shim_key,
+            )
+            state._shim_runner = _holder  # keep alive for process lifetime
+            logger.info("anthropic shim active on 127.0.0.1:%s", _shim_port)
+    except Exception:  # noqa: BLE001 - shim is optional; boot continues
+        logger.exception("anthropic shim failed to start (agent.use_shim=on)")
+
     # Port bind succeeded — now safe to write the secret file. Offloaded:
     # _write_secret_file does blocking fs I/O (os.open/os.close and, on Windows,
     # an icacls subprocess via restrict_to_owner), so it must not run on the
