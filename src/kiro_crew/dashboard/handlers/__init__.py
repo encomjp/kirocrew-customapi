@@ -195,6 +195,7 @@ from kiro_crew.dashboard.handlers.mcp import (  # noqa: E402, F401
     api_mcp_gateway_enable,
     api_mcp_gateway_metrics,
     api_mcp_gateway_servers,
+    api_mcp_gateway_set_poolable,
     api_mcp_gateway_set_stub,
     api_mcp_gateway_status,
     api_mcp_global_scopes,
