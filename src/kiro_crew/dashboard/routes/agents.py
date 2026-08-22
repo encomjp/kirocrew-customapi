@@ -24,6 +24,9 @@ def register(app: web.Application) -> None:
     # Agents
     app.router.add_get("/api/agents/installed", handlers.api_agents_installed)
     app.router.add_get("/api/models", handlers.api_models)
+    # Fork: provider connection test + live status for the settings panel.
+    app.router.add_post("/api/provider/test", handlers.api_provider_test)
+    app.router.add_get("/api/provider/status", handlers.api_provider_status)
     app.router.add_get("/api/effort-levels", handlers.api_effort_levels)
     app.router.add_get("/api/slash-commands", handlers.api_slash_commands)
     app.router.add_get("/api/agents/detail/{name}", handlers.api_agent_detail)

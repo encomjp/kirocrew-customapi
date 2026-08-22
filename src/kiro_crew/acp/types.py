@@ -117,6 +117,9 @@ ACP_CLIENT_CAPABILITIES: dict = {
 
 ACP_BACKEND_CLAUDE = "claude"
 ACP_BACKEND_KAS = "kas"
+# Fork: OpenCode driven through its own ACP binary (openai/anthropic wire
+# format selectable via agent.provider_api_format).
+ACP_BACKEND_OPENCODE = "opencode"
 # The kiro-cli backend is spelled as the empty string throughout, so name it
 # rather than leaving every call site to infer it from "not claude".
 ACP_BACKEND_KIRO = ""
@@ -128,6 +131,10 @@ ACP_BACKENDS_KNOWN = frozenset(
         ACP_BACKEND_KIRO,
         ACP_BACKEND_CLAUDE,
         ACP_BACKEND_KAS,
+        # Fork: OpenCode driven through its own ACP binary (standalone session,
+        # one client per session — see the capability sets below for what it
+        # deliberately does NOT inherit).
+        ACP_BACKEND_OPENCODE,
     }
 )
 # What an operator may actually persist in ``agent.acp_backend``, which is a
@@ -135,7 +142,8 @@ ACP_BACKENDS_KNOWN = frozenset(
 # dormant seam reached by its own provider, not something to select here. Config
 # resolution degrades an unselectable value to the default, so a typo costs a log
 # line rather than a gateway that will not start.
-ACP_BACKENDS_SELECTABLE = frozenset({ACP_BACKEND_KIRO, ACP_BACKEND_KAS})
+# Fork: opencode is operator-selectable alongside kiro/kas.
+ACP_BACKENDS_SELECTABLE = frozenset({ACP_BACKEND_KIRO, ACP_BACKEND_KAS, ACP_BACKEND_OPENCODE})
 
 # ── Capability membership (harness-parity H6, H7) ──
 # Every capability a backend may claim is an OPT-IN set here, never a negation at

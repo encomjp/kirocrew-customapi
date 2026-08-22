@@ -38,6 +38,7 @@ from kiro_crew.acp.liveness import (
 )
 from kiro_crew.acp.types import (
     ACP_BACKEND_CLAUDE,
+    ACP_BACKEND_OPENCODE,
     JSONRPC_METHOD_NOT_FOUND,
     AcpPromptStats,
 )

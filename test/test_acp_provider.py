@@ -16,7 +16,12 @@ import pytest
 from kiro_crew.acp.client import AcpAuthRequired
 from kiro_crew.acp.session_handle import AcpSessionHandle
 from kiro_crew.acp.session_provider import AcpSessionProvider
-from kiro_crew.acp.types import ACP_BACKEND_CLAUDE, AcpEvent, TurnUsage
+from kiro_crew.acp.types import (
+    ACP_BACKEND_CLAUDE,
+    ACP_BACKEND_OPENCODE,
+    AcpEvent,
+    TurnUsage,
+)
 from kiro_crew.providers.acp import AcpProvider
 
 
