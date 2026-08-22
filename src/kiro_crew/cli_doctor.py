@@ -1783,6 +1783,38 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
         print("  claude-acp:  ❌ not found (active backend for provider=claude_code)")
         print("               Install it with: npm i -g @agentclientprotocol/claude-agent-acp")
 
+    # ── Fork: router settings validation + connectivity probe ──────────
+    if _cfg_provider in ("claude_code", "opencode"):
+        from kiro_crew.provider_guard import (
+            probe_provider_endpoint,
+            validate_provider_settings,
+        )
+        from kiro_crew.provider_secrets import describe_key_source, effective_provider_api_key
+
+        _agent_cfg = KiroCrewConfig.load().agent
+        print("  router:")
+        for _problem in validate_provider_settings(_agent_cfg):
+            print(f"    ⚠️  {_problem}")
+        base_url = (_agent_cfg.provider_base_url or "").strip()
+        key = effective_provider_api_key((_agent_cfg.provider_api_key or "").strip())
+        print(f"    key source: {describe_key_source((_agent_cfg.provider_api_key or '').strip())}")
+        if base_url:
+            print(f"    probing {base_url} …")
+            try:
+                import concurrent.futures as _cf
+
+                with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
+                    _probe = _pool.submit(
+                        probe_provider_endpoint, base_url, key
+                    ).result(timeout=15)
+                mark = "✅" if _probe["ok"] else "❌"
+                print(
+                    f"    {mark} {_probe['verdict']}"
+                    f" (HTTP {_probe['status']}, {_probe['latency_ms']} ms)"
+                )
+            except Exception as _exc:  # noqa: BLE001 - doctor never crashes
+                print(f"    ❌ probe failed: {_exc}")
+
     git = shutil.which("git")
     if git:
         print(f"  git:         ✅ {git}")

@@ -822,11 +822,10 @@ class AcpSessionHandle:
                 a = cfg.agent
                 main_env: dict[str, str] = {}
                 base_url = (a.provider_base_url or "").strip()
-                api_key = (
-                    (a.provider_api_key or "").strip()
-                    or os.environ.get("ANTHROPIC_API_KEY")
-                    or os.environ.get("CLIPROXY_API_KEY")
-                )
+                # Fork: single precedence source for the router key.
+                from kiro_crew.provider_secrets import effective_provider_api_key
+
+                api_key = effective_provider_api_key((a.provider_api_key or "").strip())
                 if base_url:
                     main_env["ANTHROPIC_BASE_URL"] = base_url
                 if api_key:
