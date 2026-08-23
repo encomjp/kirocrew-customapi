@@ -1111,9 +1111,12 @@ async def _opencode_models_response(request: web.Request) -> web.Response:
     if base:
         api_format = cfg.agent.provider_api_format or "openai"
         headers: dict[str, str] = {}
-        if cfg.agent.provider_api_key:
+        from kiro_crew.provider_secrets import effective_provider_api_key
+
+        api_key = effective_provider_api_key((cfg.agent.provider_api_key or "").strip())
+        if api_key:
             if api_format == "anthropic":
-                headers["x-api-key"] = cfg.agent.provider_api_key
+                headers["x-api-key"] = api_key
                 headers["anthropic-version"] = "2023-06-01"
             else:
                 headers["Authorization"] = f"Bearer {cfg.agent.provider_api_key}"
@@ -2222,7 +2225,10 @@ async def api_provider_test(request: web.Request) -> web.Response:
     api_key = str(body.get("api_key") or "")
     if not api_key and body.get("use_stored"):
         cfg = KiroCrewConfig.load()
-        api_key = (cfg.agent.provider_api_key or "").strip()
+        # Precedence env > OS keyring > plaintext — same as every session path.
+        from kiro_crew.provider_secrets import effective_provider_api_key
+
+        api_key = effective_provider_api_key((cfg.agent.provider_api_key or "").strip())
     headers: dict[str, str] = {}
     if api_key:
         if api_format == "anthropic":

@@ -427,3 +427,28 @@ def test_streaming_usage_forwarded():
         if ev.get("type") == "message_delta"
     ]
     assert usage and usage[0]["output_tokens"] == 2
+
+
+# ── keyring/env key precedence invariants (Bugbot review follow-up) ───────
+
+
+def test_effective_key_prefers_env_over_plaintext(monkeypatch):
+    from kiro_crew.provider_secrets import effective_provider_api_key
+
+    monkeypatch.setenv("KIROCREW_PROVIDER_API_KEY", "env-key")
+    assert effective_provider_api_key("plain-key") == "env-key"
+    monkeypatch.delenv("KIROCREW_PROVIDER_API_KEY")
+    assert effective_provider_api_key("plain-key") == "plain-key"
+
+
+def test_validate_provider_settings_with_key_does_not_crash(monkeypatch):
+    """The validate branch must import describe_key_source from
+    provider_secrets (not the shadowed kiro_crew.secrets package)."""
+    from kiro_crew.provider_guard import validate_provider_settings
+
+    monkeypatch.delenv("KIROCREW_PROVIDER_API_KEY", raising=False)
+    agent = _agent(provider="claude_code", provider_api_key="k")
+    problems = validate_provider_settings(agent)
+    # No ImportError raised; key-source line simply resolves.
+    assert isinstance(problems, list)
+

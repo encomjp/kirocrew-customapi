@@ -457,7 +457,9 @@ export function ChatPanel() {
       const key = draft?.key || (hasStoredKey ? undefined : undefined)
       // When no draft key is present but a key is stored, the backend
       // should use the saved key. Pass a flag so the endpoint knows.
-      const res = await api.providerTest({ url: effUrl, api_key: key, format: effFormat, use_stored: !draft?.key && hasStoredKey })
+      // Empty input -> fall back to the effective key (env > OS keyring >
+      // plaintext), so a keyring/env-only setup passes its own connection test.
+      const res = await api.providerTest({ url: effUrl, api_key: key, format: effFormat, use_stored: !draft?.key })
       setProviderTestResult(res)
     } catch {
       setProviderTestResult({ ok: false, message: 'request failed' })
