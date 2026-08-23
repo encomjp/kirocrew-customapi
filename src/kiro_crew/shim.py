@@ -212,7 +212,8 @@ async def handle_messages(request: web.Request) -> web.StreamResponse:
         body = await request.json()
     except Exception:
         return web.json_response(
-            {"type": "error", "error": {"type": "invalid_request_error", "message": "invalid JSON"}},
+            {"code": "invalid_json", "type": "error",
+             "error": {"type": "invalid_request_error", "message": "invalid JSON"}},
             status=400,
         )
     model = body.get("model", "")
@@ -238,6 +239,7 @@ async def handle_messages(request: web.Request) -> web.StreamResponse:
                     )
                     return web.json_response(
                         {
+                            "code": "backend_error",
                             "type": "error",
                             "error": {
                                 "type": "api_error",
@@ -252,6 +254,7 @@ async def handle_messages(request: web.Request) -> web.StreamResponse:
         logger.exception("shim backend failure")
         return web.json_response(
             {
+                "code": "backend_unreachable",
                 "type": "error",
                 "error": {"type": "api_error", "message": f"shim: backend unreachable: {exc}"},
             },
@@ -433,7 +436,7 @@ async def handle_count_tokens(request: web.Request) -> web.Response:
         body = await request.json()
     except Exception:
         return web.json_response(
-            {"error": {"type": "invalid_request_error", "message": "invalid JSON"}},
+            {"code": "invalid_json", "error": {"type": "invalid_request_error", "message": "invalid JSON"}},
             status=400,
         )
     total = len(json.dumps(body.get("system", "")))

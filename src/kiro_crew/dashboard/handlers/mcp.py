@@ -1051,11 +1051,11 @@ async def api_mcp_toggle(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     name = body.get("name", "").strip()
     enabled = body.get("enabled", True)
     if not name:
-        return web.json_response({"error": "name is required"}, status=400)
+        return web.json_response({"code": "name_required", "error": "name is required"}, status=400)
 
     async with _get_mcp_lock():
         # 1. Update global mcp.json
@@ -1115,7 +1115,7 @@ async def api_mcp_toggle_tool(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     server = body.get("server", "").strip()
     tool = body.get("tool", "").strip()
     enabled = body.get("enabled", True)
@@ -1176,7 +1176,7 @@ async def api_mcp_toggle_all(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     enabled = body.get("enabled", True)
 
     async with _get_mcp_lock():
@@ -1223,10 +1223,10 @@ async def api_mcp_remove(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     name = body.get("name", "").strip()
     if not name:
-        return web.json_response({"error": "name is required"}, status=400)
+        return web.json_response({"code": "name_required", "error": "name is required"}, status=400)
 
     logger.info("MCP remove: %s", name)
 
@@ -1320,7 +1320,7 @@ async def api_mcp_server_detail(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
 
     command = body.get("command", "")
     if not command:
@@ -1825,7 +1825,7 @@ async def _do_mcp_apply(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     changes = body.get("changes")
     if not isinstance(changes, list):
         return web.json_response({"error": "changes must be a list"}, status=400)
@@ -2354,7 +2354,7 @@ async def api_mcp_gateway_enable(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     enabled = body.get("enabled")
     if not isinstance(enabled, bool):
         return web.json_response({"error": "enabled must be a boolean"}, status=400)
@@ -2387,10 +2387,10 @@ async def api_mcp_gateway_enable(request: web.Request) -> web.Response:
             try:
                 data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
             except (OSError, json.JSONDecodeError):
-                return web.json_response({"error": "config.json is corrupt"}, status=500)
+                return web.json_response({"code": "config_corrupt", "error": "config.json is corrupt"}, status=500)
             section = data.setdefault("mcp_gateway", {})
             if not isinstance(section, dict):
-                return web.json_response({"error": "mcp_gateway is not an object"}, status=500)
+                return web.json_response({"code": "mcp_gateway_not_object", "error": "mcp_gateway is not an object"}, status=500)
             # Freeze the alias BEFORE reassigning `enabled` — the resolver reads
             # `enabled`, so doing this afterwards would resolve against the new
             # value and bake in the stub set this call must not change.
@@ -2423,7 +2423,7 @@ async def api_mcp_gateway_enable(request: web.Request) -> web.Response:
                 source="dashboard",
                 resources=f"enabled={enabled} error={exc}",
             )
-            return web.json_response({"error": f"apply failed: {exc}"}, status=500)
+            return web.json_response({"code": "apply_failed", "error": f"apply failed: {exc}"}, status=500)
 
     sel().log_api_access(
         caller=request.get("user", "dashboard"),
@@ -2884,7 +2884,7 @@ async def api_mcp_gateway_set_stub(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     if not isinstance(body, dict):
         return web.json_response(
             {"error": "body must be an object", "code": "body_not_object"}, status=400
@@ -2924,9 +2924,9 @@ async def api_mcp_gateway_set_stub(request: web.Request) -> web.Response:
             )
     else:
         if not name:
-            return web.json_response({"error": "name is required"}, status=400)
+            return web.json_response({"code": "name_required", "error": "name is required"}, status=400)
         if not _is_valid_mcp_name(name):
-            return web.json_response({"error": "invalid server name"}, status=400)
+            return web.json_response({"code": "invalid_server_name", "error": "invalid server name"}, status=400)
         names = [name]
     if not isinstance(stub, bool):
         return web.json_response({"error": "stub must be a boolean"}, status=400)
@@ -3064,7 +3064,7 @@ async def api_mcp_gateway_set_stub(request: web.Request) -> web.Response:
             async with _get_config_lock():
                 await _offload_config_write(update_config_locked, path, mutate=_mutate)
         except ConfigReadError:
-            return web.json_response({"error": "config.json is corrupt"}, status=500)
+            return web.json_response({"code": "config_corrupt", "error": "config.json is corrupt"}, status=500)
         except OSError as exc:
             return web.json_response(
                 {"error": f"could not lock config.json: {exc}", "code": "config_lock_failed"},
@@ -3072,7 +3072,7 @@ async def api_mcp_gateway_set_stub(request: web.Request) -> web.Response:
             )
 
         if refused.get("code") == "mcp_gateway_not_object":
-            return web.json_response({"error": "mcp_gateway is not an object"}, status=500)
+            return web.json_response({"code": "mcp_gateway_not_object", "error": "mcp_gateway is not an object"}, status=500)
 
         state: DashboardState = request.app["state"]
         apply = getattr(state, "_mcp_gateway_apply_stub", None)
@@ -3098,7 +3098,7 @@ async def api_mcp_gateway_set_stub(request: web.Request) -> web.Response:
                     source="dashboard",
                     resources=f"{audited} stub={stub} error={exc}",
                 )
-                return web.json_response({"error": f"apply failed: {exc}"}, status=500)
+                return web.json_response({"code": "apply_failed", "error": f"apply failed: {exc}"}, status=500)
         elif not nothing_written:
             # No callback means no gateway wired this process -- but the allowlist
             # was already persisted above, so the change WAS recorded and takes
@@ -3147,25 +3147,25 @@ async def api_mcp_gateway_set_poolable(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"error": "invalid JSON"}, status=400)
+        return web.json_response({"code": "invalid_json", "error": "invalid JSON"}, status=400)
     name = str(body.get("name", "")).strip()
     poolable = body.get("poolable")
     if not name:
-        return web.json_response({"error": "name is required"}, status=400)
+        return web.json_response({"code": "name_required", "error": "name is required"}, status=400)
     if not _is_valid_mcp_name(name):
-        return web.json_response({"error": "invalid server name"}, status=400)
+        return web.json_response({"code": "invalid_server_name", "error": "invalid server name"}, status=400)
     if not isinstance(poolable, bool):
-        return web.json_response({"error": "poolable must be a boolean"}, status=400)
+        return web.json_response({"code": "poolable_not_boolean", "error": "poolable must be a boolean"}, status=400)
 
     path = config_path()
     async with _get_config_lock():
         try:
             data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
         except (OSError, json.JSONDecodeError):
-            return web.json_response({"error": "config.json is corrupt"}, status=500)
+            return web.json_response({"code": "config_corrupt", "error": "config.json is corrupt"}, status=500)
         section = data.setdefault("mcp_gateway", {})
         if not isinstance(section, dict):
-            return web.json_response({"error": "mcp_gateway is not an object"}, status=500)
+            return web.json_response({"code": "mcp_gateway_not_object", "error": "mcp_gateway is not an object"}, status=500)
         current = section.get("poolable_servers")
         servers_list = (
             [s for s in current if isinstance(s, str)] if isinstance(current, list) else []
@@ -3193,7 +3193,7 @@ async def api_mcp_gateway_set_poolable(request: web.Request) -> web.Response:
                 source="dashboard",
                 resources=f"name={name} poolable={poolable} error={exc}",
             )
-            return web.json_response({"error": f"apply failed: {exc}"}, status=500)
+            return web.json_response({"code": "apply_failed", "error": f"apply failed: {exc}"}, status=500)
 
     sel().log_api_access(
         caller=request.get("user", "dashboard"),
