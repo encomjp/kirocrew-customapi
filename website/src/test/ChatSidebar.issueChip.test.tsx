@@ -44,6 +44,7 @@ import ChatSidebar from '../pages/ChatSidebar'
 import type { ChatSlot } from '../types'
 import type { RootState } from '../store'
 
+const chipTitle = (url: string) => `Open ${url} in the side panel (Ctrl+click to open it in the browser)`
 const ISSUE_URL = 'https://github.com/encomjp/kirocrew-customapi/issues/701'
 const MR_ISSUE_URL = 'https://gitlab.com/acme/service/-/issues/8'
 const PR_URL = 'https://github.com/encomjp/kirocrew-customapi/pull/634'

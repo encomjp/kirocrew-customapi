@@ -640,7 +640,7 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "id": "display.highlight-recent-sessions",
     "label": "Highlight recent sessions",
     "labelKey": "pages.settings.displayPanel.highlight_recent_sessions",
-    "description": "Highlight the N most-recently-active sessions with a graded accent stripe (0 = off). Saved to your kirocrew-customapi config.",
+    "description": "Highlight the N most-recently-active sessions with a graded accent stripe (0 = off). Saved to your Kiro Crew config.",
     "tab": "display",
     "type": "stepper",
     "occurrence": 1
