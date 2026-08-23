@@ -1,3 +1,15 @@
+## [0.3.1-1.0] — 2026-08-23
+
+kirocrew-customapi release `v0.3.1-1.0` — kiro base `0.3.1` + fork version `1.0`.
+
+- Provider hardening: OS-keyring API keys, safe_mode endpoint gate,
+  `kirocrew secret migrate/set/clear/status`
+- Built-in Anthropic↔OpenAI shim (streaming tool-calls, usage, count_tokens)
+- Rebase onto upstream v0.5.0-era main with zero-divergence sync
+- vision_analyze MCP tool, fork-only dashboard routes restored
+- 198 pre-existing test-drift failures repaired (i18n catalogs rebuilt,
+  productName interpolation, lost constants restored)
+
 # Changelog
 
 All notable changes to KiroCrew are documented in this file.
