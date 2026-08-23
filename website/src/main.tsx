@@ -38,6 +38,7 @@ initRum(__APP_VERSION__)
 // Seeded from localStorage (written by the inline bootstrap in index.html) so
 // the very first paint is already in the right language; LanguageProvider then
 // reconciles against the server-authoritative config value.
+setProductName('kirocrew-customapi')
 initI18n()
 
 // Auto-recover from stale lazy-chunk errors after a frontend rebuild.

@@ -270,6 +270,19 @@ afterEach(() => {
 
 /* ── mount / attach ───────────────────────────────────────────────────────── */
 
+
+/** Poll-and-signal helper: happy-dom's CSSOM settles asynchronously, so a
+ * single waitFor can miss the window. Flip data-theme to force fresh refreshes
+ * until the predicate holds (idempotent once the var is visible). */
+async function expectEventually(pred: () => boolean, tries = 40): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    if (pred()) return
+    act(() => { document.documentElement.setAttribute('data-theme', `probe-${i}`) })
+    await new Promise(r => setTimeout(r, 25))
+  }
+  expect(pred()).toBe(true)
+}
+
 describe('CliPanel mount', () => {
   it('opens one xterm into the pane, fits it, and wires the persistent connection', () => {
     const { term, fit, sessionId, container } = mount({ cwd: '/srv/app' })

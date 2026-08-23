@@ -3,6 +3,9 @@ import { useImeGuard } from '../../hooks/useImeGuard'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, Check, AlertTriangle, Plus, X, Lock } from 'lucide-react'
 import { SlackIcon } from '../../components/SlackIcon'
+
+/** Brand name — do-not-translate; also the default session folder name. */
+const CHANNEL_NAME = "Slack"
 import { SettingsSection, SettingsCard, SettingsInput, SettingsToggle } from '../../components/settings'
 import { SecretField } from '../../components/SecretField'
 import { Input, Btn } from '../../components/ui'

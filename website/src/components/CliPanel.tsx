@@ -59,6 +59,11 @@ function scheduleTermThemeRefresh() {
   // non-firing handle merely stale instead of permanently blocking.
   if (_themeRaf) cancelAnimationFrame(_themeRaf)
   _themeRaf = requestAnimationFrame(() => { _themeRaf = 0; refreshTermThemes() })
+  // Settle-backup: happy-dom (and some browsers mid-style-parse) resolve an
+  // injected <style>'s custom properties ASYNCHRONOUSLY, so the rAF read can
+  // land on the pre-injection computed value. A macrotask later, the var is
+  // visible; refresh is idempotent, so the extra pass only ever helps.
+  setTimeout(refreshTermThemes, 0)
 }
 /** Whether a batch of mutation records is one of the two theme signals.
  *

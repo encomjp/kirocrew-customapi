@@ -112,7 +112,7 @@ describe('provenance helpers', () => {
   it('labels built-ins, tagged registries, and core entries', () => {
     expect(sourceLabel({ origin: 'builtin' })).toBe('Built-in')
     expect(sourceLabel({ _registry: 'kirodotdev-labs' })).toBe('kirodotdev-labs')
-    expect(sourceLabel({})).toBe('kirocrew-customapi registry')
+    expect(sourceLabel({})).toBe('Kiro Crew registry')
   })
 
   it('verifies built-ins and kirocrew-authored core apps only', () => {
@@ -211,7 +211,7 @@ describe('server-computed trust fields (issue #580)', () => {
 
   it('sourceLabel prefers the server provenance field', () => {
     expect(sourceLabel({ provenance: 'builtin' })).toBe('Built-in')
-    expect(sourceLabel({ provenance: 'official', origin: 'builtin' })).toBe('Kiro Crew registry')
+    expect(sourceLabel({ provenance: 'official', origin: 'builtin' })).toBe('Kiro Crew registry') // {{productName}} renders default in tests
     expect(sourceLabel({ provenance: 'external', _registry: 'labs' })).toBe('labs')
   })
 

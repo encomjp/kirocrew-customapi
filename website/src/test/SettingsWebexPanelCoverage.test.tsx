@@ -49,7 +49,7 @@ const OK: SaveResult = { ok: true, restart_required: false, verify_warning: '' }
 
 const CREATE_BOT_URL = 'https://developer.webex.com/my-apps/new/bot'
 const SETUP_GUIDE =
-  'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs/webex-integration.md'
+  'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs/webex-integration.md'
 
 /** Configured, not connected, nothing stored — the most branch-rich start. */
 function config(over: Partial<WebexConfigData> = {}): WebexConfigData {
