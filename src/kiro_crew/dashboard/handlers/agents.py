@@ -2214,10 +2214,10 @@ async def api_provider_test(request: web.Request) -> web.Response:
     try:
         body = await request.json()
     except Exception:
-        return web.json_response({"ok": False, "error": "invalid JSON"}, status=400)
+        return web.json_response({"ok": False, "code": "invalid_json", "error": "invalid JSON"}, status=400)
     url = str(body.get("url") or "").strip()
     if not url:
-        return web.json_response({"ok": False, "error": "url required"}, status=400)
+        return web.json_response({"ok": False, "code": "url_required", "error": "url required"}, status=400)
     api_format = str(body.get("format") or "openai")
     api_key = str(body.get("api_key") or "")
     if not api_key and body.get("use_stored"):
@@ -2235,12 +2235,12 @@ async def api_provider_test(request: web.Request) -> web.Response:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
             async with session.get(fetch_url, headers=headers) as resp:
                 if resp.status != 200:
-                    return web.json_response({"ok": False, "error": f"HTTP {resp.status}"})
+                    return web.json_response({"ok": False, "code": "provider_http_error", "error": f"HTTP {resp.status}"})
                 data = await resp.json()
                 models = [m.get("id") or "" for m in data.get("data", []) if m.get("id")]
                 return web.json_response({"ok": True, "models": models})
     except Exception as exc:  # noqa: BLE001 - surfaced to the UI verbatim
-        return web.json_response({"ok": False, "error": str(exc)[:200]})
+        return web.json_response({"ok": False, "code": "provider_test_failed", "error": str(exc)[:200]})
 
 
 async def api_provider_status(request: web.Request) -> web.Response:
