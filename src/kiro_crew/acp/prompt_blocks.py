@@ -71,11 +71,6 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024
 #: permanently wedges the session -- the offending block sits at a fixed history
 #: index and re-uploading a smaller copy cannot evict it. This builder is the
 #: one funnel every channel's images cross before reaching kiro-cli, so capping
-#: here protects all of them (dashboard upload/paste/screenshot, Slack, Discord)
-#: regardless of any best-effort client-side resize. 2000 is the hard limit
-#: itself: valid even past 20 images, yet it keeps more detail than the browser's
-#: 1568px pre-upload downscale, which only ever covers dashboard uploads.
-MAX_IMAGE_EDGE_PX = 2000
 
 #: Longest base64-encoded payload (bytes) allowed for a single inlined image.
 #: The dimension cap above is not sufficient: a raster can sit well inside 2000px
@@ -105,19 +100,6 @@ MAX_IMAGE_EDGE_PX = 2000
 #: via ``build_prompt_blocks(max_image_b64_bytes=...)`` if a backend ever reports
 #: a different number.
 #:
-#: This is enforced on the ENCODED payload, after any downscale, because that is
-#: the only quantity the backend measures: ``MAX_IMAGE_BYTES`` reads the file
-#: size before the re-encode and cannot see the encoding overhead. Getting this
-#: wrong is not a one-turn error -- a rejected image sits at a fixed history
-#: index that kiro-cli replays on every subsequent turn, so one oversized
-#: attachment wedges the session permanently.
-MAX_IMAGE_B64_BYTES = 5 * 1024 * 1024
-
-#: Floor for the encoded-budget shrink loop. Below ~200px Claude's own guidance
-#: says accuracy degrades badly, so an image that still will not fit is dropped
-#: to a path reference instead of being shrunk into uselessness.
-MIN_IMAGE_EDGE_PX = 256
-
 #: Per-attempt edge multiplier and attempt cap for the encoded-budget shrink.
 #: Encoded size falls roughly with area, so 0.8 on the edge sheds ~36% per pass
 #: and 6 passes span a 4x linear reduction -- enough to bring any image that the

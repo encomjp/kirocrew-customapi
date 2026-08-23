@@ -465,6 +465,11 @@ class AcpProvider(LLMProvider):
         return self._client.backend == ACP_BACKEND_KAS
 
     @property
+    def is_opencode_backend(self) -> bool:
+        """True when this ACP provider drives the OpenCode ACP binary."""
+        return self._client.backend == ACP_BACKEND_OPENCODE
+
+    @property
     def is_kiro_backend(self) -> bool:
         """True when this ACP provider talks to kiro-cli.
 
