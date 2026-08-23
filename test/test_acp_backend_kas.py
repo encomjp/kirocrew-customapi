@@ -27,6 +27,7 @@ from kiro_crew.acp.types import (
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KAS,
     ACP_BACKEND_KIRO,
+    ACP_BACKEND_OPENCODE,
     ACP_BACKENDS_KNOWN,
     PROVIDER_LABEL_CLAUDE,
     PROVIDER_LABEL_DEFAULT,
@@ -78,10 +79,18 @@ class TestBackendPredicates:
             provider.is_kiro_backend,
             provider.is_claude_backend,
             provider.is_kas_backend,
+            provider.is_opencode_backend,
         ]
         assert sum(held) == 1
 
-    @pytest.mark.parametrize("backend", sorted(ACP_BACKENDS_KNOWN))
+    @pytest.mark.parametrize(
+        "backend",
+        # opencode is deliberately neither an AcpRuntime member (its sessions
+        # are plain one-client-per-session like claude) nor claude — the
+        # equivalence this test guards was written before the fork's third
+        # backend and never captured it.
+        [b for b in sorted(ACP_BACKENDS_KNOWN) if b != ACP_BACKEND_OPENCODE],
+    )
     def test_acp_runtime_backend_is_the_positive_form_of_not_claude(self, backend):
         # The four provider sites that used to read ``not is_claude_backend``
         # now read ``is_acp_runtime_backend``; the two must stay equivalent for
