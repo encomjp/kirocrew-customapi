@@ -198,6 +198,14 @@ PREEXEC_EXEMPT: frozenset[str] = frozenset(
 # category breakdown and follow-up hardening candidates.
 BENIGN_SPAWNS: frozenset[str] = frozenset(
     {
+        # vision_analyze's enclosing functions drive the describe chain with
+        # asyncio.run(...); the scan conservatively treats asyncio.run as a
+        # spawn candidate. It is not: the only real subprocess in the chain is
+        # the model binary spawned by AcpClient._spawn, which routes through
+        # sandboxed_spawn_argv (OS sandbox + scrubbed env). Nothing here is
+        # unrouted.
+        "mcp_core.py::_run_vision_analyze",
+        "mcp_tools/vision.py::_run_vision_analyze",
         "acp/runtime.py::_get_rss_mb",
         # The userns probe child: ONE fixed argv, `sys.executable -I -S -c <shim>`,
         # no shell, no cwd, stdin/stdout are the two handshake pipes. Nothing is

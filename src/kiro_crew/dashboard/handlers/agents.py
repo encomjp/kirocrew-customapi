@@ -2130,6 +2130,9 @@ async def api_provider_test(request: web.Request) -> web.Response:
     button. When ``use_stored`` is true and no ``api_key`` is provided, the
     saved ``agent.provider_api_key`` is used.
     """
+    denied = await _require_owner(request, "provider.test")
+    if denied is not None:
+        return denied
     import aiohttp
 
     try:
