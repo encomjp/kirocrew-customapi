@@ -192,6 +192,14 @@ def grammar_of(renderer: object) -> Grammar:
 HEAD_GRAMMAR = grammar_of(_renderer)
 
 
+# Fork: stamps this repository actually SHIPPED as releases. The upstream gate
+# only knows upstream's bare ``X.Y.Z`` tags; this fork ships under its own
+# format ``X.Y.Z-<fork>.<fork>`` (e.g. ``0.3.1-1.0``) and historically
+# ``-customapi.N`` / ``-9router.N`` -- all of which were published releases
+# here, not drafts, so they must fold as shipped for the HEAD-only invariant.
+_FORK_SHIPPED_RE = re.compile(r"^\d+\.\d+\.\d+-(?:\d+\.\d+|customapi\.\d+|9router\.\d+)$")
+
+
 def is_shipped_heading(version: str, grammar: Grammar = HEAD_GRAMMAR) -> bool:
     """True when ``version`` is a bare release (``X.Y.Z``), not a draft.
 
@@ -200,10 +208,15 @@ def is_shipped_heading(version: str, grammar: Grammar = HEAD_GRAMMAR) -> bool:
     own identity in the renderer, so it is its own fold and reads as shipped --
     the safe direction, since it cannot collide with a real release and the only
     consequence is that it is also protected from silent edits.
+
+    Fork: headings in the fork's own shipped-stamp formats (see
+    ``_FORK_SHIPPED_RE``) are shipped releases too.
     """
     stripped = version.strip()
     if not stripped or not stripped[0].isdigit():
         return False
+    if _FORK_SHIPPED_RE.match(stripped):
+        return True
     return bool(grammar.fold(stripped) == stripped)
 
 
@@ -310,7 +323,12 @@ def draft_headings(text: str, grammar: Grammar = HEAD_GRAMMAR) -> list[str]:
         heading = grammar.section_re.match(line)
         raw = heading.group("version").strip() if heading else line.lstrip("#").strip()
         if not is_shipped_heading(raw, grammar):
-            drafts.append(raw)
+            # Fork: a section line whose trailing title (e.g. "— Vision") broke
+            # the grammar still names its version inside the brackets; a fork
+            # shipped stamp there is shipped, not a draft.
+            bracket = re.match(r"\s*\[([^\]]+)\]", raw)
+            if not (bracket and is_shipped_heading(bracket.group(1).strip(), grammar)):
+                drafts.append(raw)
     return drafts
 
 

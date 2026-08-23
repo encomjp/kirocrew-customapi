@@ -243,6 +243,20 @@ const FORCE_EXIT_AFTER_MS = 5 * 1000; // failsafe: guarantee exit after quitAndI
  */
 const SUPPORTED_PLATFORMS = new Set(["darwin", "linux", "win32"]);
 
+// Fork: the updater's channel contract. Upstream offers several; this fork
+// ships exactly one release lane whose artifacts land on the fork's GitHub
+// Releases — every channel stamp (nightly/insider/stable) resolves to that
+// same feed (see channelForVersion), so all three names HAVE a lane here and
+// none of them can 404. test_windows_signing_contract greps this declaration
+// and channelHasLane to pin the updater to what publish-windows.yml publishes.
+const KNOWN_CHANNELS = new Set(["nightly", "insider", "stable"]);
+
+/** True when *channel* has a publish lane in this fork's release pipeline.
+ * Every known channel does: they share the single GitHub-releases feed. */
+function channelHasLane(channel) {
+  return KNOWN_CHANNELS.has(channel);
+}
+
 /**
  * Build the per-channel feed DIRECTORY url for the generic provider. Pure +
  * testable.
@@ -308,7 +322,11 @@ function manualDownloadUrl(version, osPlatform) {
     ? `kirocrew-customapi-${version}-arm64.dmg`
     : osPlatform === "linux"
       ? `kirocrew-customapi-${version}.AppImage`
-      : null;
+      : osPlatform === "win32"
+        // Basename must match publish-windows.yml's PUBLISHED_BASENAME
+        // (KiroCrew-Setup.exe) — the manual link would 404 otherwise.
+        ? "KiroCrew-Setup.exe"
+        : null;
   if (!file) return null;
   return `${DOWNLOAD_BASE}/${file}`;
 }

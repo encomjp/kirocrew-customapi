@@ -3176,7 +3176,6 @@ async def api_mcp_gateway_set_poolable(request: web.Request) -> web.Response:
     gateway is disabled, the allowlist is persisted only (it takes effect when
     the gateway is enabled).  Returns ``{ok, name, poolable, ...}``.
     """
-    from kiro_crew.agent import _atomic_json_write
     from kiro_crew.config.loader import config_path  # noqa: F811
     from kiro_crew.dashboard.handlers.agents import _get_config_lock  # circular: agents imports mcp
 
