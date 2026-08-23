@@ -155,7 +155,7 @@ describe('ActivityViewer', () => {
       reducer: { chat: chatReducer, dashboard: dashboardReducer, notifications: notificationsReducer },
     })
     // Files tab is the default
-    store.dispatch(openActivityToTab('files'))
+    store.dispatch(openActivityToTab('links'))
     const prUrl = 'https://github.com/encomjp/kirocrew-customapi/pull/42'
     render(
       <Provider store={store}>

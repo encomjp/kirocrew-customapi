@@ -6208,7 +6208,7 @@
         "filter_servers_or_tools": "Filter servers or tools…",
         "globals": "Globals",
         "kiro": "Kiro",
-        "kirocrew": "{{productName}}",
+        "kirocrew": "kirocrew-customapi",
         "name": "Name",
         "no_matching_servers": "No matching servers",
         "no_mcp_servers_configured": "No MCP servers configured",
