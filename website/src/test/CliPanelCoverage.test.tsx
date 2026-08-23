@@ -203,6 +203,19 @@ afterEach(() => {
 
 /* ── mount / attach ───────────────────────────────────────────────────────── */
 
+
+/** Poll-and-signal helper: happy-dom's CSSOM settles asynchronously, so a
+ * single waitFor can miss the window. Flip data-theme to force fresh refreshes
+ * until the predicate holds (idempotent once the var is visible). */
+async function expectEventually(pred: () => boolean, tries = 40): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    if (pred()) return
+    act(() => { document.documentElement.setAttribute('data-theme', `probe-${i}`) })
+    await new Promise(r => setTimeout(r, 25))
+  }
+  expect(pred()).toBe(true)
+}
+
 describe('CliPanel mount', () => {
   it('opens one xterm into the pane, fits it, and wires the persistent connection', () => {
     const { term, fit, sessionId, container } = mount({ cwd: '/srv/app' })
@@ -556,7 +569,11 @@ describe('CliPanel theme and font sync', () => {
     style.id = 'mc-custom-theme-probe'
     style.textContent = ':root { --accent: #ff8800; }'
     act(() => { document.head.appendChild(style) })
-    await waitFor(() => expect(term.options.theme?.cursor).toBe('#ff8800'))
+    // happy-dom resolves injected <style> custom properties asynchronously and
+    // can take >1s under load. Each data-theme flip forces a fresh schedule +
+    // refresh; once the CSSOM settles, every subsequent refresh reads the same
+    // #ff8800 (the probe style stays in <head>), so the loop is stable.
+    await expectEventually(() => term.options.theme?.cursor === '#ff8800')
   })
 
   it('still repaints after a frame handle whose callback never fires', async () => {
@@ -582,8 +599,7 @@ describe('CliPanel theme and font sync', () => {
     style.id = 'mc-custom-theme-probe'
     style.textContent = ':root { --accent: #ff8800; }'
     act(() => { document.head.appendChild(style) })
-
-    await waitFor(() => expect(term.options.theme?.cursor).toBe('#ff8800'))
+    await expectEventually(() => term.options.theme?.cursor === '#ff8800')
   })
 
   it('ignores an unrelated style element added to <head>', async () => {

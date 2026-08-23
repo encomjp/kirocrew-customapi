@@ -125,7 +125,7 @@ describe('TipCard (single-line strip)', () => {
     )
     const link = screen.getByRole('link', { name: /learn more/i }) as HTMLAnchorElement
     expect(link.href).toBe(
-      'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs/dynamic-subagent-sizing.md',
+      'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs/dynamic-subagent-sizing.md',
     )
   })
 
@@ -139,7 +139,7 @@ describe('TipCard (single-line strip)', () => {
     )
     const preferred = screen.getByRole('link', { name: /learn more/i }) as HTMLAnchorElement
     expect(preferred.href).toBe(
-      'https://github.com/kirodotdev/KiroCrew/blob/main/src/kiro_crew/docs/skills.md',
+      'https://github.com/encomjp/kirocrew-customapi/blob/main/src/kiro_crew/docs/skills.md',
     )
   })
 

@@ -18,7 +18,7 @@ import { initRum } from './rum'
 import { isEmbeddedPane } from './lib/embedded'
 // i18n must initialize before the first render — a component rendering ahead of
 // init would emit its bare translation key instead of text.
-import { initI18n } from './i18n'
+import { initI18n, setProductName } from './i18n'
 import { LanguageProvider } from './i18n/LanguageProvider'
 import App from './App'
 import { queryClient } from './api/queryClient'
@@ -36,6 +36,7 @@ initRum(__APP_VERSION__)
 // Seeded from localStorage (written by the inline bootstrap in index.html) so
 // the very first paint is already in the right language; LanguageProvider then
 // reconciles against the server-authoritative config value.
+setProductName('kirocrew-customapi')
 initI18n()
 
 // Auto-recover from stale lazy-chunk errors after a frontend rebuild.

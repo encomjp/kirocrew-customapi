@@ -94,7 +94,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    await screen.findByText(/kirocrew-customapi uses Kiro CLI/)
+    await screen.findByText(/Kiro Crew uses Kiro CLI/)
     // Cold mount has no cached status, so it reads the latch.
     expect(vi.mocked(api.kiroPrerequisite).mock.calls[0][0]).toBe(false)
 
@@ -141,7 +141,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/kirocrew-customapi uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/Kiro Crew uses Kiro CLI/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Check again' }))
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
   })
@@ -173,7 +173,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/kirocrew-customapi uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/Kiro Crew uses Kiro CLI/)).toBeInTheDocument()
     expect((await screen.findAllByText(/Windows gateway host/)).length).toBeGreaterThan(0)
 
     const setupLink = screen.getByRole('link', { name: /Open Kiro CLI setup/ })
@@ -311,7 +311,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText("kirocrew-customapi's agent specs are not installed")).toBeInTheDocument()
+    expect(await screen.findByText("Kiro Crew's agent specs are not installed")).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
     // Names the actual files, so the user can see what to look for on disk.
     expect(screen.getByText(/kirocrew\.json/)).toBeInTheDocument()
