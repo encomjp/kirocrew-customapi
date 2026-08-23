@@ -5,9 +5,7 @@ import { Btn } from '../../components/ui'
 import { loadChatConfig, saveChatConfig, type ChatConfig, type ContentWidth, type DashboardConfig, type SendMode } from '../chat/ChatSettings'
 import { api } from '../../api/client'
 import { useAvailableModels } from '../../hooks/useAvailableModels'
-import { useProvider } from '../../providers'
 import { BACKEND_OPTIONS, PROVIDER_PRESETS, type AgentBackend } from './providerPresets'
-import { modelListRefetchInterval } from '../../providers/modelListHealth'
 import { EFFORT_LEVELS, effortLabel, modelSupportsEffort } from '../../lib/effort'
 import { isMac } from '../../utils/platform'
 import { capRoleOther, clampRoleOther } from '../../lib/userProfile'
@@ -360,34 +358,6 @@ export function ChatPanel() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
     onError: () => setSaveError('Failed to save shim URL'),
   })
-
-  // Backend default for knowledge.auto_ingest_chunk_budget (config/loader.py).
-  // Definition was lost in the v0.5.0 rebase splice — restored; keep in sync.
-  const CHUNK_BUDGET_DEFAULT = 150
-  const [localChunkBudget, setLocalChunkBudget] = useState('')
-  const chunkBudgetInitRef = useRef(false)
-  useEffect(() => {
-    if (mcQ.data && !chunkBudgetInitRef.current) {
-      chunkBudgetInitRef.current = true
-      setLocalChunkBudget(
-        String(mcQ.data.knowledge?.auto_ingest_chunk_budget ?? CHUNK_BUDGET_DEFAULT)
-      )
-    }
-  }, [mcQ.data])
-
-  const knowledgeMut = useMutation({
-    mutationFn: ({ path, value }: { path: string; value: boolean | number }) =>
-      api.patchConfig(path, value),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
-    onError: () => {
-      setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_knowledge_setting'))
-      setLocalChunkBudget(
-        String(mcCfg?.knowledge?.auto_ingest_chunk_budget ?? CHUNK_BUDGET_DEFAULT)
-      )
-    },
-  })
-  const knowledgeDisabled = !mcQ.isSuccess || knowledgeMut.isPending
-
   const keepModeMut = useMutation({
     mutationFn: (v: CompletionKeepMode) => api.patchConfig('agent.completion_keep', v),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
