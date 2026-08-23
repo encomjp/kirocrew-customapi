@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 import pytest_asyncio
-from aiohttp import web as aweb
+from aiohttp import ClientTimeout, web as aweb
 from aiohttp.test_utils import TestClient, TestServer
 
 from kiro_crew.provider_guard import (
@@ -251,32 +251,61 @@ def test_streaming_smoke_via_live_shim():
             await bclient.close()
 
     asyncio.run(run())
-
-
 # ── shim v2: streaming tool-calls, usage, count_tokens ────────────────────
+# Sync tests only: each scenario runs its own asyncio.run() with an in-process
+# fake OpenAI backend + the shim app. No async fixtures — pytest-asyncio 0.20.x
+# (the fork's pinned dev dep) crashes on @pytest_asyncio.fixture with newer
+# pytest, so the release-candidate suite must not depend on that plugin.
 
 
-@pytest_asyncio.fixture
-async def shim_client_factory():
-    """Start a shim instance pointed at a caller-supplied fake OpenAI backend
-    handler; async factory so each test controls its backend's behavior."""
+def _harness(handler):
+    """Return post(path, payload) -> (status, body_bytes, json_or_None), served
+    by an in-process fake OpenAI backend + the shim, all inside one loop."""
 
-    async def _make(handler) -> TestClient:
-        backend_app = aweb.Application()
-        backend_app.router.add_post("/v1/chat/completions", handler)
-        backend = TestClient(TestServer(backend_app))
-        await backend.start_server()
-        app = shim_mod.build_shim_app(str(backend.make_url("/v1")), "")
-        client = TestClient(TestServer(app))
-        await client.start_server()
-        client._backend = backend  # type: ignore[attr-defined]  # keep alive
-        return client
+    def post(path: str, payload: dict):
+        import asyncio
 
-    yield _make
+        async def run():
+            backend_app = aweb.Application()
+            backend_app.router.add_post("/v1/chat/completions", handler)
+            backend = TestClient(TestServer(backend_app))
+            await backend.start_server()
+            app = shim_mod.build_shim_app(str(backend.make_url("/v1")), "")
+            client = TestClient(TestServer(app))
+            await client.start_server()
+            try:
+                async with client.post(
+                    path,
+                    json=payload,
+                    timeout=ClientTimeout(total=30),
+                ) as resp:
+                    ctype = resp.headers.get("content-type", "")
+                    if "application/json" in ctype:
+                        return resp.status, b"", await resp.json()
+                    body = b""
+                    async for chunk in resp.content:
+                        body += chunk
+                    return resp.status, body, None
+            finally:
+                await client.close()
+                await backend.close()
+
+        return asyncio.run(run())
+
+    return post
 
 
-@pytest.mark.asyncio
-async def test_streaming_tool_call_fragments(shim_client_factory):
+def _sse_events(body: bytes):
+    """Parse raw shim SSE body into [(event_name, dict), ...]."""
+    events = []
+    for raw in body.decode("utf-8", "replace").split("\n"):
+        line = raw.strip()
+        if line.startswith("data:"):
+            events.append(json.loads(line[5:]))
+    return events
+
+
+def test_streaming_tool_call_fragments():
     """OpenAI-style fragmented tool_call deltas → one tool_use block with
     assembled input_json_delta partials."""
     async def fake_backend(request):
@@ -302,38 +331,30 @@ async def test_streaming_tool_call_fragments(shim_client_factory):
         await resp.write_eof()
         return resp
 
-    client = await shim_client_factory(fake_backend)
-    try:
-        resp = await client.post("/v1/messages", json={
-            "model": "m", "max_tokens": 10, "stream": True,
-            "messages": [{"role": "user", "content": "6*7"}],
-            "tools": [{"name": "calculator", "description": "d",
-                       "input_schema": {"type": "object"}}],
-        })
-        events = []
-        json_buf = ""
-        stop = None
-        async for raw in resp.content:
-            line = raw.decode().strip()
-            if not line.startswith("data:"):
-                continue
-            ev = json.loads(line[5:])
-            events.append(ev.get("type"))
-            if ev.get("type") == "content_block_delta" and ev["delta"]["type"] == "input_json_delta":
-                json_buf += ev["delta"]["partial_json"]
-            elif ev.get("type") == "message_delta":
-                stop = ev["delta"]["stop_reason"]
-        starts = [e for e in events if e == "content_block_start"]
-        assert len(starts) == 1
-        assert json_buf == '{"a": 6, "b": 7}'
-        assert json.loads(json_buf) == {"a": 6, "b": 7}
-        assert stop == "tool_use"
-    finally:
-        await client.close()
+    post = _harness(fake_backend)
+    status, body, _ = post("/v1/messages", {
+        "model": "m", "max_tokens": 10, "stream": True,
+        "messages": [{"role": "user", "content": "6*7"}],
+        "tools": [{"name": "calculator", "description": "d",
+                   "input_schema": {"type": "object"}}],
+    })
+    assert status == 200
+    events = _sse_events(body)
+    json_buf = "".join(
+        ev["delta"]["partial_json"]
+        for ev in events
+        if ev.get("type") == "content_block_delta"
+        and ev["delta"].get("type") == "input_json_delta"
+    )
+    stops = [ev["delta"]["stop_reason"] for ev in events if ev.get("type") == "message_delta"]
+    starts = [ev for ev in events if ev.get("type") == "content_block_start"]
+    assert len(starts) == 1
+    assert json_buf == '{"a": 6, "b": 7}'
+    assert json.loads(json_buf) == {"a": 6, "b": 7}
+    assert stops == ["tool_use"]
 
 
-@pytest.mark.asyncio
-async def test_streaming_text_then_tool_two_blocks(shim_client_factory):
+def test_streaming_text_then_tool_two_blocks():
     async def fake_backend(request):
         async def gen():
             chunks = [
@@ -352,46 +373,36 @@ async def test_streaming_text_then_tool_two_blocks(shim_client_factory):
         await resp.write_eof()
         return resp
 
-    client = await shim_client_factory(fake_backend)
-    try:
-        resp = await client.post("/v1/messages", json={
-            "model": "m", "max_tokens": 10, "stream": True,
-            "messages": [{"role": "user", "content": "go"}],
-        })
-        blocks = []
-        async for raw in resp.content:
-            line = raw.decode().strip()
-            if line.startswith("data:"):
-                ev = json.loads(line[5:])
-                if ev.get("type") == "content_block_start":
-                    blocks.append(ev["content_block"])
-        assert [b["type"] for b in blocks] == ["text", "tool_use"]
-        assert blocks[1]["name"] == "calc"
-    finally:
-        await client.close()
+    post = _harness(fake_backend)
+    status, body, _ = post("/v1/messages", {
+        "model": "m", "max_tokens": 10, "stream": True,
+        "messages": [{"role": "user", "content": "go"}],
+    })
+    assert status == 200
+    blocks = [
+        ev["content_block"]
+        for ev in _sse_events(body)
+        if ev.get("type") == "content_block_start"
+    ]
+    assert [b["type"] for b in blocks] == ["text", "tool_use"]
+    assert blocks[1]["name"] == "calc"
 
 
-@pytest.mark.asyncio
-async def test_count_tokens_endpoint(shim_client_factory):
+def test_count_tokens_endpoint():
     async def fake_backend(request):  # never called
         raise AssertionError
 
-    client = await shim_client_factory(fake_backend)
-    try:
-        resp = await client.post("/v1/messages/count_tokens", json={
-            "model": "m",
-            "system": "x" * 400,
-            "messages": [{"role": "user", "content": "y" * 400}],
-        })
-        out = await resp.json()
-        assert resp.status == 200
-        assert out["input_tokens"] >= 150  # ~800 chars / 4
-    finally:
-        await client.close()
+    post = _harness(fake_backend)
+    status, _body, out = post("/v1/messages/count_tokens", {
+        "model": "m",
+        "system": "x" * 400,
+        "messages": [{"role": "user", "content": "y" * 400}],
+    })
+    assert status == 200
+    assert out["input_tokens"] >= 150  # ~800 chars / 4
 
 
-@pytest.mark.asyncio
-async def test_streaming_usage_forwarded(shim_client_factory):
+def test_streaming_usage_forwarded():
     async def fake_backend(request):
         async def gen():
             yield b'data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'
@@ -404,19 +415,15 @@ async def test_streaming_usage_forwarded(shim_client_factory):
         await resp.write_eof()
         return resp
 
-    client = await shim_client_factory(fake_backend)
-    try:
-        resp = await client.post("/v1/messages", json={
-            "model": "m", "max_tokens": 5, "stream": True,
-            "messages": [{"role": "user", "content": "hi"}],
-        })
-        usage = None
-        async for raw in resp.content:
-            line = raw.decode().strip()
-            if line.startswith("data:"):
-                ev = json.loads(line[5:])
-                if ev.get("type") == "message_delta":
-                    usage = ev["usage"]
-        assert usage is not None and usage["output_tokens"] == 2
-    finally:
-        await client.close()
+    post = _harness(fake_backend)
+    status, body, _ = post("/v1/messages", {
+        "model": "m", "max_tokens": 5, "stream": True,
+        "messages": [{"role": "user", "content": "hi"}],
+    })
+    assert status == 200
+    usage = [
+        ev["usage"]
+        for ev in _sse_events(body)
+        if ev.get("type") == "message_delta"
+    ]
+    assert usage and usage[0]["output_tokens"] == 2
