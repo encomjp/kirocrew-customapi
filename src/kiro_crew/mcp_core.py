@@ -1395,11 +1395,11 @@ def _run_vision_analyze(args: dict[str, Any]) -> str:
     )
     env: dict[str, str] = {}
     base_url = (cfg.agent.provider_base_url or "").strip()
-    api_key = (
+    from kiro_crew.provider_secrets import effective_provider_api_key
+
+    api_key = effective_provider_api_key(
         (cfg.agent.provider_api_key or "").strip()
-        or os.environ.get("ANTHROPIC_API_KEY")
-        or os.environ.get("CLIPROXY_API_KEY")
-    )
+    ) or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLIPROXY_API_KEY")
     if base_url:
         env["ANTHROPIC_BASE_URL"] = base_url
     if api_key:

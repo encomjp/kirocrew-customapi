@@ -127,7 +127,7 @@ def validate_provider_settings(agent) -> list[str]:  # noqa: ANN001 - AgentConfi
             )
         if api_key:
             # Imported lazily: secrets.py must stay import-light.
-            from kiro_crew.secrets import describe_key_source
+            from kiro_crew.provider_secrets import describe_key_source
 
             if describe_key_source(api_key).startswith("config.json"):
                 problems.append(
