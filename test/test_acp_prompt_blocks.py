@@ -113,11 +113,13 @@ class TestBuildPromptBlocks:
         mode = "P" if fmt == "GIF" else "RGB"
         pil.new(mode, (2, 2)).save(p, format=fmt)
         blocks = build_prompt_blocks(f"see {p}")
-        # Magic-byte sniff is authoritative over the suffix: the file content is
-        # PNG, so the inlined block must declare image/png even when the suffix
-        # claims another format (a channel that mislabels bytes is exactly the
-        # Discord-mismatch case that used to 400).
-        assert blocks[1]["mimeType"] == "image/png"
+        # The emitted mimeType tracks the header-DETECTED format (magic-byte
+        # sniff is authoritative over the suffix) because the backend validates
+        # the bytes, not the file extension. PNG/JPEG/GIF/WEBP pass through
+        # byte-identical when inside budget; BMP is transcoded to PNG (Pillow
+        # can read it, the backend cannot).
+        expected = "image/png" if suffix == ".bmp" else mime
+        assert blocks[1]["mimeType"] == expected
 
     def test_mismatched_suffix_sniffs_real_mime(self, tmp_path):
         """A .webp file whose bytes are PNG is inlined as image/png, not webp."""

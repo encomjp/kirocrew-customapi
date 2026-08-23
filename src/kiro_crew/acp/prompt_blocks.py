@@ -27,6 +27,7 @@ Wire shape (per docs/reference/kiro-cli/acp.md):
 from __future__ import annotations
 
 import base64
+import io
 import logging
 import os
 import re
@@ -123,6 +124,8 @@ _PIL_SAVE_FORMAT: dict[str, str] = {
 #: inlined, or the backend returns 400 "Could not process image". Mirrors the
 #: wire contract in docs/reference/kiro-cli/acp.md.
 _UNIVERSALLY_SUPPORTED_MIMES: frozenset[str] = frozenset(
+    # BMP is intentionally absent: it is sniffed but transcoded to PNG (Pillow
+    # opens it, the backend never sees BMP).
     {"image/png", "image/jpeg", "image/gif", "image/webp"}
 )
 
