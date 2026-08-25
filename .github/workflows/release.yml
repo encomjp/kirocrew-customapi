@@ -692,9 +692,12 @@ jobs:
 
       # Assemble release assets: everything built, with macOS assets accepted
       # only from the exact gated artifact emitted after notarization, stapling,
-      # and Gatekeeper verification. The unsigned electron-builder zip/DMG are
-      # inter-job inputs only and must never become GitHub Release assets.
-      - name: Assemble release assets (require gated macOS artifacts)
+      # and Gatekeeper verification. A fork without the signing-service secrets
+      # never produces that artifact -- the notarize job skips itself when its
+      # input key is absent -- so the gated branch is skipped and the UNSIGNED
+      # electron-builder zip/DMG ship instead, clearly named and carrying a
+      # warning file. Unsigned bytes still never pose as notarized ones.
+      - name: Assemble release assets (gated macOS artifacts, unsigned fallback)
         run: |
           set -euo pipefail
           mkdir -p release
@@ -703,20 +706,14 @@ jobs:
           NOTARIZED_DIR="artifacts/KiroCrew-notarized-${{ needs.version.outputs.channel }}-${{ needs.version.outputs.version }}"
           NOTARIZED_ZIP="${NOTARIZED_DIR}/notarized.zip"
           NOTARIZED_DMG="${NOTARIZED_DIR}/KiroCrew.dmg"
-          [ -s "$NOTARIZED_ZIP" ] || {
-            echo "::error::Required gated macOS ZIP is missing or empty: ${NOTARIZED_ZIP}"
-            exit 1
-          }
-          [ -s "$NOTARIZED_DMG" ] || {
-            echo "::error::Required gated macOS DMG is missing or empty: ${NOTARIZED_DMG}"
-            exit 1
-          }
+          VERSION="${{ needs.version.outputs.version }}"
+          if [ -s "$NOTARIZED_ZIP" ] && [ -s "$NOTARIZED_DMG" ]; then
 
-          # Fail closed on corrupt or mis-shaped handoff files before granting
-          # the GitHub Release job's contents:write capability to publish them.
-          # Cryptographic Gatekeeper checks happen immediately before the
-          # notarize job uploads this exact, name-bound artifact.
-          python3 - "$NOTARIZED_ZIP" "$NOTARIZED_DMG" <<'PY_VALIDATE'
+            # Fail closed on corrupt or mis-shaped handoff files before granting
+            # the GitHub Release job's contents:write capability to publish them.
+            # Cryptographic Gatekeeper checks happen immediately before the
+            # notarize job uploads this exact, name-bound artifact.
+            python3 - "$NOTARIZED_ZIP" "$NOTARIZED_DMG" <<'PY_VALIDATE'
           from pathlib import Path, PurePosixPath
           import sys
           import zipfile
@@ -758,8 +755,29 @@ jobs:
               raise SystemExit(f"::error::{dmg_path} is not a valid UDIF DMG: {exc}")
           PY_VALIDATE
 
-          cp "$NOTARIZED_ZIP" "release/KiroCrew-${{ needs.version.outputs.version }}-universal-mac.zip"
-          cp "$NOTARIZED_DMG" "release/KiroCrew-${{ needs.version.outputs.version }}-universal.dmg"
+            cp "$NOTARIZED_ZIP" "release/KiroCrew-${VERSION}-universal-mac.zip"
+            cp "$NOTARIZED_DMG" "release/KiroCrew-${VERSION}-universal.dmg"
+          else
+            echo "::warning::No gated macOS artifact (${NOTARIZED_DIR}) -- this checkout runs without signing-service secrets, so the notarize lane skipped. Shipping the UNSIGNED macOS build instead; Gatekeeper requires right-click > Open on first launch."
+            UNSIGNED_DIR="artifacts/unsigned-build-darwin-universal"
+            UNSIGNED_ZIP="$(find "$UNSIGNED_DIR" -type f -name '*.zip' | head -n 1)"
+            UNSIGNED_DMG="$(find "$UNSIGNED_DIR" -type f -name '*.dmg' | head -n 1)"
+            if [ -z "$UNSIGNED_ZIP" ] || [ -z "$UNSIGNED_DMG" ]; then
+              echo "::error::Unsigned macOS fallback engaged but ${UNSIGNED_DIR} carries no .zip/.dmg pair"
+              find artifacts -maxdepth 2 -type d | sed 's/^/  artifact: /'
+              exit 1
+            fi
+            cp "$UNSIGNED_ZIP" "release/KiroCrew-${VERSION}-universal-mac-UNSIGNED.zip"
+            cp "$UNSIGNED_DMG" "release/KiroCrew-${VERSION}-universal-UNSIGNED.dmg"
+            cat > "release/MACOS-UNSIGNED.txt" <<'EOT'
+          The macOS files in this release are NOT signed and NOT notarized:
+          this project builds them without an Apple Developer certificate.
+          macOS Gatekeeper will refuse to open the app on first launch with
+          "cannot be verified". To launch it once, right-click the app and
+          choose Open, or run:  xattr -cr /Applications/<App Name>.app
+          The Windows and Linux artifacts are unaffected by this notice.
+          EOT
+          fi
           ls -la release/
 
       - name: Create GitHub Release
@@ -850,8 +868,13 @@ jobs:
           DEB_ARM64=$(one deb-arm64 -path '*build-linux-arm64*' -name '*.deb')
           RPM=$(one rpm -path '*build-linux-x64*' -name '*.rpm')
           RPM_ARM64=$(one rpm-arm64 -path '*build-linux-arm64*' -name '*.rpm')
-          MAC_ZIP=$(one notarized.zip -path '*KiroCrew-notarized-*' -name 'notarized.zip')
-          DMG=$(one notarized-DMG -path '*KiroCrew-notarized-*' -name 'KiroCrew.dmg')
+          # macOS is OPTIONAL here exactly as it is OPTIONAL in
+          # release_promotion.py's schema: a fork without the signing-service
+          # secrets never produces a notarized artifact, and unsigned bytes must
+          # never be recorded under the notarized role -- stable promotion would
+          # republish them as verified. Both roles move together or not at all.
+          MAC_ZIP=$(at_most_one mac-zip -path '*KiroCrew-notarized-*' -name 'notarized.zip')
+          DMG=$(at_most_one dmg -path '*KiroCrew-notarized-*' -name 'KiroCrew.dmg')
           INSTALLER=$(at_most_one installer -path '*build-windows-x64*' -name '*.exe')
           cp "$WHEEL" "promotion-bundle/$(basename "$WHEEL")"
           cp "$SDIST" "promotion-bundle/$(basename "$SDIST")"
@@ -861,8 +884,14 @@ jobs:
           cp "$DEB_ARM64" promotion-bundle/KiroCrew-aarch64.deb
           cp "$RPM" promotion-bundle/KiroCrew-x86_64.rpm
           cp "$RPM_ARM64" promotion-bundle/KiroCrew-aarch64.rpm
-          cp "$MAC_ZIP" promotion-bundle/notarized.zip
-          cp "$DMG" promotion-bundle/KiroCrew.dmg
+          if [ -n "$MAC_ZIP" ] && [ -n "$DMG" ]; then
+            cp "$MAC_ZIP" promotion-bundle/notarized.zip
+            cp "$DMG" promotion-bundle/KiroCrew.dmg
+          elif [ -n "$MAC_ZIP" ] || [ -n "$DMG" ]; then
+            echo "::error::half a macOS pair (zip=${MAC_ZIP} dmg=${DMG}) is being DROPPED from this candidate. Stable will publish no macOS asset for this version; the other platforms are unaffected."
+          else
+            echo "::notice::no gated macOS artifact in this run; recording a candidate without the optional macOS roles."
+          fi
           # The blockmap travels with the installer or not at all: promoting the
           # installer alone still updates, but silently turns every stable
           # Windows update into a full download instead of a differential one.

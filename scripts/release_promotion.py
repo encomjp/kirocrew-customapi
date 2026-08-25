@@ -36,8 +36,6 @@ REQUIRED_ARTIFACT_NAMES = {
     "deb_arm64": re.compile(r"^KiroCrew-aarch64\.deb$"),
     "rpm": re.compile(r"^KiroCrew-x86_64\.rpm$"),
     "rpm_arm64": re.compile(r"^KiroCrew-aarch64\.rpm$"),
-    "mac_zip": re.compile(r"^notarized\.zip$"),
-    "dmg": re.compile(r"^KiroCrew\.dmg$"),
 }
 # Roles a candidate MAY carry. Optional is what keeps per-platform release
 # independence: `build-windows` is soft-fail precisely so a Windows problem
@@ -46,12 +44,21 @@ REQUIRED_ARTIFACT_NAMES = {
 # would make the whole candidate unpromotable. Optional instead means the
 # installer is promoted when it was built and simply absent when it was not.
 #
+# macOS is optional for a different reason than absence-of-success: the
+# notarize lane skips itself when the signing-service secrets are absent (a
+# fork without that infrastructure), and unsigned app bytes must never be
+# recorded under these roles -- stable promotion would republish them as if
+# they were verified. A candidate claims macOS only when the gated notarized
+# artifact exists.
+#
 # Optionality does NOT weaken byte identity. Verification compares the on-disk
 # file set against what THIS bundle's manifest claims (not against the union of
 # all roles), so a promoted bundle is still exact: nothing may be added,
 # removed or altered after it is recorded. What optional relaxes is only which
 # roles a manifest is allowed to claim.
 OPTIONAL_ARTIFACT_NAMES = {
+    "mac_zip": re.compile(r"^notarized\.zip$"),
+    "dmg": re.compile(r"^KiroCrew\.dmg$"),
     "windows_installer": re.compile(r"^KiroCrew-Setup\.exe$"),
     "windows_blockmap": re.compile(r"^KiroCrew-Setup\.exe\.blockmap$"),
 }
