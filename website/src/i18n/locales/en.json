@@ -1979,9 +1979,9 @@
     },
     "workflows": {
       "manifest": {
-        "display_name": "Spec Builder",
-        "description": "Spec-driven development inside kirocrew-customapi: turn a feature idea into Requirements → Design → Tasks with an embedded agent, review the markdown in-app, then hand the approved plan off to an autonomous execution session.",
-        "page_label": "Spec Builder",
+        "display_name": "Workflows",
+        "description": "Author, run, and watch dynamic workflows: Python scripts, usually written for you by an agent from a plain-English goal, that drive several kirocrew-customapi agents through ordered phases. A script is checked against a sandboxed set of workflow commands before anything runs, so mistakes surface without executing, and the page then streams each phase and agent event as the run progresses. Runnable examples ship with the app to start from.",
+        "page_label": "Workflows",
         "highlight_5": "Ships with runnable examples to start from",
         "highlight_1": "Validate a workflow before running it — errors surface without anything executing",
         "highlight_2": "Watch the run live, phase by phase, with per-agent progress events",
