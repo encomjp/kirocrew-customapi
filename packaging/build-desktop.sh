@@ -493,7 +493,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
 
   EB_ARGS=( "-c.extraMetadata.version=$KC_VERSION" )
   if [ "$PRODUCT_NAME" = "KiroCrew Nightly" ]; then
-    # Same appId (com.amazon.kiro.crew) as production ON PURPOSE:
+    # Same appId (com.kirocrew.customapi) as production ON PURPOSE:
     # - Finder decides install-replace by FILENAME only, so the distinct
     #   productName alone gives side-by-side installs.
     # - Squirrel.Mac validates updates against the host app's designated
@@ -548,12 +548,12 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
       # 1. The uninstall/upgrade registry key is a GUID, defaulting to
       #    UUID v5(appId) (app-builder-lib NsisTarget.js: `options.guid ||
       #    UUID.v5(appInfo.id, ELECTRON_BUILDER_NS_UUID)`). Nightly shares
-      #    appId with production (see above), so WITHOUT an explicit guid both
+      #    appId with production on macOS, so WITHOUT an explicit guid both
       #    channels claim one registry key and an assisted nightly install
       #    adopts -- then on uninstall removes -- the stable entry. The value
-      #    below is exactly what electron-builder would derive from a
-      #    hypothetical `com.amazon.kiro.crew.nightly` appId, so it is stable,
-      #    reproducible, and collision-free without moving the real appId.
+      #    below is a fixed, collision-free key for nightly only; it is
+      #    opaque and must never be regenerated, because an existing
+      #    Windows install matches its upgrade entry by this exact value.
       # 2. The install DIRECTORY comes from productFilename (i.e. the spaced
       #    productName above) only because nsis.oneClick is false --
       #    getWindowsInstallationDirName() falls back to the npm package name
@@ -586,7 +586,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
       # strand every installed mac app's updates. This is the same identity
       # main.js already claims at runtime via app.setAppUserModelId, so the
       # packaged shortcuts and the running process finally agree.
-      "-c.win.appId=com.amazon.kiro.crew.nightly"
+      "-c.win.appId=com.kirocrew.customapi.nightly"
     )
   fi
   # Start from a pristine output dir. A prior interrupted universal build can

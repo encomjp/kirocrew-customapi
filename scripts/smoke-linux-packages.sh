@@ -75,14 +75,17 @@ common_asserts() {
     test -n "\$entry" && test -f "\$entry"
     test -n "\$stamp"
     # The identity comes from the desktop entry's FILENAME, not from parsing its
-    # Exec value. linux.syncDesktopName ties four things to one name -- the entry
-    # filename, executableName, Electron's app_id and StartupWMClass -- so the
-    # filename IS the identity, and reading it needs no string parsing at all.
+    # Exec value. linux.syncDesktopName ties three things to desktopName -- the
+    # entry filename, Electron's app_id and StartupWMClass -- while executableName
+    # is an independent knob that names /usr/bin/<name> and /opt/<Product>/<name>.
+    # package.json pins both spellings to one name, so the entry filename IS the
+    # installed identity, and reading it needs no string parsing at all.
     #
     # Exec is deliberately NOT the source: electron-builder quotes that path when
     # it contains a character outside [/0-9A-Za-z._-], which the nightly channel's
-    # `/opt/KiroCrew Nightly/...` does. Parsing it would work on stable and return
-    # empty on nightly -- the third time this gate assumed stable's shape.
+    # '/opt/KiroCrew Nightly/...' install dir does. Parsing it would work on
+    # stable and return empty on nightly -- the third time this gate assumed
+    # stable's shape.
     exe=\$(basename "\$entry" .desktop)
     launcher=/usr/bin/\$exe
     test -x "\$launcher"
@@ -99,6 +102,12 @@ common_asserts() {
     printf '%s\\n' "\$files" | grep -qE '/backend-dist/kirocrew-backend/bin/kirocrew\$'
 ASSERTS
 }
+
+# The ASSERTS heredoc above uses an UNQUOTED delimiter on purpose: the host
+# shell must expand \$1 so the dpkg/rpm file-list command lands inside. The
+# price is that everything else in the body is live to the host shell too --
+# an unescaped backtick or $( in any comment line EXECUTES at docker-argument
+# evaluation time. Keep prose free of both (escape as \` if ever needed).
 
 echo "▶ Installing '${DEB_NAME}' on Ubuntu 24.04 (the t64 release)…"
 docker run --rm -v "${ABS_DIST}:/dist:ro" -w /dist ubuntu:24.04 bash -euxc "

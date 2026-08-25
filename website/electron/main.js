@@ -256,11 +256,11 @@ app.name = identityFamily(app.getVersion()) === "nightly" ? "Kiro Crew Nightly" 
 // Windows taskbar identity. Without an explicit AppUserModelID, Windows groups
 // the app under the generic Electron host (wrong icon in the taskbar/jumplist,
 // pinning targets Electron rather than KiroCrew). Match the packaged appId
-// (build.appId = "com.amazon.kiro.crew"); nightly gets a distinct id so it
+// (build.appId = "com.kirocrew.customapi"); nightly gets a distinct id so it
 // pins/groups side-by-side with stable, mirroring the app.name split above.
 if (IS_WIN) {
   const appUserModelId = identityFamily(app.getVersion()) === "nightly"
-    ? "com.amazon.kiro.crew.nightly" : "com.amazon.kiro.crew";
+    ? "com.kirocrew.customapi.nightly" : "com.kirocrew.customapi";
   app.setAppUserModelId(appUserModelId);
 }
 
@@ -419,7 +419,7 @@ function checkDashboardRoot(rootUrl = `${BACKEND_URL}/`) {
 // before-quit stops its own gateway). Never kill the gateway out from under
 // its shell — the shell's exit watcher would treat that as a crash.
 // Targets by app NAME: both installs share one bundle identifier
-// (com.amazon.kiro.crew), so `quit app id` would be ambiguous.
+// (com.kirocrew.customapi), so `quit app id` would be ambiguous.
 function quitOtherApp(appName) {
   return new Promise((resolve) => {
     if (process.platform !== "darwin") { resolve(false); return; }
