@@ -707,7 +707,17 @@ jobs:
           NOTARIZED_ZIP="${NOTARIZED_DIR}/notarized.zip"
           NOTARIZED_DMG="${NOTARIZED_DIR}/KiroCrew.dmg"
           VERSION="${{ needs.version.outputs.version }}"
-          if [ -s "$NOTARIZED_ZIP" ] && [ -s "$NOTARIZED_DMG" ]; then
+          if [ -s "$NOTARIZED_ZIP" ] || [ -s "$NOTARIZED_DMG" ]; then
+            # A partial gated handoff is an anomaly, not a fallback trigger:
+            # demand both members and validate them, exactly as before.
+            [ -s "$NOTARIZED_ZIP" ] || {
+              echo "::error::Required gated macOS ZIP is missing or empty: ${NOTARIZED_ZIP}"
+              exit 1
+            }
+            [ -s "$NOTARIZED_DMG" ] || {
+              echo "::error::Required gated macOS DMG is missing or empty: ${NOTARIZED_DMG}"
+              exit 1
+            }
 
             # Fail closed on corrupt or mis-shaped handoff files before granting
             # the GitHub Release job's contents:write capability to publish them.
