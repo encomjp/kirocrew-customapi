@@ -2,7 +2,7 @@
   "name": "spec-builder",
   "version": "0.1.0",
   "displayName": "Spec Builder",
-  "description": "Spec-driven development inside kirocrew-customapi: turn a feature idea into Requirements \u2192 Design \u2192 Tasks with an embedded agent, review the markdown in-app, then hand the approved plan off to an autonomous execution session.",
+  "description": "Spec-driven development inside Kiro Crew: turn a feature idea into Requirements \u2192 Design \u2192 Tasks with an embedded agent, review the markdown in-app, then hand the approved plan off to an autonomous execution session.",
   "author": "kirocrew",
   "tags": [
     "specs",
