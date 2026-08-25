@@ -105,7 +105,7 @@ def test_github_release_selects_explicit_versioned_macos_handoff() -> None:
     assert f'--bundle-dir "artifacts/{PROMOTION_ARTIFACT}"' in verify
 
     assemble = _step(
-        RELEASE, "github-release", "Assemble release assets (require gated macOS artifacts)"
+        RELEASE, "github-release", "Assemble release assets (gated macOS artifacts, unsigned fallback)"
     )["run"]
     assert (
         'NOTARIZED_DIR="artifacts/KiroCrew-notarized-${{ needs.version.outputs.channel }}-'
@@ -113,6 +113,11 @@ def test_github_release_selects_explicit_versioned_macos_handoff() -> None:
     )
     assert "KiroCrew-notarized-stable-promotion" not in assemble
     assert "*KiroCrew-notarized-*" not in assemble
+    # The fork runs without signing-service secrets, so the gated artifact is
+    # absent on every insider run; the unsigned electron-builder build ships in
+    # its place under a name that can never be mistaken for notarized bytes.
+    assert "unsigned-build-darwin-universal" in assemble
+    assert "MACOS-UNSIGNED.txt" in assemble
 
 
 def test_prerelease_candidate_runs_same_sha_test_gate() -> None:
@@ -181,6 +186,10 @@ def test_prerelease_record_waits_for_test_gate_and_all_publish_lanes() -> None:
     assert '--source-sha "${GITHUB_SHA}"' in run
     assert '--source-run-id "${GITHUB_RUN_ID}"' in run
     assert '--docker-digest "${DOCKER_DIGEST}"' in run
+    # macOS rides the same optionality as Windows: recorded when the gated
+    # notarized artifact exists, dropped loudly when it does not.
+    assert "at_most_one mac-zip" in run
+    assert "optional macOS roles" in run
 
     upload = _step(RELEASE, "record-promotion", "Upload immutable promotion record")
     assert "stable-promotion-" in upload["with"]["name"]

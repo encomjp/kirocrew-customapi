@@ -26,7 +26,9 @@ IMAGE = "ghcr.io/kirodotdev/kirocrew"
 IMAGE_DIGEST = f"sha256:{'b' * 64}"
 
 
-def _bundle(path: Path, extra: dict[str, bytes] | None = None) -> Path:
+def _bundle(
+    path: Path, extra: dict[str, bytes] | None = None, *, omit: frozenset[str] = frozenset()
+) -> Path:
     path.mkdir()
     files = {
         "kirocrew-1.2.3rc4-py3-none-any.whl": b"wheel",
@@ -40,6 +42,8 @@ def _bundle(path: Path, extra: dict[str, bytes] | None = None) -> Path:
         "notarized.zip": b"mac-zip",
         "KiroCrew.dmg": b"dmg",
     }
+    for name in omit:
+        del files[name]
     files.update(extra or {})
     for name, body in files.items():
         (path / name).write_bytes(body)
@@ -326,6 +330,7 @@ def test_archive_path_traversal_is_rejected(tmp_path: Path) -> None:
         promotion.extract_verified_archive(archive, tmp_path / "resolved", expected_digest=digest)
 
 
+MAC_ROLES = {"mac_zip", "dmg"}
 WINDOWS_ROLES = {
     "KiroCrew-Setup.exe": b"nsis-installer",
     "KiroCrew-Setup.exe.blockmap": b"blockmap",
@@ -338,8 +343,23 @@ def test_a_candidate_without_windows_is_still_promotable(tmp_path: Path) -> None
     # required role would have reintroduced that coupling at the promotion layer.
     bundle = _bundle(tmp_path / "bundle")
     manifest = promotion.verify_bundle(bundle, expected_source_sha=SOURCE_SHA)
-    assert set(manifest["artifacts"]) == set(promotion.REQUIRED_ARTIFACT_NAMES)
+    assert set(manifest["artifacts"]) == (
+        set(promotion.REQUIRED_ARTIFACT_NAMES) | MAC_ROLES
+    )
     assert "windows_installer" not in manifest["artifacts"]
+
+
+def test_a_candidate_without_macos_is_still_promotable(tmp_path: Path) -> None:
+    # macOS is optional from the opposite direction: the notarize lane skips
+    # itself when signing-service secrets are absent (a fork without that
+    # infrastructure), and unsigned app bytes must never be recorded under the
+    # mac roles -- stable promotion would republish them as verified. A run
+    # with no gated artifact records a mac-less candidate instead.
+    bundle = _bundle(tmp_path / "bundle", omit=frozenset({"notarized.zip", "KiroCrew.dmg"}))
+    manifest = promotion.verify_bundle(bundle, expected_source_sha=SOURCE_SHA)
+    assert set(manifest["artifacts"]) == set(promotion.REQUIRED_ARTIFACT_NAMES)
+    assert "dmg" not in manifest["artifacts"]
+    assert "mac_zip" not in manifest["artifacts"]
 
 
 def test_a_candidate_with_windows_promotes_the_installer_and_its_blockmap(
@@ -347,10 +367,9 @@ def test_a_candidate_with_windows_promotes_the_installer_and_its_blockmap(
 ) -> None:
     bundle = _bundle(tmp_path / "bundle", WINDOWS_ROLES)
     manifest = promotion.verify_bundle(bundle, expected_source_sha=SOURCE_SHA)
-    assert set(manifest["artifacts"]) == set(promotion.REQUIRED_ARTIFACT_NAMES) | {
-        "windows_installer",
-        "windows_blockmap",
-    }
+    assert set(manifest["artifacts"]) == (
+        set(promotion.REQUIRED_ARTIFACT_NAMES) | MAC_ROLES | {"windows_installer", "windows_blockmap"}
+    )
     assert manifest["artifacts"]["windows_installer"]["filename"] == "KiroCrew-Setup.exe"
     assert (
         manifest["artifacts"]["windows_blockmap"]["filename"]
