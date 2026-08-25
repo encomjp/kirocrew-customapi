@@ -297,7 +297,7 @@ function buildFeedBase({ base, channel }) {
 
 /**
  * Human download permalink for a fork version + platform, or null when there is
- * no publish lane (Windows until a signed lane lands).
+ * no publish lane — a dead link is a worse answer than no link.
  *
  * Why the UI needs this: an update that downloads but fails to APPLY leaves the
  * user with no next step -- the card simply re-offers the same update after
@@ -305,9 +305,13 @@ function buildFeedBase({ base, channel }) {
  * non-destructive: user data lives in the KiroCrew home directory, never inside
  * the app bundle.
  *
- * The fork's GitHub release assets embed the version in the filename
- * (KiroCrew-<ver>.AppImage / KiroCrew-<ver>-arm64.dmg), so the caller passes the
- * pending version (found/staged/running -- see getInfo).
+ * Names mirror what the release pipeline actually uploads FLAT to the GitHub
+ * release: the notarized `KiroCrew-<ver>-universal.dmg` (release.yml), the
+ * Windows installer under its PUBLISHED_BASENAME `KiroCrew-Setup.exe`
+ * (publish-windows.yml), and electron-builder's `${productName}-${version}
+ * -${arch}.${ext}` for the Linux formats (deb/rpm/AppImage; ${arch} is
+ * electron-builder's amd64/arm64 spelling). The caller passes the pending
+ * version (found/staged/running -- see getInfo).
  *
  * @param {string} version    pending version to download
  * @param {string} osPlatform process.platform value
@@ -316,19 +320,31 @@ function buildFeedBase({ base, channel }) {
  *        an AppImage / unknown shape
  * @returns {string|null}
  */
-function manualDownloadUrl(version, osPlatform) {
+function manualDownloadUrl(version, osPlatform, osArch = process.arch, linuxFormat = "") {
   if (!version) return null;
-  const file = osPlatform === "darwin"
-    ? `kirocrew-customapi-${version}-arm64.dmg`
-    : osPlatform === "linux"
-      ? `kirocrew-customapi-${version}.AppImage`
-      : osPlatform === "win32"
-        // Basename must match publish-windows.yml's PUBLISHED_BASENAME
-        // (KiroCrew-Setup.exe) — the manual link would 404 otherwise.
-        ? "KiroCrew-Setup.exe"
-        : null;
-  if (!file) return null;
-  return `${DOWNLOAD_BASE}/${file}`;
+  if (osPlatform === "darwin") {
+    // The DMG is universal, so darwin ignores the arch entirely.
+    return `${DOWNLOAD_BASE}/KiroCrew-${version}-universal.dmg`;
+  }
+  if (osPlatform === "win32") {
+    // Only x64 has a lane; arm64/ia32 have no feed entry, so no link either.
+    if (osArch !== "x64") return null;
+    // Basename must match publish-windows.yml's PUBLISHED_BASENAME
+    // (KiroCrew-Setup.exe) — the manual link would 404 otherwise.
+    return `${DOWNLOAD_BASE}/KiroCrew-Setup.exe`;
+  }
+  if (osPlatform === "linux") {
+    // Handing an ARM user the x86_64 binary produces "cannot execute binary
+    // file" — the exact dead end this link exists to escape. Unknown arches
+    // have no published asset; never guess.
+    const ebArch = osArch === "x64" ? "amd64" : osArch === "arm64" ? "arm64" : "";
+    if (!ebArch) return null;
+    // A package install's escape hatch must hand back the SAME format; an
+    // AppImage beside a dpkg-managed install creates a second, unmanaged copy.
+    const ext = linuxFormat === "deb" || linuxFormat === "rpm" ? linuxFormat : "AppImage";
+    return `${DOWNLOAD_BASE}/kirocrew-customapi-${version}-${ebArch}.${ext}`;
+  }
+  return null;
 }
 
 /**
@@ -571,6 +587,10 @@ function initAutoUpdate(deps) {
   // When the in-app UI is wired (onUpdateState provided), it owns the prompt;
   // the native dialog stays as the fallback for headless / no-renderer cases.
   const uiDriven = typeof onUpdateState === "function";
+  // Last payload handed to onUpdateState, replayed through getInfo().lastState:
+  // install-failure recovery reloads the renderer, which unmounts the failure
+  // card mid-error, and the fresh mount restores what the user was looking at.
+  let lastEmittedState = null;
   function currentChannel() {
     // Single stable lane for the fork: version stamps (-customapi.N,
     // -9router.N, bare semver) all resolve to stable, display-only.
@@ -623,6 +643,8 @@ function initAutoUpdate(deps) {
       updateCommand: managed ? managed.updateCommand || "" : "",
       platform,
       packaged: !!app.isPackaged,
+      // Replay seed for a freshly mounted renderer (see lastEmittedState).
+      lastState: lastEmittedState,
       // Escape hatch for a failed install (see manualDownloadUrl).
       downloadUrl: manualDownloadUrl(pendingVersion(), osPlatform),
     };
@@ -1615,4 +1637,5 @@ module.exports = {
   manualDownloadUrl,
   DOWNLOAD_BASE,
   SUPPORTED_PLATFORMS,
+  readExternallyManaged,
 };

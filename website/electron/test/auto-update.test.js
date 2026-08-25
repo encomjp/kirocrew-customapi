@@ -6,6 +6,7 @@ const {
   configureUpdater,
   manualDownloadUrl,
   SUPPORTED_PLATFORMS,
+  readExternallyManaged,
 } = require("../auto-update");
 
 // ---------------------------------------------------------------------------
@@ -1546,34 +1547,37 @@ test("BLOCKING-fix contract: package.json declares the fork's GitHub publish ent
 // ---------------------------------------------------------------------------
 // manualDownloadUrl: the human reinstall permalink for a failed install now
 // points at the FORK's GitHub release assets (single stable lane), not the
-// upstream CDN. The version is embedded in the asset filename.
+// upstream CDN. The names mirror the flat release assets release.yml uploads.
 // ---------------------------------------------------------------------------
 
-test("manualDownloadUrl: linux points at the fork's latest AppImage release", () => {
+test("manualDownloadUrl: linux points at the fork's arch-matched AppImage release", () => {
+  const ebArch = process.arch === "arm64" ? "arm64" : "amd64";
   assert.strictEqual(
     manualDownloadUrl("0.2.0", "linux"),
-    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0.AppImage",
+    `https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0-${ebArch}.AppImage`,
   );
 });
 
-test("manualDownloadUrl: darwin points at the fork's arm64 dmg", () => {
+test("manualDownloadUrl: darwin points at the fork's universal dmg", () => {
   assert.strictEqual(
     manualDownloadUrl("0.2.0", "darwin"),
-    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-0.2.0-arm64.dmg",
+    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/KiroCrew-0.2.0-universal.dmg",
   );
 });
 
 test("manualDownloadUrl: unsupported platform or missing version -> null", () => {
-  assert.strictEqual(manualDownloadUrl("0.2.0", "win32"), null);
+  assert.strictEqual(manualDownloadUrl("0.2.0", "sunos"), null);
   assert.strictEqual(manualDownloadUrl("", "linux"), null);
 });
 
 test("getInfo.downloadUrl uses the pending version (running version before discovery)", () => {
   const { deps } = makeDeps({ appVersion: "1.0.0", osPlatform: "linux" });
   const u = initAutoUpdate(deps);
+  // No arch is passed, so the permalink resolves to the RUNNING arch.
+  const ebArch = process.arch === "arm64" ? "arm64" : "amd64";
   assert.strictEqual(
     u.getInfo().downloadUrl,
-    "https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-1.0.0.AppImage",
+    `https://github.com/encomjp/kirocrew-customapi/releases/latest/download/kirocrew-customapi-1.0.0-${ebArch}.AppImage`,
   );
 });
 

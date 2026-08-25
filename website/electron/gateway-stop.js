@@ -516,7 +516,7 @@ async function classifyPortOwner(
   }
   for (const pid of pids) {
     const cmd = (await getCommand(pid)).trim();
-    if (isKirocrew.test(cmd)) {
+    if (isKirocrew(cmd)) {
       // AppImage backends can be reparented to init after their Electron shell
       // exits. They are not system services: their executable remains under the
       // ephemeral /tmp/.mount_* tree and must be replaceable when that mount is

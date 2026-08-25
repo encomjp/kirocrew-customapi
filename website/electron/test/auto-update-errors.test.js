@@ -181,63 +181,57 @@ test("emitted failures never carry multi-line library text", async () => {
 const { manualDownloadUrl, DOWNLOAD_BASE } = require("../auto-update");
 
 test("manualDownloadUrl: fork GitHub release permalinks (per-platform)", () => {
-  // The fork's release assets embed the version in the filename; the caller
-  // passes the pending version (found/staged/running).
+  // The release pipeline uploads assets FLAT under exactly these names
+  // (release.yml assemble step), so the permalink must spell them identically.
   assert.strictEqual(
     manualDownloadUrl("0.2.0-customapi.1", "darwin"),
-    `${DOWNLOAD_BASE}/kirocrew-customapi-0.2.0-customapi.1-arm64.dmg`,
+    `${DOWNLOAD_BASE}/KiroCrew-0.2.0-customapi.1-universal.dmg`,
   );
   assert.strictEqual(
-    manualDownloadUrl("0.2.0-customapi.1", "linux"),
-    `${DOWNLOAD_BASE}/kirocrew-customapi-0.2.0-customapi.1.AppImage`,
+    manualDownloadUrl("0.2.0-customapi.1", "linux", "x64"),
+    `${DOWNLOAD_BASE}/kirocrew-customapi-0.2.0-customapi.1-amd64.AppImage`,
   );
   assert.strictEqual(
     manualDownloadUrl("nightly", "win32", "x64"),
-    `${DOWNLOAD_BASE}/desktop/nightly/latest/KiroCrew-Setup.exe`,
+    `${DOWNLOAD_BASE}/KiroCrew-Setup.exe`,
   );
 });
 
-test("manualDownloadUrl: Windows publishes x64 on every known channel", () => {
-  // The published basename is publish-windows.yml's contract.
+test("manualDownloadUrl: Windows links only where an installer is published", () => {
+  // The published basename is publish-windows.yml's contract, identical on
+  // every channel -- the release asset carries no channel prefix.
   assert.strictEqual(
     manualDownloadUrl("insider", "win32", "x64"),
-    `${DOWNLOAD_BASE}/desktop/insider/latest/KiroCrew-Setup.exe`,
+    `${DOWNLOAD_BASE}/KiroCrew-Setup.exe`,
   );
-  // Stable publishes too, by promoting the verified bundle's installer rather
-  // than rebuilding. Windows carries no channel restriction of its own.
+  // Stable promotes the verified bundle's installer rather than rebuilding,
+  // under the same flat basename.
   assert.strictEqual(
     manualDownloadUrl("stable", "win32", "x64"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-Setup.exe`,
+    `${DOWNLOAD_BASE}/KiroCrew-Setup.exe`,
   );
-  // An unknown channel still yields nothing: a link there would be a 404, and
-  // offering nothing beats offering a dead link.
-  assert.strictEqual(manualDownloadUrl("experimental", "win32", "x64"), null);
   // Only x64 is built; arm64 has no lane and no feed entry, so no link either.
   assert.strictEqual(manualDownloadUrl("insider", "win32", "arm64"), null);
   assert.strictEqual(manualDownloadUrl("insider", "win32", "ia32"), null);
-  // The arch gate is Windows-specific: the other platforms are unaffected.
+  // The arch gate is Windows-specific: darwin ignores the arch entirely.
   assert.strictEqual(
-    manualDownloadUrl("stable", "darwin"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew.dmg`,
+    manualDownloadUrl("stable", "darwin", "arm64"),
+    manualDownloadUrl("stable", "darwin", "x64"),
   );
 });
 
 test("manualDownloadUrl: Linux picks the AppImage for the running arch", () => {
-  // The published basenames are publish-linux.yml's contract. Handing an ARM
-  // user the x86_64 AppImage produces "cannot execute binary file" -- the exact
-  // dead end this link exists to escape.
+  // The names are electron-builder's ${productName}-${version}-${arch} shape,
+  // which is what lands in the release. Handing an ARM user the amd64 AppImage
+  // produces "cannot execute binary file" -- the exact dead end this link
+  // exists to escape.
   assert.strictEqual(
     manualDownloadUrl("stable", "linux", "arm64"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-aarch64.AppImage`,
+    `${DOWNLOAD_BASE}/kirocrew-customapi-stable-arm64.AppImage`,
   );
   assert.strictEqual(
     manualDownloadUrl("stable", "linux", "x64"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-x86_64.AppImage`,
-  );
-  // The mac DMG is universal, so darwin must ignore the arch entirely.
-  assert.strictEqual(
-    manualDownloadUrl("stable", "darwin", "arm64"),
-    manualDownloadUrl("stable", "darwin", "x64"),
+    `${DOWNLOAD_BASE}/kirocrew-customapi-stable-amd64.AppImage`,
   );
 });
 
@@ -248,32 +242,31 @@ test("manualDownloadUrl: the link matches the format they installed", () => {
   // package manager then knows nothing about the copy they actually run.
   assert.strictEqual(
     manualDownloadUrl("stable", "linux", "x64", "deb"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-x86_64.deb`,
+    `${DOWNLOAD_BASE}/kirocrew-customapi-stable-amd64.deb`,
   );
   assert.strictEqual(
     manualDownloadUrl("stable", "linux", "arm64", "rpm"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-aarch64.rpm`,
+    `${DOWNLOAD_BASE}/kirocrew-customapi-stable-arm64.rpm`,
   );
   // No format, or one we do not publish, falls back to the AppImage rather than
   // inventing an extension no lane serves.
   assert.strictEqual(
     manualDownloadUrl("stable", "linux", "x64", ""),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-x86_64.AppImage`,
+    `${DOWNLOAD_BASE}/kirocrew-customapi-stable-amd64.AppImage`,
   );
   assert.strictEqual(
     manualDownloadUrl("stable", "linux", "x64", "pacman"),
-    `${DOWNLOAD_BASE}/desktop/stable/latest/KiroCrew-x86_64.AppImage`,
+    `${DOWNLOAD_BASE}/kirocrew-customapi-stable-amd64.AppImage`,
   );
 });
 
 test("manualDownloadUrl: null wherever there is no publish lane", () => {
-  // Windows has no lane until a signed lane lands -- offering a 404 is worse
-  // than offering nothing; a missing version is unlinkable too.
-  assert.strictEqual(manualDownloadUrl("0.2.0", "win32"), null);
+  // A missing version is unlinkable, an unknown platform has no lane, and a
+  // Linux arch with no published asset returns null rather than guessing:
+  // a wrong-arch binary is a worse answer than no link.
   assert.strictEqual(manualDownloadUrl("", "darwin"), null);
   assert.strictEqual(manualDownloadUrl(undefined, undefined), null);
-  // A Linux arch with no published AppImage returns null rather than guessing
-  // x86_64: a wrong-arch binary is a worse answer than no link.
+  assert.strictEqual(manualDownloadUrl("stable", "sunos"), null);
   assert.strictEqual(manualDownloadUrl("stable", "linux", "armv7l"), null);
   assert.strictEqual(manualDownloadUrl("stable", "linux", "ia32"), null);
 });
