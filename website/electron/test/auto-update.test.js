@@ -188,6 +188,10 @@ function makeDeps(opts = {}) {
     // Stubbed so the writable-vs-read-only axis is decided by the test, not by
     // whatever the host filesystem happens to allow.
     probeBundleWritable: () => bundleWritable,
+    // Forwarded so a test that declares an externally-managed verdict gets one;
+    // left undefined otherwise, which sends initAutoUpdate down the real
+    // readExternallyManaged path against resourcesPath (absent marker -> null).
+    externallyManaged,
     onUpdateState: (s) => states.push(s),
     log: { info: () => {}, warn: () => {}, error: () => {} },
   };
@@ -445,7 +449,9 @@ test("a self-updating install reports empty managed metadata", () => {
   const info = initAutoUpdate(deps).getInfo();
   assert.strictEqual(info.managedBy, "");
   assert.strictEqual(info.updateCommand, "");
-  assert.strictEqual(info.channelSwitchable, true);
+  // The fork ships exactly one lane (stable), so the About panel hides the
+  // channel switcher on every install -- managed or not.
+  assert.strictEqual(info.channelSwitchable, false);
 });
 
 test("externally-managed wins over the dev gate (intentional operator override)", () => {
