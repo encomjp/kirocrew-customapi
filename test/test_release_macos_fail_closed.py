@@ -1,9 +1,17 @@
 """Fail-closed contract tests for macOS assets on GitHub Releases.
 
 The release job has ``contents: write`` and is the final trust-boundary hop
-before files become public.  These tests execute its actual shell step so an
-unsigned fallback, a broad ``find | head`` selector, or a superficial presence
-check cannot silently reappear.
+before files become public. These tests execute its actual shell step.
+
+Policy (two branches, never a blur between them):
+
+* A gated notarized handoff that EXISTS is demanded complete and valid --
+  zip integrity, exactly one top-level .app, UDIF trailer -- renamed for
+  the release, with no unsigned file riding along.
+* A gated handoff that is ENTIRELY ABSENT (a fork without signing-service
+  secrets) ships the unsigned electron-builder build under ``-UNSIGNED``
+  names plus a warning file. Unsigned bytes can never pose as notarized
+  ones because the two branches produce disjoint filenames.
 """
 
 from __future__ import annotations
@@ -23,7 +31,7 @@ pytestmark = pytest.mark.skipif(
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
-STEP_NAME = "Assemble release assets (require gated macOS artifacts)"
+STEP_NAME = "Assemble release assets (gated macOS artifacts, unsigned fallback)"
 CHANNEL = "stable"
 VERSION = "1.2.3"
 ARTIFACT_NAME = f"KiroCrew-notarized-{CHANNEL}-{VERSION}"
@@ -76,19 +84,34 @@ def _run_assembly(root: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_missing_exact_gated_artifact_does_not_fall_back_to_unsigned(tmp_path: Path) -> None:
-    """A valid-looking unsigned build or stale notarized run cannot be selected."""
+def test_absent_gated_artifact_ships_the_unsigned_build_clearly_labeled(
+    tmp_path: Path,
+) -> None:
+    """No gated artifact at all -> the unsigned build ships under -UNSIGNED names."""
     unsigned = _artifact_dir(tmp_path, "unsigned-build-darwin-universal")
     _write_valid_zip(unsigned / "KiroCrew-universal-mac.zip")
     _write_valid_dmg(unsigned / "KiroCrew.dmg")
+    # A stale channel's gated run must not be adopted for THIS version.
     _write_valid_handoff(tmp_path, "KiroCrew-notarized-stable-1.2.2")
 
     result = _run_assembly(tmp_path)
 
-    assert result.returncode != 0
-    assert "Required gated macOS ZIP is missing or empty" in result.stderr + result.stdout
-    assert not list((tmp_path / "release").glob("*mac.zip"))
-    assert not list((tmp_path / "release").glob("*.dmg"))
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert "::warning::No gated macOS artifact" in result.stderr + result.stdout
+    release = tmp_path / "release"
+    unsigned_zip = release / f"KiroCrew-{VERSION}-universal-mac-UNSIGNED.zip"
+    unsigned_dmg = release / f"KiroCrew-{VERSION}-universal-UNSIGNED.dmg"
+    assert unsigned_zip.read_bytes() == (unsigned / "KiroCrew-universal-mac.zip").read_bytes()
+    assert unsigned_dmg.read_bytes() == (unsigned / "KiroCrew.dmg").read_bytes()
+    warning = release / "MACOS-UNSIGNED.txt"
+    assert warning.is_file()
+    assert "NOT signed and NOT notarized" in warning.read_text(encoding="utf-8")
+    # The not-notarized bytes must never wear the notarized release names, and
+    # the stale gated run's bytes must never ship under any name.
+    assert not (release / f"KiroCrew-{VERSION}-universal-mac.zip").exists()
+    assert not (release / f"KiroCrew-{VERSION}-universal.dmg").exists()
+    shipped = {p.name for p in release.iterdir()}
+    assert all("UNSIGNED" in name or name == "MACOS-UNSIGNED.txt" for name in shipped), shipped
 
 
 @pytest.mark.parametrize(
