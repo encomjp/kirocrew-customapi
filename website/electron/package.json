@@ -43,13 +43,15 @@
       "x64ArchFiles": "{**/backend-dist/**,**/backend-dist/**/.*/**}",
       "extendInfo": {
         "CFBundleDisplayName": "kirocrew-customapi",
-        "NSMicrophoneUsageDescription": "kirocrew-customapi uses the microphone for voice input and dictation in chat. Audio is captured only while you hold or toggle the mic button."
+        "NSMicrophoneUsageDescription": "kirocrew-customapi uses the microphone for voice input and dictation in chat. Audio is captured only while you hold or toggle the mic button.",
+        "NSLocalNetworkUsageDescription": "kirocrew-customapi connects to its agent gateway on this machine and reaches dashboards, SSH hosts, and other services on your local network only when you point it at them."
       }
     },
     "afterSign": "scripts/notarize.js",
     "linux": {
       "category": "Development",
       "icon": "icon.png",
+      "executableName": "kirocrew-desktop",
       "synopsis": "Persistent AI agent workspace with memory, schedules, and unattended work",
       "description": "Kiro Crew fork with the claude_code provider re-enabled for self-hosted LLM routers (9router, any Anthropic-compatible endpoint).",
       "maintainer": "Adrian Kozlowski <encomjp@users.noreply.github.com>",

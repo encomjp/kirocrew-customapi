@@ -735,6 +735,13 @@ describe("uninstall data preservation contract", () => {
     // so a rename on either side fails here instead of silently colliding.
     assert.equal(electronPkg.build.deb.packageName, "kirocrew");
     assert.equal(electronPkg.build.rpm.packageName, "kirocrew");
+    // executableName is a SEPARATE electron-builder knob from desktopName: it
+    // names /opt/<product>/<exe>, the /usr/bin launcher symlink and the Icon
+    // key, while desktopName names the entry file and Electron's app_id +
+    // StartupWMClass. Nothing derives one from the other, so stable must pin
+    // both to one spelling -- leaving executableName unset falls back to the
+    // npm name and ships a launcher the desktop entry does not name (the exact
+    // split the Linux package smoke gate exists to catch).
     assert.equal(electronPkg.build.linux.executableName, "kirocrew-desktop");
     assert.equal(electronPkg.desktopName, "kirocrew-desktop.desktop");
     // syncDesktopName is what ties Electron's app_id and the entry's
@@ -863,7 +870,7 @@ describe("uninstall data preservation contract", () => {
     );
     // The stable default it overrides must be the one actually shipped, so a
     // rename on either side fails here instead of silently re-sharing.
-    assert.equal(electronPkg.name, "kirocrew-desktop");
+    assert.equal(electronPkg.name, "kirocrew-customapi");
   });
 
   it("gives nightly its own Windows appId so a channel update cannot orphan the other's shortcuts", () => {
@@ -894,7 +901,7 @@ describe("uninstall data preservation contract", () => {
     // even though its .exe is untouched.
     //
     // main.js already splits the RUNTIME id (app.setAppUserModelId picks
-    // com.amazon.kiro.crew.nightly for a nightly stamp). Leaving the PACKAGED
+    // com.kirocrew.customapi.nightly for a nightly stamp). Leaving the PACKAGED
     // id shared makes the two disagree: the app claims one identity at runtime
     // while its own shortcuts were stamped with the other.
     const buildScript = fs.readFileSync(
@@ -902,7 +909,7 @@ describe("uninstall data preservation contract", () => {
       "utf8"
     );
     assert.ok(
-      buildScript.includes("-c.win.appId=com.amazon.kiro.crew.nightly"),
+      buildScript.includes("-c.win.appId=com.kirocrew.customapi.nightly"),
       "build-desktop.sh must give the nightly channel its own WINDOWS appId, or " +
         "uninstalling one channel deregisters the other channel's shortcut " +
         "AppUserModelID and Windows reports that app as relocated"
@@ -911,17 +918,17 @@ describe("uninstall data preservation contract", () => {
     // value, so a top-level override would change the macOS bundle id too and
     // break Squirrel.Mac's designated-requirement check on every installed mac.
     assert.ok(
-      !buildScript.includes("-c.appId=com.amazon.kiro.crew.nightly"),
+      !buildScript.includes("-c.appId=com.kirocrew.customapi.nightly"),
       "the nightly appId override must be win-scoped; a top-level appId would " +
         "also move the macOS bundle id and strand installed mac updates"
     );
     // The runtime id main.js claims for a nightly build must equal the one the
     // installer stamps, or the shortcuts and the process disagree again.
     assert.ok(
-      main.includes("com.amazon.kiro.crew.nightly"),
+      main.includes("com.kirocrew.customapi.nightly"),
       "main.js must claim the same nightly AppUserModelID the installer stamps"
     );
     // And the shared production id must remain the mac/appId default.
-    assert.equal(electronPkg.build.appId, "com.amazon.kiro.crew");
+    assert.equal(electronPkg.build.appId, "com.kirocrew.customapi");
   });
 });
