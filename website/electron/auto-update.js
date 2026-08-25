@@ -330,8 +330,9 @@ function manualDownloadUrl(version, osPlatform, osArch = process.arch, linuxForm
     // Only x64 has a lane; arm64/ia32 have no feed entry, so no link either.
     if (osArch !== "x64") return null;
     // Basename must match publish-windows.yml's PUBLISHED_BASENAME
-    // (KiroCrew-Setup.exe) — the manual link would 404 otherwise.
-    return `${DOWNLOAD_BASE}/KiroCrew-Setup.exe`;
+    // ("KiroCrew-Setup.exe") — the manual link would 404 otherwise.
+    const basename = "KiroCrew-Setup.exe";
+    return `${DOWNLOAD_BASE}/${basename}`;
   }
   if (osPlatform === "linux") {
     // Handing an ARM user the x86_64 binary produces "cannot execute binary
@@ -591,6 +592,16 @@ function initAutoUpdate(deps) {
   // install-failure recovery reloads the renderer, which unmounts the failure
   // card mid-error, and the fresh mount restores what the user was looking at.
   let lastEmittedState = null;
+  // Updater lifecycle state. Declared BEFORE every early return below for the
+  // same temporal-dead-zone reason as `linux` and `managed`: each stub hands
+  // getInfo out, and getInfo -> pendingVersion reads foundVersion/stagedVersion.
+  let updateReady = false;
+  let downloading = false;
+  let stagedVersion = null; // version electron-updater has downloaded + staged
+  let stagedNotes = "";
+  let foundVersion = null; // last version surfaced to the user, awaiting consent
+  let installing = false;
+  let quitHandled = false;
   function currentChannel() {
     // Single stable lane for the fork: version stamps (-customapi.N,
     // -9router.N, bare semver) all resolve to stable, display-only.
@@ -1035,22 +1046,7 @@ function initAutoUpdate(deps) {
   configureUpdater(autoUpdater);
   autoUpdater.logger = log;
 
-  let updateReady = false;
-  let downloading = false;
-  let stagedVersion = null; // version electron-updater has downloaded + staged
-  let stagedNotes = "";
-  // Was the staged build fetched by the auto-download policy rather than asked
-  // for? It decides whether turning the preference OFF also disarms the
-  // install-on-quit: a stage the user never requested must not land on a user
-  // who has just declined auto-updates, while a stage they explicitly
-  // downloaded stays armed because the preference is not what put it there.
-  let stagedWasAutomatic = false;
-  // Set when startDownload() is entered from the discovery handler, and read by
-  // the update-downloaded handler -- the event carries no provenance of its own.
-  let downloadWasAutomatic = false;
-  let foundVersion = null; // last version surfaced to the user, awaiting consent
-  let installing = false;
-  let quitHandled = false;
+
   let checking = false;
 
   /**
