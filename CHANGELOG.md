@@ -1,3 +1,16 @@
+## [0.3.1-1.1] — 2026-08-25
+
+kirocrew-customapi release `v0.3.1-1.1` — kiro base `0.3.1` + fork version `1.1`.
+
+- Desktop Linux packages install under one coherent `kirocrew-desktop`
+  identity — launcher, binary and menu entry now agree, unblocking the
+  release pipeline that v0.3.1-1.0 tripped
+- Windows shortcuts and the running app share one `com.kirocrew.customapi`
+  identity; macOS declares a local-network purpose string so LAN access
+  can be granted
+- Recovery links after a failed update point at files this release
+  actually ships, and a failed update survives a renderer reload
+
 ## [0.3.1-1.0] — 2026-08-23
 
 kirocrew-customapi release `v0.3.1-1.0` — kiro base `0.3.1` + fork version `1.0`.
