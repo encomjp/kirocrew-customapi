@@ -18,6 +18,10 @@
 </p>
 
 <p align="center">
+  <img src="assets/made-in-europe.svg" alt="Made in Europe · for everyone" width="310">
+</p>
+
+<p align="center">
   <a href="#why"><strong>Why</strong></a> ·
   <a href="#how-it-works"><strong>How it works</strong></a> ·
   <a href="#installation"><strong>Installation</strong></a> ·
