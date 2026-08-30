@@ -1,6 +1,6 @@
-## [0.4.1-1.2] — 2026-08-30
+## [0.4.1-1.1] — 2026-08-30
 
-kirocrew-customapi release `v0.4.1-1.2` — kiro base `0.4.1` + fork version `1.2`.
+kirocrew-customapi release `v0.4.1-1.1` — kiro base `0.4.1` + fork version `1.1`.
 
 - Fix `muse-spark-1.2-contributor` via opencode: bare id now correctly routes via `opencode-go` native provider (was `kirocrew/bare` → Not Found), deduplicates bare vs `opencode-go/...` to single picker entry labeled `via opencode-go`, free variant `opencode/muse-spark-1.2-contributor-free` kept separate
 - Provider model picker now respects whitelist strictly: selecting only `muse-spark` shows only that model (was showing all `ollama`/`openai` via CLI union bypass), empty whitelist still shows all 90+ logged-in opencode models without reconfiguring

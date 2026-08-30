@@ -44,6 +44,10 @@
   <a href="#docs-and-contributing">Docs</a>
 </p>
 
+## Versioning
+
+This fork tracks upstream [`kirodotdev/KiroCrew`](https://github.com/kirodotdev/KiroCrew) verbatim and layers its own changes on top. Every release is tagged **`{upstream}-fork.{n}`** — for example `0.4.1-1.1` means *upstream `0.4.1` + fork revision `1.1`*. The upstream part tells you how up-to-date the rebase is, the fork part counts fixes since that rebase. Compare `0.4.1-1.1` vs `0.5.0-1.0` at a glance: the left side is the upstream you care about. See [`CHANGELOG.md`](CHANGELOG.md) for what each fork revision adds.
+
 ## Quick start
 
 You choose how to run Kiro Crew: the desktop app with automatic updates, a
