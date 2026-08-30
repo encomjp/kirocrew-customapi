@@ -496,6 +496,43 @@ def _resolve_claude_acp_bin() -> list[str] | None:
     return None
 
 
+def _opencode_models_via_cli() -> tuple[bool, list[str], str]:
+    """Return (ok, model_ids, stderr) from `opencode models`.
+
+    The OpenCode CLI resolves its OWN auth (auth.json: opencode zen/go API
+    keys, OpenAI oauth, Ollama cloud) and prints every model id it can serve,
+    one per line (`provider/model`). Using the CLI means models appear with
+    zero kirocrew.json configuration — the user logs into opencode once and
+    every logged-in provider's catalog shows up in the picker.
+    """
+    import subprocess
+
+    argv = _resolve_opencode_bin()
+    if not argv:
+        return False, [], "opencode binary not found"
+    try:
+        proc = subprocess.run(
+            [*argv, "models"],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            cwd=str(Path.home()),
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, [], str(exc)
+    if proc.returncode != 0:
+        return False, [], (proc.stderr or "").strip()[:400]
+    ids: list[str] = []
+    for line in (proc.stdout or "").splitlines():
+        mid = line.strip()
+        if mid and "/" in mid and " " not in mid:
+            ids.append(mid)
+    # de-dup, keep order
+    seen: set[str] = set()
+    ordered = [m for m in ids if not (m in seen or seen.add(m))]
+    return True, ordered, ""
+
+
 def _resolve_opencode_bin() -> list[str] | None:
     """Find the ``opencode`` CLI entry script and return argv.
 
@@ -2126,6 +2163,8 @@ _ROUTER_MODEL_PROVIDERS: dict[str, str] = {
 _ROUTER_PREFIX_ALIASES: dict[str, str] = {
     "ocg": "oc",
     "ollama": "ol",
+    "opencode": "oc",
+    "opencode-go": "oc",
 }
 
 # owned_by group in the proxy's /v1/models catalog -> picker prefix. The
@@ -2190,6 +2229,8 @@ _ROUTER_RAW_MODEL_IDS: dict[str, tuple[str, ...]] = {
         # Full opencode-go (/zen/go/v1) catalog — every model this provider
         # serves, so the picker can select any of them. Raw ids, exactly as
         # the catalog advertises them; the picker shows them prefixed (oc/).
+        "muse-spark-1.2-contributor",
+        "muse-spark-1.2-contributor-free",
         "minimax-m3",
         "minimax-m2.7",
         "minimax-m2.5",
@@ -2701,6 +2742,23 @@ class AcpClient:
             base_url = "https://ollama.com/v1"
             api_format = "openai"
         api_key = (self._extra_env or {}).get("ANTHROPIC_API_KEY", "")
+        # For opencode providers, prefer the CLI's own auth.json (which `opencode auth list`
+        # populates) over the kirocrew key when the latter doesn't match the provider.
+        # This makes `opencode models` union actually runnable without reconfiguring.
+        if "opencode.ai" in base_url:
+            try:
+                import json as _js
+                _auth = _js.load(open(os.path.join(os.path.expanduser("~"), ".local", "share", "opencode", "auth.json")))
+                # key name is the provider id as seen in `opencode models` prefix
+                _candidate = None
+                if "zen/go" in base_url:
+                    _candidate = _auth.get("opencode-go", {}).get("key")
+                elif "zen" in base_url:
+                    _candidate = _auth.get("opencode", {}).get("key") or _auth.get("opencode-go", {}).get("key")
+                if _candidate:
+                    api_key = _candidate
+            except Exception:
+                pass
         npm = "@ai-sdk/anthropic" if api_format == "anthropic" else "@ai-sdk/openai-compatible"
         options: dict[str, object] = {"baseURL": base_url}
         if api_key:
@@ -2709,7 +2767,18 @@ class AcpClient:
             self, "_model", DEFAULT_MODEL
         )
         model_id = strip_router_model_prefix(model_id or "")
-        models = {model_id: {"name": model_id}} if model_id and model_id != DEFAULT_MODEL else {}
+        # If model already carries a native opencode provider prefix (opencode/*),
+        # don't create a synthetic kirocrew provider — let the native provider handle it.
+        # Also treat bare ids that are known oc raw ids (e.g. "muse-spark-1.2-contributor"
+        # from zen/go) as native so they route via opencode-go, not via kirocrew.
+        _native_prefixes = ("opencode", "opencode-go", "openai", "ollama", "ollama-cloud")
+        _orig_model = (self._extra_env or {}).get("KIROCREW_DEFAULT_MODEL", "") or getattr(self, "_model", "") or ""
+        _raw_for_native = strip_router_model_prefix(_orig_model or model_id or "")
+        _is_native = ("/" in _orig_model and _orig_model.split("/",1)[0] in _native_prefixes) or (_raw_for_native in _ROUTER_RAW_MODEL_IDS.get("oc", ()) or _raw_for_native in _ROUTER_RAW_MODEL_IDS.get("ol", ()) or _raw_for_native in _ROUTER_RAW_MODEL_IDS.get("cx", ()))
+        if _is_native:
+            models = {}
+        else:
+            models = {model_id: {"name": model_id}} if model_id and model_id != DEFAULT_MODEL else {}
         # Fully isolated config — no user plugins, no user MCP servers.
         config = {
             "provider": {
@@ -2932,6 +3001,24 @@ class AcpClient:
         """Translate KiroCrew's model id into the active ACP backend namespace."""
         raw = strip_router_model_prefix(model_id)
         if self.backend == ACP_BACKEND_OPENCODE and raw != DEFAULT_MODEL:
+            # Native opencode providers (opencode, opencode-go, openai, ollama)
+            # are already fully qualified (prefix/model) — don't wrap with kirocrew.
+            if "/" in model_id and model_id.split("/",1)[0] in ("opencode", "opencode-go", "openai", "ollama", "ollama-cloud"):
+                return model_id
+            if "/" in raw and raw.split("/",1)[0] in ("opencode", "opencode-go", "openai", "ollama", "ollama-cloud"):
+                return raw
+            # Bare ids known to be opencode providers should route via their
+            # native prefix, not via synthetic kirocrew (which would 404).
+            if raw in _ROUTER_RAW_MODEL_IDS.get("oc", ()):
+                # oc = opencode-go (zen/go) — map bare to opencode-go prefix
+                # except the free variant which lives on opencode (api)
+                if raw.endswith("-free"):
+                    return f"opencode/{raw}"
+                return f"opencode-go/{raw}"
+            if raw in _ROUTER_RAW_MODEL_IDS.get("ol", ()):
+                return f"ollama/{raw}" if "/" not in raw else raw
+            if raw in _ROUTER_RAW_MODEL_IDS.get("cx", ()):
+                return f"openai/{raw}" if "/" not in raw else raw
             return raw if raw.startswith("kirocrew/") else f"kirocrew/{raw}"
         return raw
 
@@ -3511,6 +3598,17 @@ class AcpClient:
                 ".config", "kirocrew-customapi", "opencode-home",
             )
             env["HOME"] = isolated_home
+            # Fork: keep the REAL opencode credentials visible to the agent.
+            # Opencode resolves auth at ``$XDG_DATA_HOME/opencode/auth.json``
+            # (default ``$HOME/.local/share/opencode/auth.json``). With HOME
+            # pointed at the isolated tree the logged-in providers (openai
+            # oauth, ollama-cloud api) would vanish and every CLI-imported
+            # ``openai/*`` or ``ollama-cloud/*`` model would 404 as
+            # ``session/APIError Not Found``. Point XDG_DATA_HOME at the real
+            # data dir so credentials stay inherited.
+            real_data_home = os.path.join(os.path.expanduser("~"), ".local", "share")
+            if os.path.isdir(os.path.join(real_data_home, "opencode")):
+                env["XDG_DATA_HOME"] = real_data_home
         logger.debug(
             "spawn env check: ANTHROPIC_MODEL=%r ANTHROPIC_BASE_URL=%r model_via_env=%s argv=%r cwd=%s",
             env.get("ANTHROPIC_MODEL", "<unset>"),

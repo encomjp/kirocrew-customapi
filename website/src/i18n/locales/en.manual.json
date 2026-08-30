@@ -6,7 +6,9 @@
       "session_expired": "Session expired.",
       "session_expired_sign_in_again": "Session expired. Run kirocrew token in a terminal, then paste the URL into the banner at the top of this page to sign back in.",
       "stream_ended_without_completion": "Stream ended without completion",
-      "unexpected_server_response": "Unexpected server response"
+      "unexpected_server_response": "Unexpected server response",
+      "stale_owner_session": "이 세션은 소유자 설정 이전에 만들어졌습니다. 다시 로그인하세요.",
+      "stale_owner_session_sign_in_again": "이 세션은 소유자 설정 이전에 만들어졌습니다(KIROCREW_OWNER_ID 설정 전에 로그인됨). 터미널에서 kirocrew token 을 실행한 뒤 이 페이지 상단 배너에 URL을 붙여넣어 다시 로그인하세요."
     }
   },
   "app": {
@@ -62,7 +64,8 @@
     "chatEmbed": {
       "agent_is_working": "Agent is working...",
       "message": "Message..."
-    }
+    },
+    "chatMessageList": {}
   },
   "apps": {
     "meetings": {
@@ -76,7 +79,19 @@
         "regionLabel": "Meeting transcript",
         "title": "Transcript",
         "typed": "Typed"
-      }
+      },
+      "agentPanel": {},
+      "broadcastBar": {},
+      "list": {},
+      "manifest": {},
+      "meeting": {},
+      "pillBar": {},
+      "priority": {},
+      "review": {},
+      "session": {},
+      "settings": {},
+      "taskSidebar": {},
+      "widgetType": {}
     },
     "autoResearch": {
       "grillTree": {
@@ -135,7 +150,8 @@
         "state_stalled": "Stalled",
         "state_stopped": "Stopped",
         "state_working": "Working"
-      }
+      },
+      "manifest": {}
     },
     "designTweak": {
       "comments": {
@@ -267,7 +283,8 @@
         "unknown": "unknown",
         "unknown_error": "unknown error",
         "using_running_dev_server": "Using the dev server already running at {{url}}."
-      }
+      },
+      "manifest": {}
     },
     "fileExplorer": {
       "fileViewer": {
@@ -283,7 +300,12 @@
         "search_in": "Search in {{name}}",
         "search_in_2": "Search in {{name}}...",
         "searching": "searching..."
-      }
+      },
+      "fileExplorerPage": {},
+      "manifest": {},
+      "pathBar": {},
+      "tabStrip": {},
+      "treeNode": {}
     },
     "issueRadar": {
       "workspace": {
@@ -327,7 +349,12 @@
         },
         "issueList": {
           "closed_issues_are_capped_at_the_100_most_recentl": "Closed issues are capped at the 100 most recently updated",
-          "loading_the_rest": "Loading the rest…"
+          "loading_the_rest": "Loading the rest…",
+          "re_fetch_issues_and_labels_from": "{{provider}}에서 이슈와 라벨 다시 가져오기",
+          "search": "{{label}} 검색…",
+          "time_since_issue_list_last_fetched_from": "이슈 목록을 {{provider}}에서 마지막으로 가져온 이후 경과 시간",
+          "tracked_items_are_project_scoped": "작업 항목은 {{project}} 프로젝트 전체에 속하므로 그 안의 모든 저장소가 같은 목록을 표시합니다.",
+          "search_2": "Search the issue list ({{label}})"
         },
         "labelPalette": {
           "no_labels_match_query": "No labels match “{{query}}”."
@@ -370,7 +397,8 @@
           "resolved_by_github_search_across_the_whole_repo": "Resolved by GitHub search across the whole repo — not limited to the 100 most recent",
           "resolved_by_github_search_capped": "Resolved by GitHub search across the whole repo, capped at the {{n}} most recently updated matches",
           "search": "Search {{label}}…",
-          "search_2": "Search {{label}}"
+          "search_2": "Search {{label}}",
+          "time_since_list_last_fetched_from": "{{label}} 목록을 {{provider}}에서 마지막으로 가져온 후 경과한 시간"
         },
         "providerBadge": {
           "self_managed_instance": "Self-managed instance: {{host}}"
@@ -386,17 +414,9 @@
           "issue": "Issue"
         },
         "prBulkBar": {
-          "auto_merge_n_one": "Auto-merge {{count}}",
-          "auto_merge_n_other": "Auto-merge {{count}}",
           "auto_merge_none_pending": "None of the selected pull requests are waiting on checks — auto-merge only applies to one that is not mergeable yet",
-          "merge_halted_one": "{{count}} remaining pull request was not attempted.",
-          "merge_halted_other": "{{count}} remaining pull requests were not attempted.",
           "merge_ready_hint": "Merge the selected pull requests that are already ready — one at a time, each pinned to the commit shown on its row. Stops at the first refusal.",
-          "merge_ready_one": "Merge {{count}} ready",
-          "merge_ready_other": "Merge {{count}} ready",
           "merge_targets": "Merging {{numbers}} using {{method}}.",
-          "merge_warning_one": "This merges {{count}} pull request now. It cannot be undone.",
-          "merge_warning_other": "This merges {{count}} pull requests now, one at a time. It cannot be undone.",
           "merged_ok": "merged"
         },
         "memberBadge": {
@@ -415,14 +435,28 @@
         "reviewButton": {
           "open_ai_code_review_session_for_this": "Open an AI code-review chat session for this {{label}}",
           "resume_ai_code_review_session_for_this": "Resume the AI code-review chat session for this {{label}}"
-        }
+        },
+        "depsSection": {},
+        "readOnlyTag": {
+          "read_only_repo_needs_triage_or_push_access": "읽기 전용 저장소 — 심사 또는 푸시 권한이 필요합니다"
+        },
+        "assigneePicker": {},
+        "detailOverflowMenu": {},
+        "listSkeleton": {},
+        "prActionsBar": {},
+        "prRunActions": {},
+        "repoSwitcher": {},
+        "settingsSection": {}
       },
       "connectPanel": {
         "couldn_t_read_far_enough_back_through_your_activ": "Couldn’t read far enough back through your activity — paste a URL below instead.",
         "last_contribution": "Your last contribution: {{when}}",
         "most_recent_activity": "most recent activity",
         "no_contributions_in_the_last_month_paste_a_url_b": "No contributions in the last month — paste a URL below instead.",
-        "select": "Select {{name}}"
+        "select": "Select {{name}}",
+        "azure_also_needs_the_devops_extension": "Azure DevOps에는 전용 CLI 확장도 필요합니다. 아래 명령으로 한 번 설치하세요.",
+        "no_repositories_in_your_organization_paste_a_url": "조직에 저장소가 없습니다. 아래에 URL을 붙여넣어 연결하세요.",
+        "repositories_in_your_organization": "조직의 저장소"
       },
       "connectRepoModal": {
         "connecting": "Connecting {{done}} of {{total}}…"
@@ -447,7 +481,8 @@
           "unanswered": "Unanswered",
           "unassigned": "Unassigned",
           "untriaged": "Untriaged",
-          "untriaged_2": "untriaged"
+          "untriaged_2": "untriaged",
+          "re_fetch_issues_and_labels_from": "{{provider}}에서 이슈 + 레이블 다시 가져오기"
         },
         "settings": {
           "repoSettings": {
@@ -505,7 +540,9 @@
             "creating": "Creating…",
             "read_only_repo_needs_triage_push_access": "Read-only repo — needs triage/push access",
             "suggest_again": "Suggest again",
-            "suggest_new_labels": "Suggest new labels"
+            "suggest_new_labels": "Suggest new labels",
+            "create_this_label_on": "{{provider}}에서 이 라벨 만들기",
+            "re_fetch_this_repo_s_labels_from": "이 저장소의 레이블을 {{provider}}에서 다시 가져오기"
           },
           "untaggedIssueCard": {
             "add_labels_to": "Add labels to #{{number}}",
@@ -513,7 +550,8 @@
             "click_to_remove": "Click to remove",
             "click_to_remove_2": "{{reason}} — click to remove",
             "read_only_repo_needs_triage_or_push_access": "Read-only repo — needs triage or push access",
-            "select_issue": "Select issue #{{number}}"
+            "select_issue": "Select issue #{{number}}",
+            "add_these_labels_on": "{{provider}}에서 이 라벨 추가"
           }
         },
         "taggingView": {
@@ -526,7 +564,8 @@
           "select_all": "Select all",
           "suggest_again": "Suggest again ({{n}})",
           "suggest_labels_next": "Suggest labels (next {{n}})",
-          "write_every_staged_label_to_github": "Write every staged label to GitHub"
+          "write_every_staged_label_to_github": "Write every staged label to GitHub",
+          "write_every_staged_label_to": "준비된 라벨을 모두 {{provider}}에 기록"
         },
         "registry": {
           "overview": "Overview",
@@ -548,9 +587,7 @@
             "text_too_long": "Keep this under {{max}} characters.",
             "trailer_hint": "Added to every commit a crew makes, so its work is attributable in git log.",
             "trailer_label": "Commit trailer",
-            "trailer_required": "Enter a commit trailer.",
-            "unit_hours_one": "hour",
-            "unit_hours_other": "hours"
+            "trailer_required": "Enter a commit trailer."
           },
           "editor": {
             "agent_hint": "Any agent works.",
@@ -670,8 +707,6 @@
             "session": "Session",
             "session_gone": "That session no longer exists. The crew opens a new one on its next turn.",
             "session_unavailable": "This crew has not opened a session yet",
-            "slots_free_one": "{{count}} slot free",
-            "slots_free_other": "{{count}} slots free",
             "state_idle": "idle",
             "state_paused": "paused",
             "work_log": "Work log",
@@ -685,7 +720,9 @@
           "sub_paused": "Paused — not taking new issues",
           "rail_sort": "Sort",
           "rail_filters": "Filters"
-        }
+        },
+        "graphView": {},
+        "comingSoon": {}
       },
       "api": {
         "these_settings_changed_elsewhere": "These settings changed elsewhere."
@@ -697,6 +734,9 @@
           "crew_sort_status": "Status",
           "crew_sort_name": "Name",
           "crew_sort_created": "Created"
+        },
+        "links": {
+          "read_only_here_apply_in_provider": "여기서는 읽기 전용입니다 — {{provider}} 저장소는 {{productName}}에서 변경할 수 없습니다. {{provider}}에서 변경하세요"
         }
       },
       "welcomeCarousel": {
@@ -711,7 +751,9 @@
         "slide_local_title": "No Cloud Account, No API Keys",
         "slide_welcome_subtitle": "AI duplicate detection and labeling for your issues — running locally, and remembering every investigation.",
         "slide_welcome_title": "Welcome to Issue Radar"
-      }
+      },
+      "issueRadarPage": {},
+      "manifest": {}
     },
     "workflows": {
       "workflowRunTree": {
@@ -736,7 +778,8 @@
         "cancelling": "Cancelling…",
         "run_detail": "Run detail",
         "unknown": "Unknown"
-      }
+      },
+      "manifest": {}
     },
     "crewCompanion": {
       "accessory": {
@@ -902,8 +945,6 @@
         "title": "Crew Companion"
       },
       "memories": {
-        "days_together_one": "{{count}} day together",
-        "days_together_other": "{{count}} days together",
         "dur_hm": "{{h}} h {{m}} min",
         "dur_hours": "{{h}} h",
         "dur_min": "{{n}} min",
@@ -911,12 +952,8 @@
         "from_last_session": "From your last time together",
         "loading": "Looking back…",
         "offline": "Open the desktop app to see your memories.",
-        "row_breathing_one": "Breathed with {{name}} {{count}} time",
-        "row_breathing_other": "Breathed with {{name}} {{count}} times",
         "row_earliest": "Earliest start: {{time}}",
         "row_latest": "Latest you two were up: {{time}}",
-        "row_reminders_one": "Set {{count}} reminder",
-        "row_reminders_other": "Set {{count}} reminders",
         "row_streak": "{{streak}}-day streak",
         "row_time": "Kept you company for {{time}}",
         "title": "Memories"
@@ -988,8 +1025,6 @@
         "offline": "Open the desktop app to see and add reminders.",
         "remove_aria": "Remove “{{text}}”",
         "remove_title": "Remove",
-        "scheduled_count_one": "{{count}} scheduled",
-        "scheduled_count_other": "{{count}} scheduled",
         "skip": "Skip",
         "skip_aria": "Skip the next “{{text}}”",
         "skip_title": "Skip just the next one",
@@ -1071,12 +1106,18 @@
         "sessionLabel": "Tell me when sessions are done",
         "settingsTitle": "Settings",
         "skip": "Skip"
-      }
+      },
+      "manifest": {}
     },
     "pptxMaker": {
       "libraryPanel": {
         "font_specimen": "Aa"
-      }
+      },
+      "boardFrame": {},
+      "deckViewer": {},
+      "manifest": {},
+      "pptxMakerPage": {},
+      "slidePreview": {}
     },
     "designCritique": {
       "constants": {
@@ -1120,19 +1161,82 @@
         "wait_local": "Scanning the code for routes…",
         "wait_repo": "Cloning the repo and listing its routes…",
         "wait_url": "Loading the page and following its links…"
-      }
+      },
+      "askLayer": {},
+      "composer": {},
+      "designCritiquePage": {},
+      "findingRow": {},
+      "manifest": {},
+      "scopingPicker": {},
+      "utils": {},
+      "waitingScreen": {}
     },
     "mdNotebook": {
       "row": {
         "deleteConfirm": "You can restore it from <trash>.trash</trash>. Trashed notes aren't synced to the remote."
-      }
+      },
+      "badge": {},
+      "boot": {},
+      "body": {},
+      "banner": {},
+      "editor": {},
+      "header": {},
+      "panel": {},
+      "sort": {},
+      "sync": {},
+      "knowledge": {},
+      "connect": {},
+      "settings": {},
+      "trash": {},
+      "manifest": {},
+      "preview": {}
     },
     "mochi": {
       "chatPanel": {
         "open_in_file_explorer": "Open in File Explorer",
         "open_in_finder": "Open in Finder",
         "show_in_file_manager": "Show in file manager"
-      }
+      },
+      "activity": {
+        "type": {}
+      },
+      "approval": {},
+      "chat": {},
+      "clear": {},
+      "color": {},
+      "deleteHistory": {},
+      "editor": {},
+      "error": {},
+      "errors": {},
+      "gallery": {},
+      "gateway": {},
+      "instances": {},
+      "manifest": {},
+      "menu": {},
+      "mochiPage": {},
+      "mood": {},
+      "newSession": {},
+      "petWidget": {},
+      "petdex": {},
+      "pinned": {},
+      "preset": {},
+      "relativeTime": {},
+      "reset": {},
+      "settingsPanel": {},
+      "slash": {},
+      "sprite": {},
+      "state": {},
+      "stats": {},
+      "tip": {},
+      "watchPanel": {
+        "countdown": {},
+        "field": {},
+        "history": {},
+        "kind": {},
+        "priority": {},
+        "status": {}
+      },
+      "widget": {}
     },
     "commandBar": {
       "cmd_new_session": "New Session",
@@ -1160,7 +1264,124 @@
         "command": "Command",
         "setting": "Setting",
         "view": "View"
-      }
+      },
+      "action_ask": "질문",
+      "action_enter": "뷰 열기",
+      "action_open": "열기",
+      "action_open_app": "앱 페이지 열기",
+      "action_open_session": "세션 열기",
+      "action_run": "실행",
+      "action_search_sessions": "세션 검색",
+      "action_show_recent": "최근 항목 표시",
+      "ask_agent": "에이전트에게 질문: ‘{{query}}’",
+      "group_attention": "확인 필요",
+      "no_match_show_recent": "‘{{query}}’와 일치하는 세션이 없습니다 — 최근 항목 표시",
+      "manifest": {}
+    },
+    "autoTriagePipeline": {
+      "manifest": {},
+      "pipeline": {}
+    },
+    "papyrus": {
+      "workspace": {
+        "co_author_conflict_discard_button": "편집 버리기",
+        "co_author_conflict_discard_title": "저장하지 않은 편집을 버리시겠습니까?"
+      },
+      "coAuthor": {},
+      "diagnostics": {},
+      "fileTree": {},
+      "manifest": {},
+      "page": {},
+      "preview": {}
+    },
+    "specBuilder": {
+      "components": {
+        "specDetail": {},
+        "taskList": {},
+        "chatColumn": {},
+        "columnSplitter": {},
+        "docView": {},
+        "newSpecView": {},
+        "projectPicker": {},
+        "settingsModal": {},
+        "shimmer": {},
+        "specRail": {},
+        "specStatePanel": {},
+        "workspace": {}
+      },
+      "api": {},
+      "manifest": {},
+      "specBuilderPage": {}
+    },
+    "agentWorlds": {
+      "manifest": {}
+    },
+    "autoImprovement": {
+      "findingDetail": {},
+      "manifest": {},
+      "setupPanel": {}
+    },
+    "channels": {
+      "manifest": {}
+    },
+    "codeReviewSage": {
+      "codeReviewSagePage": {},
+      "components": {
+        "addReposModal": {},
+        "bandChips": {},
+        "draftReviewActions": {},
+        "failureNotice": {},
+        "findingCard": {},
+        "learningRail": {},
+        "leftRail": {},
+        "listSkeleton": {},
+        "middleColumn": {},
+        "postCommentsButton": {},
+        "prPickList": {},
+        "prReviewDetail": {},
+        "prSourcePanel": {},
+        "prStatusChips": {},
+        "repoSwitcher": {},
+        "reportView": {},
+        "reviewChat": {},
+        "runCard": {},
+        "runDetail": {},
+        "runList": {},
+        "runProgress": {},
+        "runStatusPill": {},
+        "shipSummaryCard": {}
+      },
+      "lib": {
+        "format": {}
+      },
+      "manifest": {},
+      "views": {
+        "learningView": {},
+        "settingsView": {}
+      },
+      "workspace": {}
+    },
+    "devFleet": {
+      "manifest": {}
+    },
+    "projects": {
+      "manifest": {}
+    },
+    "opsMissionControl": {
+      "api": {},
+      "handoverPanel": {},
+      "incidentChat": {},
+      "manifest": {},
+      "opsMissionControlPage": {},
+      "settingsPanel": {},
+      "signalsPanel": {}
+    },
+    "personalShopper": {
+      "manifest": {},
+      "historyTab": {},
+      "personalShopperPage": {},
+      "preferencesTab": {},
+      "sitesTab": {}
     }
   },
   "components": {
@@ -1277,7 +1498,9 @@
         "working": "Trusting and enabling...",
         "failed": "{{app}} could not be turned on, but trust may already have been saved. Choose Try again, or open Settings → Security → Trusted third-party apps to check and remove it.",
         "failed_generic": "{{app}} could not be turned on, and nothing was changed. Choose Try again, or check {{productName}}'s logs."
-      }
+      },
+      "appListRow": {},
+      "featuredSpotlight": {}
     },
     "artifactBody": {
       "artifact": "Artifact: {{slug}}"
@@ -1347,7 +1570,18 @@
       "voice_input": "Voice input",
       "queue": "Queue",
       "queue_run_after_the_current_work_finishes_desc": "Run after the current work finishes",
-      "steer_act_on_this_right_away_desc": "Act on this right away"
+      "steer_act_on_this_right_away_desc": "Act on this right away",
+      "drop_to_attach": "놓아서 첨부",
+      "finishing": "마무리 중…",
+      "hold_to_talk": "눌러서 말하기",
+      "keep_holding_to_record": "누른 상태로 녹음",
+      "release_to_cancel": "놓으면 취소",
+      "release_to_transcribe": "놓으면 텍스트 변환",
+      "send_a_message_or_tap_the_mic_for_voice": "메시지를 보내거나 마이크를 눌러 음성 사용",
+      "slide_up_to_cancel": "위로 밀어 취소",
+      "switch_not_confirmed": "전환이 아직 확인되지 않았습니다. 연결이 복구되면 적용됩니다.",
+      "switch_to_keyboard": "키보드로 전환",
+      "switch_to_voice": "음성으로 전환"
     },
     "chatPane": {
       "earlier_messages_load_failed": "Couldn't load earlier messages. Scroll to the top of the session to try again.",
@@ -1603,7 +1837,8 @@
       "stopped": "stopped",
       "pin_crew": "Pin {{name}} to the header",
       "unpin_crew": "Unpin {{name}} from the header",
-      "pinned_no_room": "pinned, no room in the header"
+      "pinned_no_room": "pinned, no room in the header",
+      "keep_tab_order_fixed": "탭 순서 고정"
     },
     "issuePanel": {
       "add_to_chat": "Add to chat",
@@ -1717,7 +1952,9 @@
       "waiting": "Waiting",
       "agent_specs_rejected": "Agent specs rejected",
       "kiro_cli_will_not_load_kiro_crew_s_agent_specs": "Kiro CLI will not load {{productName}}'s agent specs",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "sign_in_again_to_continue": "계속하려면 다시 로그인하세요.",
+      "sign_in_required": "로그인 필요"
     },
     "linkedSurfacesSection": {
       "connect_failed": "Could not connect to {{label}}: {{reason}}",
@@ -1766,7 +2003,8 @@
       "toggle_file_browser": "Toggle file browser",
       "tracking_description": "Tracking {{path}}",
       "view_preview": "View Preview",
-      "view_source": "View Source"
+      "view_source": "View Source",
+      "discard_changes_button": "변경 사항 버리기"
     },
     "markdownRenderer": {
       "click_to_browse_shift_click_to_open_in_file_explorer": "Click to browse / Shift+click to open in File Explorer",
@@ -1838,7 +2076,8 @@
         "open_notification": "Open notification: {{title}}",
         "show_less": "Show less",
         "try_a_different_search": "Try a different search"
-      }
+      },
+      "notificationDetailPanel": {}
     },
     "onboardingFlow": {
       "change_anything_later_in_settings": "Change anything later in Settings.",
@@ -1866,11 +2105,7 @@
     },
     "pastedChip": {
       "collapse_paste": "Collapse paste",
-      "expand_paste": "Expand paste",
-      "paste_lines_one": "[ Paste #{{seq}} · {{count}} line ]",
-      "paste_lines_other": "[ Paste #{{seq}} · {{count}} lines ]",
-      "preview_more_lines_one": "… {{count}} more line",
-      "preview_more_lines_other": "… {{count}} more lines"
+      "expand_paste": "Expand paste"
     },
     "publicPublishAckModal": {
       "acknowledge_publish": "I understand, publish publicly",
@@ -1878,8 +2113,6 @@
       "cancel": "Cancel",
       "do_not_publish_anything": "Do not publish anything you would not put on the open internet.",
       "exposure_window_persistent": "This link stays public until you recall or destroy the deployment.",
-      "exposure_window_ttl_one": "This link stays public for {{count}} hour, then it is deleted automatically.",
-      "exposure_window_ttl_other": "This link stays public for {{count}} hours, then it is deleted automatically.",
       "publishing": "Publishing…",
       "title": "This will create a publicly accessible website"
     },
@@ -1889,8 +2122,6 @@
       "override_publish_anyway": "Override & Publish Anyway",
       "publish_failed": "Publish failed",
       "publishing_2": "Publishing…",
-      "scan_blocked_finding_one": "Scan blocked ({{count}} finding)",
-      "scan_blocked_finding_other": "Scan blocked ({{count}} findings)",
       "unexpected_response": "Unexpected response",
       "public_exposure_warning": "Anyone with the published link can view this content. It is served on the public internet with no authentication."
     },
@@ -1921,8 +2152,6 @@
       "branch_protection_requirements_approving_reviews": "Branch protection requirements (approving reviews or required checks) are not yet satisfied.",
       "closed": "Closed",
       "draft": "Draft",
-      "files_changed_one": "{{count}} File Changed",
-      "files_changed_other": "{{count}} Files Changed",
       "github_cli_login_required": "GitHub CLI login required",
       "gitlab_cli_login_required": "GitLab CLI login required",
       "merge_blocked": "Merge blocked",
@@ -2111,7 +2340,9 @@
       "install_failed": "Update failed to install",
       "install_failed_body": "The update could not be applied. {{productName}} is restoring the local gateway — you can keep using this version and retry from Settings > About.",
       "back_to_dashboard": "Back to dashboard",
-      "restarting": "Restarting..."
+      "restarting": "Restarting...",
+      "install_restart_timing": "설치에는 몇 분이 걸릴 수 있습니다. 앱이 닫히고 업데이트가 완료되면 자동으로 다시 열립니다.",
+      "windows_installer_handoff": "Windows 설치 창에 진행 상황이 표시됩니다."
     },
     "voiceDisabledModal": {
       "voice_not_available_remote": "Voice input may not work here",
@@ -2195,18 +2426,9 @@
       "skills_this_agent_template_loads_written_as_skil": "Skills this agent template loads. Written as skill:// resources in the agent config, so kiro-cli loads them natively when the agent starts. An agent with no skills mapped falls back to the default behavior: the kirocrew agent sees the whole catalog, other agents see none."
     },
     "artifactFolderDeleteDialog": {
-      "artifact_one": "{{count}} artifact",
-      "artifact_other": "{{count}} artifacts",
-      "delete_folder": "Delete folder “{{name}}”?",
-      "subfolder_one": "{{count}} subfolder",
-      "subfolder_other": "{{count}} subfolders"
+      "delete_folder": "Delete folder “{{name}}”?"
     },
-    "inlineCommentOverlay": {
-      "comment_one": "{{count}} comment",
-      "comment_other": "{{count}} comments",
-      "comment_unread_one": "{{count}} comment · unread",
-      "comment_unread_other": "{{count}} comments · unread"
-    },
+    "inlineCommentOverlay": {},
     "reasoningEffortDropdown": {
       "default_with_level": "Default · {{level}}",
       "effort_help": "Reasoning effort sets how long the model thinks before answering. Higher means more time reasoning through hard problems (slower, better answers); lower is faster. Turning off the per-session override falls back to the default in Settings → Chat, or to the model's own choice when no default is set (Fable/Opus/Sonnet only)."
@@ -2334,7 +2556,88 @@
       "webhook_unbound_reason": "Webhook tokens carry no crew binding yet, so any token can wake any crew.",
       "webhook_unbound_short": "Not bound to a crew",
       "wire_what_it_works_with": "What it works with"
-    }
+    },
+    "approvalCard": {
+      "approval_no_longer_pending": "이 승인은 만료되었거나 이미 결정되었습니다 — 에이전트가 더 이상 기다리지 않습니다.",
+      "decision_failed": "이 결정이 기록되지 않았을 수 있습니다 — 요청이 실패했습니다.",
+      "decision_not_recorded_error": "이 결정이 기록되지 않았습니다: {{error}}"
+    },
+    "confirmDialog": {
+      "cancel": "취소"
+    },
+    "crewWebhookSection": {
+      "could_not_load_webhooks": "Webhook을 불러오지 못해 지금은 무엇이 이 크루를 깨우는지 알 수 없습니다.",
+      "inbound_webhooks_are_switched_off": "인바운드 webhook이 꺼져 있어 바인딩된 토큰을 포함해 아무것도 호출할 수 없습니다.",
+      "last_used_ago": "{{time}} 사용",
+      "no_tokens_are_bound_to_this_crew": "이 크루에 바인딩된 webhook 토큰이 없습니다.",
+      "off": "꺼짐",
+      "open_webhooks": "Webhooks 열기",
+      "outside_systems_holding_one_of_these_credentials": "이 토큰을 가진 외부 시스템은 이 크루로 턴을 시작할 수 있습니다. 생성과 폐기는 Webhooks 페이지에서 하세요.",
+      "retry": "다시 시도",
+      "signed": "서명 필수",
+      "webhook": "Webhook",
+      "webhooks_that_wake_this_crew": "이 크루를 깨우는 Webhook"
+    },
+    "shortcutsModal": {
+      "panel_toggles": "패널 표시 전환",
+      "unset": "설정 안 됨"
+    },
+    "tailnetMobile": {
+      "automatic_https": "이 tailnet에 HTTPS가 활성화되면 Tailscale이 비공개 인증서를 자동으로 만들고 갱신합니다.",
+      "setting_up": "휴대폰 액세스를 설정하는 중…",
+      "setup_action": "설정하고 QR 표시",
+      "setup_timeout": "휴대폰 액세스가 준비되지 않았습니다. 설정을 확인한 후 다시 시도하세요."
+    },
+    "gitPanel": {},
+    "agentSelector": {},
+    "commentOverlay": {},
+    "commentThreadPopover": {},
+    "commentThreads": {},
+    "contentRenderer": {},
+    "detailPanel": {},
+    "diagramLightbox": {},
+    "dialog": {},
+    "diffPanel": {},
+    "errorBoundary": {},
+    "fileChangeChips": {},
+    "folderSuggestionCard": {},
+    "infoTip": {},
+    "logEntry": {},
+    "markdownToc": {},
+    "modal": {},
+    "modelDropdownList": {},
+    "modelEffortDropdown": {},
+    "onboardingChapterShell": {},
+    "projectPicker": {},
+    "questionCard": {},
+    "queueStack": {},
+    "resizeHandle": {},
+    "runInTerminalBtn": {},
+    "runInTerminalConfirm": {},
+    "selectionToolbar": {},
+    "sendToInstanceSubmenu": {},
+    "sessionColorSwatches": {},
+    "sessionMoveUndoBar": {},
+    "sessionPulseSurveyCard": {},
+    "sessionRefStrip": {},
+    "sidePanelLayout": {},
+    "sideSheet": {},
+    "skillForm": {},
+    "slotTagPopover": {},
+    "timezoneSelect": {},
+    "tipCard": {},
+    "toolInputPreview": {},
+    "ui": {},
+    "voiceDictationPanel": {},
+    "widgetPlaceholder": {},
+    "windowsTitlebarMenu": {},
+    "settingRef": {},
+    "pttTestStrip": {},
+    "awsConsentGate": {},
+    "projectSkillsTrust": {},
+    "projectSkillsTrustList": {},
+    "updateFoundModal": {},
+    "updatePill": {}
   },
   "hooks": {
     "mic": {
@@ -2381,7 +2684,10 @@
       "walk_back_mru_history": "Walk back MRU history",
       "stop_speaking": "Stop speaking",
       "toggle_focus_mode": "Toggle focus mode",
-      "jump_to_chat_letters": "Jump to chat 10 and beyond (letters follow the badge shown on each row)"
+      "jump_to_chat_letters": "Jump to chat 10 and beyond (letters follow the badge shown on each row)",
+      "toggle_left_sidebar": "왼쪽 사이드바 표시 전환",
+      "toggle_session_panel": "세션 패널 표시 전환",
+      "toggle_side_panel": "사이드 패널 표시 전환"
     },
     "useSceneInteraction": {
       "all_slots_are_occupied": "All slots are occupied",
@@ -2483,7 +2789,8 @@
         "pending": "Pending",
         "reviewing": "Reviewing",
         "running": "Running"
-      }
+      },
+      "phasedView": {}
     },
     "appDetailPage": {
       "app_not_found_2": "App \"{{name}}\" not found",
@@ -2564,7 +2871,13 @@
       "unknown_2": "(unknown)",
       "update_failed": "update failed",
       "public_by_link_warning": "Published URLs are public-by-link: anyone with the link can view the content — it is served on the public internet with no authentication.",
-      "random_domain_note": "Content is served at a random *.cloudfront.net domain — don't publish anything you wouldn't put on the open internet."
+      "random_domain_note": "Content is served at a random *.cloudfront.net domain — don't publish anything you wouldn't put on the open internet.",
+      "destroy_button": "사이트 파기",
+      "destroy_title": "사이트를 파기하시겠습니까?",
+      "recall_button": "사이트 회수",
+      "recall_title": "사이트를 회수하시겠습니까?",
+      "remove_profile_button": "프로필 제거",
+      "remove_profile_title": "프로필을 제거하시겠습니까?"
     },
     "artifactDetailPage": {
       "agent_chat": "Agent chat",
@@ -2611,7 +2924,8 @@
       "snapshot_to_publish": "Snapshot to publish",
       "star": "Star",
       "this_artifact_was_deleted": "This artifact was deleted.",
-      "toggle_agent_chat": "Toggle agent chat"
+      "toggle_agent_chat": "Toggle agent chat",
+      "discard_changes_button": "변경 사항 버리기"
     },
     "artifactPopoutFrame": {
       "artifact": "Artifact",
@@ -2685,8 +2999,6 @@
       "reset_role_s_llm_session_the_channel_s_shared_me": "Reset {{role}}'s LLM session. The channel's shared message history is preserved.",
       "running_tool": "running tool…",
       "unknown_error": "unknown error",
-      "reply_2_one": "{{count}} reply",
-      "reply_2_other": "{{count}} replies",
       "listen_all": "all",
       "listen_mention": "mention",
       "listen_silent": "silent",
@@ -2739,7 +3051,9 @@
         "subagents": "Subagents",
         "workflows": "Workflows",
         "workspace_empty": "No files in this workspace yet",
-        "workspace_truncated": "Large workspace — showing the first 10,000 files"
+        "workspace_truncated": "Large workspace — showing the first 10,000 files",
+        "model_downgraded": "요청 {{requested}}, 실제 {{resolved}}",
+        "model_label": "모델: {{model}}"
       },
       "assistantMessage": {
         "copied": "Copied!",
@@ -2923,8 +3237,6 @@
         "open_items_heading": "Open items",
         "open_items_less": "Show less",
         "open_items_more": "+{{n}} more",
-        "open_items_one": "{{count}} open item",
-        "open_items_other": "{{count}} open items",
         "pivoted_from_turn": "Pivoted here from your question at turn {{turn}}",
         "project_notes": "How this project works",
         "reload": "Check again",
@@ -2949,7 +3261,8 @@
         "filter_placeholder": "Filter files…",
         "refresh": "Refresh",
         "resize": "Resize file browser",
-        "tree_mode": "File list mode"
+        "tree_mode": "File list mode",
+        "ctx_add_to_chat": "채팅에 추가"
       },
       "filesHome": {
         "no_project_dir": "No project directory is set for this chat",
@@ -2958,7 +3271,22 @@
         "select_file_hint": "Select a file from the tree to open it in a new tab",
         "title": "Files",
         "tree_error": "Couldn't load the file tree"
-      }
+      },
+      "pins": {},
+      "recoveryCard": {},
+      "chatFooter": {},
+      "cronAckBar": {},
+      "errorCard": {},
+      "pinnedPrompt": {},
+      "sessionColorPicker": {},
+      "sessionFlyout": {},
+      "stopEventCard": {},
+      "subagentRunCard": {},
+      "userMessage": {},
+      "workflowProgressBar": {},
+      "workflowRunCard": {},
+      "workflowSidebarRow": {},
+      "earlierMessagesBar": {}
     },
     "chatPage": {
       "autopilot_plans_before_executing_each_stage_need": "Autopilot plans before executing. Each stage needs your approval (or select 'Go All' to run autonomously). Sub-agents are delegated automatically. Plan lessons persist across sessions.",
@@ -2973,8 +3301,6 @@
       "fork_failed_error": "Fork failed: {{error}}",
       "hide_sessions": "Hide sessions",
       "hide_sessions_sidebar": "Hide sessions sidebar",
-      "knowledge_item_one": "{{count}} knowledge item",
-      "knowledge_item_other": "{{count}} knowledge items",
       "message_queued_until_session_ready": "{{error}}. Your message is queued and will be sent when a session is ready — but it is held in this tab only, so if you navigate away or reload you will need to retype it.",
       "message_saved_as_draft": "{{error}}. Your message is saved as a draft in the session you sent it from.{{extra}}",
       "no_results": "No results",
@@ -3060,10 +3386,6 @@
       "collapse_group_results": "Collapse {{group}} results",
       "expand_folder_name": "Expand folder {{name}}",
       "expand_group_results": "Expand {{group}} results",
-      "more_pull_request_in_this_session_one": "{{count}} more pull request in this session",
-      "more_pull_request_in_this_session_other": "{{count}} more pull requests in this session",
-      "more_pull_request_or_issue_in_this_session_one": "{{count}} more pull request or issue in this session",
-      "more_pull_request_or_issue_in_this_session_other": "{{count}} more pull requests or issues in this session",
       "open_source_link_in_side_panel": "Open {{url}} in the side panel ({{modifier}} to open it in the browser)",
       "filter_unread": "Unread",
       "filter_unread_description": "Show only sessions with unread messages",
@@ -3247,8 +3569,6 @@
       "up_to_date_with_main": "up to date with main",
       "worktrees_count": "Worktrees ({{count}})",
       "cannot_resolve_worktree_path_for_name": "Cannot resolve worktree path for {{name}}",
-      "commits_behind_main_2_one": "{{count}} commit behind main",
-      "commits_behind_main_2_other": "{{count}} commits behind main",
       "make_name_live": "Make \"{{name}}\" live?",
       "pod_up_name": "Pod up: {{name}}",
       "provision_failed": "Provision failed",
@@ -3417,8 +3737,6 @@
         "estimated_requests_still_needed_to_finish_indexi": "Estimated Kiro requests still needed to finish indexing this source.",
         "expand_folder_details": "Expand folder details",
         "failed_to_add_source": "Failed to add source",
-        "files_failed_count_one": "{{count}} failed",
-        "files_failed_count_other": "{{count}} failed",
         "files_indexed": "{{done}}/{{total}} files indexed",
         "files_with_no_extension_e_g_readme_are_ingested": "Files with no extension (e.g. README) are ingested as plain text — drag-and-drop them here, since the file picker cannot list extensionless files.",
         "folder": "folder",
@@ -3432,8 +3750,6 @@
         "show_failed_files": "Show which files failed",
         "start_scanning": "Start Scanning",
         "starting": "Starting...",
-        "supported_file_found_one": "{{count}} supported file found",
-        "supported_file_found_other": "{{count}} supported files found",
         "supports_formats": "Supports: {{formats}}.",
         "this_folder_will_be_watched_any_supported_files": "This folder will be watched. Any supported files added here will be auto-ingested on the next scan cycle (~5 min).",
         "this_folder_will_be_watched_continuously_new_fil": "This folder will be watched continuously. New files added here will be auto-ingested on the next scan cycle (~5 min).",
@@ -3475,7 +3791,8 @@
         "auto_artifacts_desc": "Mirror documents you save as artifacts into the Knowledge Library.",
         "load_failed": "Failed to load settings.",
         "retry": "Retry"
-      }
+      },
+      "knowledgeGraph": {}
     },
     "logsPage": {
       "latest_first": "Latest: first",
@@ -3495,12 +3812,8 @@
         "lede": "What {{productName}} managed to observe about each server, and how that lines up with what the server is running as right now. Nothing on this view changes anything — the switches live under Servers.",
         "legend": "Recommending a shared backend takes the server saying it can tell its callers apart, and few servers say it. A measurement rules out a per-caller handshake but cannot see state a tool call would create, so most healthy servers rest at measured or no objection found — the conservative answer, not a missing one, and sharing remains your call.",
         "measure_failed": "The measurement pass stopped early; see the gateway log",
-        "measure_finished_one": "Measured {{count}} server",
-        "measure_finished_other": "Measured {{count}} servers",
         "measure_none_left": "Every server has been measured",
         "measure_running": "Measuring, {{done}} of {{total}} done",
-        "measure_unmeasured_one": "Measure {{count}} server",
-        "measure_unmeasured_other": "Measure {{count}} servers",
         "open_servers": "Open Servers",
         "reason_all_tools_read_only": "Every tool declares itself read-only",
         "reason_handshake_not_reproducible": "Did not replay the same handshake when started twice; this may come from the caller or from the server's own startup. Measuring again retests it",
@@ -3577,7 +3890,10 @@
       "unsupported_platform": "Backend sharing needs Unix-domain sockets, so it is unavailable on this platform.",
       "view_assessment": "Sharing assessment",
       "view_servers": "Servers",
-      "views_aria": "MCP management views"
+      "views_aria": "MCP management views",
+      "state_direct_env": "직접 (env)",
+      "state_direct_env_legend": "직접 (env) — 서버가 공유 백엔드가 전달하지 않는 환경 키를 선언하므로 {{productName}}은(는) 스텁을 만들지 않습니다. 세션이 직접 실행하며 공유 백엔드도, 서버 자체 UI도 없습니다.",
+      "state_direct_env_reason": "스텁 없지만 선택은 저장된 상태로 유지됩니다."
     },
     "migrationPage": {
       "clean_up_old_entry": "Clean up old entry",
@@ -3645,7 +3961,10 @@
         "controls_how_conversation_history_is_consolidate": "Controls how conversation history is consolidated into memory.",
         "learned_user_preferences_coding_style_tools_work": "Learned user preferences (coding style, tools, workflows). Auto-updated by memory consolidation.",
         "persistent_lessons_injected_into_every_session_a": "Persistent lessons injected into every session. Auto-extracted from task runner failures. Add manually via 'kirocrew learn add'. When vector memory is active, lessons are managed in the Semantic tab as lesson.* entries.",
-        "save": "Save"
+        "save": "Save",
+        "lesson_already_covered": "기존 학습 내용에 이미 포함되어 있습니다({{reason}}). 새로운 내용을 추가하려면 문구를 바꾸세요.",
+        "lesson_already_stored": "이 학습 내용은 이미 저장되어 있습니다.",
+        "lesson_not_saved": "학습 내용을 저장하지 못했습니다({{reason}}). 수정한 후 다시 시도하세요."
       },
       "promptsTab": {
         "prompts_count": "Prompts ({{count}})",
@@ -3770,7 +4089,9 @@
         "structured_semantic_key_value_episodic_conversat": "Structured semantic (key-value) + episodic (conversation fragments) memory with vector search. Embeddings are always-on — the model downloads automatically in the background.",
         "unknown_error": "Unknown error",
         "verifying_model_integrity": "Verifying model integrity…"
-      }
+      },
+      "embedModel": {},
+      "tokenDailyChart": {}
     },
     "overviewPage": {
       "all_systems_running": "All systems running",
@@ -3901,8 +4222,6 @@
       "select": "Select {{name}}",
       "view_last_result": "View last result",
       "cronFolders": {
-        "batch_move_failed_one": "{{count}} of {{total}} job could not be moved",
-        "batch_move_failed_other": "{{count}} of {{total}} jobs could not be moved",
         "collapse_folder": "Collapse folder",
         "confirm_delete_folder": "Delete \"{{name}}\"? Jobs will be ungrouped.",
         "create": "Create",
@@ -3910,8 +4229,6 @@
         "delete_folder_named": "Delete \"{{name}}\"",
         "expand_folder": "Expand folder",
         "folder_actions": "Folder actions",
-        "job_count_one": "{{count}} job",
-        "job_count_other": "{{count}} jobs",
         "move_to_folder": "Move to folder",
         "new_folder": "New folder",
         "new_folder_name": "New folder name",
@@ -4057,7 +4374,8 @@
         "start_the_channel_at_gateway_startup": "Start the {{channel}} channel at gateway startup (requires a bot token).",
         "verified_with_channel_and_saved": "Verified with {{channel}} and saved. Restart the gateway to connect.",
         "where_to_find_the_bot_token": "Where to find the bot token",
-        "where_to_find_the_credential": "Where to find the {{label}}"
+        "where_to_find_the_credential": "Where to find the {{label}}",
+        "shared_channels": "공용 채널"
       },
       "channelsPanel": {
         "checking": "Checking…",
@@ -4144,7 +4462,16 @@
         "failed_to_save_session_summaries": "Failed to save session summaries setting",
         "failed_to_save_vision_mode": "Failed to save vision input mode.",
         "failed_to_save_vision_redirect": "Failed to save the text-only redirect policy.",
-        "failed_to_save_vision_fallback": "Failed to save the vision fallback model."
+        "failed_to_save_vision_fallback": "Failed to save the vision fallback model.",
+        "effort_needs_reasoning_model": "추론 가능한 모델에만 적용되므로 위에서 선택한 모델에는 영향이 없습니다.",
+        "fallback_auto": "자동(권장)",
+        "fallback_auto_hint": "자동(기본값)은 백엔드가 사용 가능한 모델로 라우팅하도록 합니다. 폴백 전환은 채팅에 표시되며 모델이 복구될 때까지 유지됩니다. 사용 안 함은 폴백을 끕니다.",
+        "fallback_disabled": "사용 안 함",
+        "fallback_model": "폴백 모델",
+        "model_tried_when_your_current_model_stays_rate_li": "현재 모델이 재시도 한도를 넘어 속도 제한 상태가 지속될 때 시도되는 모델입니다.",
+        "role_model_auto": "자동(공급자가 선택)",
+        "throttle_fallback": "속도 제한 폴백",
+        "failed_to_save_fallback_model": "Failed to save fallback model"
       },
       "displayPanel": {
         "color": "Color {{n}}",
@@ -4405,7 +4732,9 @@
         "profile_unusable_title": "Fallback profile in effect",
         "profile_unusable_body": "A policy fallback ceiling is in effect. Affected profiles:",
         "profile_unusable_which": "Affected: {{profiles}}.",
-        "profile_unusable_detail": "These come from the profiles folder of your Kiro Crew data home. Each one extends a profile that is missing, so it falls back until the missing file is restored."
+        "profile_unusable_detail": "These come from the profiles folder of your Kiro Crew data home. Each one extends a profile that is missing, so it falls back until the missing file is restored.",
+        "unknown_scopes_tip": "아래 프로필에는 이 빌드에 등록되지 않은 기능 범위가 포함되어 있습니다. 대개 컴패니언 에디션이 추가하는 범위지만, 잘못 입력한 범위 키도 여기에 나타납니다. 이들은 건너뛰며 이 빌드에서는 아무 효과가 없습니다.",
+        "unknown_scopes_title": "이 빌드에 없는 프로필 범위"
       },
       "skillsPanel": {
         "failed_to_save_skills_setting": "Failed to save skills setting"
@@ -4446,7 +4775,12 @@
         "set_paste_to_replace": "•••••• (set — paste to replace)",
         "settings_are_saved_but_the_channel_is_not_runnin": "Settings are saved but the channel is not running. Restart the gateway to connect.",
         "teams_credential_check_failed": "Teams credential check failed ({{error}}). Verify the App ID / password / tenant, then restart the gateway.",
-        "where_to_find_the_client_secret": "Where to find the client secret"
+        "where_to_find_the_client_secret": "Where to find the client secret",
+        "active": "활성",
+        "jwt_required": "<strong>Microsoft Teams에는 PyJWT 종속성이 필요합니다.</strong> 수신되는 Bot Framework 요청에는 검증해야 하는 서명된 토큰이 포함되므로 이 종속성이 없으면 채널이 시작되지 않습니다. gateway를 실행하는 환경에서 <mono>pip install \"kirocrew[teams]\"</mono>을 실행한 다음 gateway를 다시 시작하세요.",
+        "needs_setup": "설정 필요",
+        "not_active": "활성 아님",
+        "save_rejected": "gateway가 이 설정을 거부했습니다({{code}})."
       },
       "voicePanel": {
         "failed_to_save_voice_config": "Failed to save voice config",
@@ -4507,7 +4841,24 @@
         "saving": "Saving…",
         "settings_are_saved_but_the_channel_is_not_runnin": "Settings are saved but the channel is not running. Restart the gateway to connect.",
         "verified_with_webex_and_saved_restart_the_gatewa": "Verified with Webex and saved. Restart the gateway to connect.",
-        "where_to_find_the_bot_token": "Where to find the bot token"
+        "where_to_find_the_bot_token": "Where to find the bot token",
+        "allowed_room_ids": "허용된 공간 ID",
+        "allowed_room_ids_desc": "비워 두면 어떤 공간에도 응답하지 않으므로 스위치만 켜도 아무것도 허용되지 않습니다. 보낸 사람도 허용된 이메일 목록에 있어야 합니다. 공간 ID는 불투명한 문자열입니다. 다음 명령으로 목록을 확인하세요:\ncurl -H \"Authorization: Bearer $WEBEX_BOT_TOKEN\" https://webexapis.com/v1/rooms",
+        "allowed_room_ids_empty_hint": "아직 어떤 공간에도 응답하지 않습니다. 봇을 공간에 추가한 뒤 그 공간의 ID를 여기에 붙여넣으세요.",
+        "allow_group_spaces": "그룹 공간에서 응답",
+        "allow_group_spaces_desc": "기본값은 꺼짐입니다. 공간의 답장은 허용된 이메일 목록에 없는 사람까지 포함해 그 안의 모든 사람에게 표시됩니다.",
+        "behaviour": "동작",
+        "empty_allowlist_hint": "허용된 이메일이 없습니다: 봇이 모든 메시지를 거부합니다. 아래에 Webex 계정 이메일을 추가하세요.",
+        "hard_context_threshold": "하드 컨텍스트 임계값 %",
+        "hard_context_threshold_desc": "이 지점에서는 결정을 기다리지 않고 자동으로 압축해 컨텍스트 창이 넘치지 않게 합니다.",
+        "reply_in_thread": "스레드에서 답장",
+        "reply_in_thread_desc": "메시지에 스레드가 있으면 그 안에서 답장하므로 붐비는 공간도 읽기 쉬워집니다.",
+        "room_id_placeholder": "Y2lzY29zcGFyazovL3VzL1JPT00v…",
+        "soft_context_threshold": "소프트 컨텍스트 임계값 %",
+        "soft_context_threshold_desc": "대화의 컨텍스트가 이 값을 넘으면 자동으로 압축하지 않고 /compact 또는 /new를 제안합니다.",
+        "soft_threshold_must_not_exceed_hard": "소프트 임계값은 하드보다 클 수 없습니다. 하드를 먼저 검사하므로 더 큰 소프트 값에는 도달하지 않습니다.",
+        "soft_threshold_must_be_1_to_100": "Soft threshold must be an integer from 1 to 100",
+        "hard_threshold_must_be_1_to_100": "Hard threshold must be an integer from 1 to 100"
       },
       "weixinPanel": {
         "connect_via_qr": "Connect via QR",
@@ -4520,7 +4871,9 @@
       },
       "channels": {
         "get_your_bot_credentials": "Get your bot credentials",
-        "threshold_description": "Prompt to {{compact}} or {{new}} when the session context passes this percentage."
+        "threshold_description": "Prompt to {{compact}} or {{new}} when the session context passes this percentage.",
+        "hard_threshold_description": "이 비율에 도달하면 응답을 기다리지 않고 자동으로 압축해 컨텍스트 윈도가 넘치지 않도록 합니다.",
+        "hard_threshold_label": "하드 컨텍스트 임계값 %"
       },
       "discordPanel": {
         "allowed_server_thread_ids": "Allowed server thread IDs",
@@ -4534,7 +4887,18 @@
         "thread_warning": "Thread mode enables Discord's global Message Content intent. Discord delivers content from every server channel the bot can see; {{productName}} discards traffic outside approved threads. Everyone who can view an approved thread can read agent replies and tool output.",
         "threshold_description": "Prompt to !compact or !new when the session context passes this percentage.",
         "token_description": "From the Developer Portal's Bot page (Reset Token to view it once).",
-        "token_placeholder": "Paste Discord bot token"
+        "token_placeholder": "Paste Discord bot token",
+        "allowed_server_channel_ids": "허용된 서버 채널 ID",
+        "auto_thread_description": "허용된 채널에 보낸 메시지는 새 공개 스레드를 열고, 턴은 공용 채널이 아니라 그 스레드에서 실행됩니다.",
+        "auto_thread_label": "새 스레드에서 답장",
+        "auto_thread_off_hint": "자동 스레드가 꺼져 있어 위 채널의 메시지는 무시됩니다. {{productName}}은(는) 공용 채널에서 직접 답하지 않습니다.",
+        "channel_allowlist_description": "선택 사항입니다. 승인된 사용자는 이 공용 서버 채널에서도 에이전트를 실행할 수 있습니다. 비어 있으면 공용 채널을 사용하지 않습니다.",
+        "channel_help": "개발자 모드를 켠 상태에서 채널을 오른쪽 클릭 → <mono>Copy Channel ID</mono>. 채널 안의 스레드 ID가 아니라 채널 자체의 ID를 사용하세요.",
+        "channel_warning": "공용 채널은 스레드보다 더 넓은 공개 경계입니다. 채널을 볼 수 있는 사람과 턴이 실행되는 공개 스레드를 열 수 있는 사람은 누구나 에이전트가 쓴 내용과 도구가 출력한 내용을 읽을 수 있습니다. 채널의 모든 구성원에게 보여도 괜찮을 때만 추가하세요.",
+        "reactions_description": "에이전트가 어느 단계에 있는지 내 메시지에 이모지 리액션으로 표시합니다(대기 → 사고 → 코딩 → 완료). 끄면 메시지에 아무 표시도 남지 않습니다.",
+        "reactions_label": "단계 리액션",
+        "thinking_description": "모델 추론의 미리 보기를 답변 위에 별도의 작은 글씨 메모로 게시합니다. 끄면 채널에는 답변만 남습니다.",
+        "thinking_label": "사고 과정 표시"
       },
       "telegramPanel": {
         "allowlist_description": "Numeric Telegram user IDs permitted to DM the bot. Empty = deny all (fail closed): a Telegram bot is globally reachable by @username.",
@@ -4548,7 +4912,17 @@
         "guide_body": "Message `@BotFather` on Telegram, send `/newbot`, and follow the prompts. BotFather replies with a bot token — paste it below. To find your numeric user ID, message `@userinfobot`.",
         "guide_link_label": "Open @BotFather",
         "token_description": "From @BotFather after creating your bot (looks like 110201543:AAHdqT…).",
-        "token_placeholder": "Paste Telegram bot token (123456:ABC-…)"
+        "token_placeholder": "Paste Telegram bot token (123456:ABC-…)",
+        "forum_activation_always": "모든 메시지",
+        "forum_activation_description": "허용된 주제 안에서 봇이 답변하는 시점입니다. 다이렉트 메시지는 이 설정과 무관하게 항상 답변합니다.",
+        "forum_activation_hint": "같은 주제에서 다른 사람들끼리도 대화한다면 '부를 때만'이 적합합니다. 이때는 @이름을 사용했을 때, 또는 봇이 보낸 메시지에 답장했을 때에만 답변합니다.",
+        "forum_activation_label": "주제에서 답변하기",
+        "forum_activation_mention": "부를 때만",
+        "forum_activation_off": "답변하지 않음",
+        "show_thinking_description": "각 답변 뒤에 추론 과정을 펼칠 수 있는 접힌 인용으로 게시합니다. 기본값은 꺼짐: Telegram의 속도 제한은 채팅 단위이며 답변이 이미 사용하는 스트리밍 편집과 공유되므로, 턴마다 메시지 하나가 더 듭니다.",
+        "show_thinking_label": "모델의 추론 과정 게시",
+        "voice_replies_description": "voice_reply 공급자 설정을 사용해 각 답변을 텍스트와 함께 음성 메시지로도 보냅니다. 기본값은 꺼짐입니다. Telegram의 요청 빈도 제한은 대화별로 계산되므로 턴마다 메시지가 하나 늘어나고, 음성 합성이 설치되지 않은 경우도 있습니다. 짧은 답변은 읽어 주지 않으며 텍스트 답변이 항상 먼저 도착합니다. /voice on 또는 /voice off로 대화 하나만 바꿀 수 있습니다.",
+        "voice_replies_label": "답변 읽어 주기"
       },
       "weComPanel": {
         "allow_all_bypass_note": "Allow-all is on: the userid list above is bypassed. It is kept for when you switch back.",
@@ -4572,7 +4946,9 @@
         "preset_custom": "Custom",
         "record_prompt": "Press keys…",
         "custom_hint": "Use at least one modifier key.",
-        "turn_keyboard_shortcuts_on_or_off_globally": "Turn keyboard shortcuts on or off globally — {{mod}} + K (this reference) always works"
+        "turn_keyboard_shortcuts_on_or_off_globally": "Turn keyboard shortcuts on or off globally — {{mod}} + K (this reference) always works",
+        "clear_shortcut": "지우기",
+        "panel_toggles": "패널 표시 전환"
       },
       "reportProblemCard": {
         "support": "Support",
@@ -4600,7 +4976,77 @@
         "node_no_admin": "On a machine where you cannot install Node — no admin rights, or a registry that needs a login — run the command below on the machine where Kiro Crew is running. The script installs Node and the CLI into your home directory, and tells you how to fix it if your network blocks the download.",
         "copy_command": "Copy command",
         "copied": "Copied"
-      }
+      },
+      "whatsAppPanel": {
+        "add_a_group": "그룹 추가",
+        "allowed_numbers_empty_adds_nobody": "에이전트와 대화할 수 있는 전화번호(국가 번호를 포함한 숫자, 더하기 기호 없음)입니다. 비워두면 당신 외에는 아무도 추가되지 않습니다.",
+        "allowed_wa_ids": "허용된 번호",
+        "already_paired_unlink_then_restart": "이미 연결되어 있습니다. 다른 기기를 연결하려면 아래에서 이 기기의 연결을 해제한 뒤 게이트웨이를 다시 시작하세요.",
+        "anyone_who_messages_you": "봇에 메시지를 보내는 누구나",
+        "blocked_by_whatsapp": "WhatsApp에서 차단됨",
+        "blocked_number_cannot_pair": "WhatsApp이 이 번호를 차단했으므로 연결을 시작할 수 없습니다.",
+        "channel_not_running_so_nothing_was_unlinked": "채널이 실행되고 있지 않아 아무것도 해제되지 않았습니다. 연결된 기기는 그대로 남으므로 휴대폰의 연결된 기기 목록에서 해제하세요.",
+        "confirm_unlink": "연결 해제 확인",
+        "connected": "연결됨",
+        "could_not_start_pairing": "연결을 시작할 수 없습니다.",
+        "could_not_start_the_login_flow": "연결 절차를 시작할 수 없습니다.",
+        "could_not_unlink_the_device": "기기 연결을 해제할 수 없습니다.",
+        "created_for_you_when_you_turn_this_on_if_it_does": "이 기능을 켤 때 아직 없으면 자동으로 생성됩니다.",
+        "enable_the_whatsapp_channel": "WhatsApp 채널 활성화",
+        "every_group_you_joined_is_already_listed": "참여 중인 모든 그룹이 이미 목록에 있습니다.",
+        "group_participation_is_opt_in_per_group": "그룹 참여는 그룹별로 선택합니다. 멘션 모드는 태그될 때만 응답하고, 규칙 모드는 대기 시간을 두고 요청 없이도 도울 수 있습니다. 비공식 WhatsApp Web 프로토콜을 사용하므로 개인 규모로만 사용하세요.",
+        "groups": "그룹",
+        "how_the_agent_joins_in": "에이전트가 참여하는 방식",
+        "me_plus_allowed_numbers": "나와 허용된 번호",
+        "mode_also_when_the_rules_apply": "규칙이 적용될 때도 참여",
+        "mode_off_keeping_the_entry": "끔, 항목은 유지",
+        "mode_only_when_mentioned": "멘션되거나 인용될 때만",
+        "nobody_ignore_all_messages": "아무도 안 됨 (모든 메시지 무시)",
+        "not_signed_in": "연결 안 됨",
+        "only_me_the_default": "나만 (내 메시지)",
+        "paired_but_not_connected": "연결되었지만 접속되지 않음",
+        "pairing_starts_when_the_channel_starts": "연결 코드는 채널이 연결을 진행하는 동안에만 존재하고, 연결은 채널이 시작될 때 시작됩니다. 아래에서 채널을 켠 뒤 게이트웨이를 다시 시작하세요.",
+        "pair_with_whatsapp": "WhatsApp으로 연결",
+        "phone_number_placeholder": "447700900000",
+        "remove_name_from_the_group_list": "그룹 목록에서 {{name}} 제거",
+        "revokes_the_linked_device_on_your_account": "WhatsApp 계정에서 이 연결된 기기를 해제하고 로컬 세션을 삭제합니다. 기기를 다시 연결할 때까지 에이전트는 메시지를 읽거나 보내지 않습니다.",
+        "rules_example_placeholder": "3D 프린팅 질문에 답하기",
+        "scanned_confirm_on_your_phone": "스캔되었습니다. 휴대폰에서 확인하세요.",
+        "scan_the_code_from_linked_devices": "휴대폰의 WhatsApp으로 코드를 스캔하세요: 설정, 연결된 기기, 기기 연결.",
+        "seconds_between_unprompted_replies": "자발적 응답 사이 간격(초)",
+        "setup_guide": "설정 가이드",
+        "show_pairing_code": "연결 코드 표시",
+        "signed_in_restart_the_gateway_to_start_receiving": "연결되었습니다. 메시지 수신을 시작하려면 게이트웨이를 다시 시작하세요.",
+        "status_unavailable": "상태를 확인할 수 없음",
+        "talk_to_your_agent_from_your_own_whatsapp": "연결된 기기로 등록한 자신의 WhatsApp 계정으로 에이전트와 대화하세요. 에이전트가 보내는 메시지는 당신의 번호에서 발송됩니다.",
+        "the_agent_ignores_every_group_not_listed": "여기에 없는 그룹은 에이전트가 모두 무시합니다.",
+        "the_agent_stays_silent_unless_these_apply": "자유 입력입니다. 이 규칙이 분명히 적용되지 않으면 에이전트는 말하지 않습니다.",
+        "the_channel_is_enabled_but_not_running": "채널은 켜져 있지만 실행되지 않고 있습니다. 게이트웨이를 다시 시작하세요.",
+        "the_channel_is_not_running_enable_and_restart": "WhatsApp 채널이 실행되고 있지 않습니다. 아래에서 켠 뒤 게이트웨이를 다시 시작하세요.",
+        "the_code_expired_try_again": "코드가 만료되었습니다. 다시 시도하세요.",
+        "the_link_was_revoked": "연결이 해제되었습니다",
+        "the_link_was_revoked_restart_to_pair_again": "연결이 해제되었습니다. 기기를 다시 연결하려면 게이트웨이를 다시 시작하세요.",
+        "unlinked_but_the_session_file_was_kept": "WhatsApp 연결은 해제했지만 로컬 세션 파일을 삭제하지 못했습니다. 다시 연결하기 전에 데이터 디렉터리에서 파일을 삭제하세요.",
+        "unlinked_restart_to_pair_again": "연결을 해제했습니다. 기기를 다시 연결하려면 게이트웨이를 다시 시작하세요.",
+        "unlink_this_device": "이 기기 연결 해제",
+        "unofficial_protocol_ban_risk": "비공식 프로토콜입니다. WhatsApp이 연결된 번호를 차단할 수 있습니다. 잃어도 괜찮은 번호만 연결하세요.",
+        "waiting_for_a_code": "코드를 기다리는 중…",
+        "waiting_for_scan": "스캔을 기다리는 중…",
+        "waiting_to_be_paired": "연결 대기 중",
+        "whatsapp": "WhatsApp",
+        "whatsapp_did_not_connect": "WhatsApp이 접속되지 않았습니다: {{error}}",
+        "whatsapp_pairing_qr_code": "WhatsApp 연결 QR 코드",
+        "whatsapp_refused_the_unlink_still_linked": "WhatsApp이 연결 해제를 거부했으므로 기기는 여전히 연결되어 있고 로컬 세션도 남아 있습니다. 다시 시도하거나 휴대폰의 연결된 기기 목록에서 해제하세요.",
+        "when_the_agent_may_speak": "에이전트가 말할 수 있는 시점",
+        "who_can_message_the_bot": "에이전트에게 메시지를 보낼 수 있는 사람",
+        "your_groups_load_once_the_channel_is_connected": "채널이 접속되면 그룹이 여기에 표시됩니다."
+      },
+      "channelDisabledPanel": {},
+      "developerPanel": {},
+      "importPanel": {},
+      "releases": {},
+      "remoteCrewPanel": {},
+      "webhooksPanel": {}
     },
     "worldsPage": {
       "hide_controls": "Hide controls",
@@ -4609,7 +5055,38 @@
     "worldsPopout": {
       "hide_controls": "Hide controls",
       "show_controls": "Show controls"
-    }
+    },
+    "contextBreakdown": {},
+    "servicesTab": {
+      "channels": "채널",
+      "connect_error": "연결 오류",
+      "discord": "Discord",
+      "feishu": "Feishu",
+      "imessage": "iMessage",
+      "teams": "Microsoft Teams",
+      "telegram": "Telegram",
+      "webex": "Webex",
+      "wecom": "WeCom",
+      "weixin": "WeChat",
+      "whatsapp": "WhatsApp"
+    },
+    "sessionStorage": {},
+    "settingsPage": {
+      "search": {}
+    },
+    "telemetryPanel": {},
+    "appPage": {},
+    "developer": {
+      "featurePreviewsTab": {}
+    },
+    "embedSettingsPage": {},
+    "localStorageDebug": {},
+    "mcpGatewayCard": {},
+    "performanceTab": {},
+    "sessionsTab": {},
+    "systemPage": {},
+    "terminalPopoutFrame": {},
+    "webhooksPage": {}
   },
   "privacyDisclosure": {
     "anonymousHeartbeatBody": "At most one ping a day. It identifies an installed copy, not a person.",
@@ -4720,8 +5197,11 @@
       "voice": {
         "description": "Text-to-speech and speech-to-text (dictation) settings",
         "label": "Voice"
-      }
-    }
+      },
+      "webhooks": {},
+      "secrets": {}
+    },
+    "secrets": {}
   },
   "utils": {
     "cronUtils": {

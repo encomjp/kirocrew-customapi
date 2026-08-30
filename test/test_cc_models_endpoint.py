@@ -394,6 +394,21 @@ def test_opencode_models_response_filters_to_whitelist(monkeypatch):
     session = _FakeSession()
     session._fail = False
     monkeypatch.setattr(aiohttp, "ClientSession", lambda *a, **k: session)
+    # No local opencode CLI in this scenario: the CLI-import union (auth.json
+    # accounts) must not leak rows a whitelist-only install does not expect.
+    import kiro_crew.acp.client as acp_client_mod
+    monkeypatch.setattr(
+        acp_client_mod,
+        "_resolve_opencode_bin",
+        lambda: None,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        acp_client_mod,
+        "_opencode_models_via_cli",
+        lambda: (True, [], ""),
+        raising=False,
+    )
 
     async def run():
         return await _opencode_models_response(MagicMock())
@@ -401,4 +416,38 @@ def test_opencode_models_response_filters_to_whitelist(monkeypatch):
     resp = _run_async(run())
     rows = json.loads(resp.text)
     ids = [r["model_id"] for r in rows]
+    assert ids == ["gpt-5.6-sol"]
+
+
+def test_opencode_models_response_imports_cli_models(monkeypatch):
+    """Models from the LOCAL opencode CLI (`opencode models`, its own auth.json
+    accounts) are unioned into the catalog and survive the router whitelist —
+    logging into opencode is configuration enough."""
+    import aiohttp
+
+    from kiro_crew.dashboard.handlers import agents as agents_mod
+    from kiro_crew.dashboard.handlers.agents import _opencode_models_response
+
+    cfg = _opencode_config(monkeypatch)
+    cfg.agent.model_whitelist = ["gpt-5.6-sol"]
+    session = _FakeSession()
+    session._fail = False
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda *a, **k: session)
+
+    import kiro_crew.acp.client as acp_client_mod
+    monkeypatch.setattr(acp_client_mod, "_resolve_opencode_bin", lambda: ["/usr/bin/opencode"], raising=False)
+    monkeypatch.setattr(
+        acp_client_mod,
+        "_opencode_models_via_cli",
+        lambda: (True, ["openai/gpt-5.5", "ollama-cloud/glm-5.3", "gpt-5.6-sol"], ""),
+        raising=False,
+    )
+
+    async def run():
+        return await _opencode_models_response(MagicMock())
+
+    resp = _run_async(run())
+    rows = json.loads(resp.text)
+    ids = [r["model_id"] for r in rows]
+    # whitelist filters strictly — only whitelisted ids survive, whether from router or CLI
     assert ids == ["gpt-5.6-sol"]

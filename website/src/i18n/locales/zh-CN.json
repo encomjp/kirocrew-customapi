@@ -6,7 +6,9 @@
       "session_expired": "会话已过期。",
       "session_expired_sign_in_again": "会话已过期。请在终端运行 kirocrew token，然后将 URL 粘贴到本页顶部的横幅中重新登录。",
       "stream_ended_without_completion": "流在完成前结束",
-      "unexpected_server_response": "服务器响应异常"
+      "unexpected_server_response": "服务器响应异常",
+      "stale_owner_session": "이 세션은 소유자 설정 이전에 만들어졌습니다. 다시 로그인하세요.",
+      "stale_owner_session_sign_in_again": "이 세션은 소유자 설정 이전에 만들어졌습니다(KIROCREW_OWNER_ID 설정 전에 로그인됨). 터미널에서 kirocrew token 을 실행한 뒤 이 페이지 상단 배너에 URL을 붙여넣어 다시 로그인하세요."
     }
   },
   "app": {
@@ -963,7 +965,7 @@
         "from_last_session": "来自你们上次的相处时光",
         "loading": "正在回顾…",
         "offline": "打开桌面应用来查看你的回忆。",
-        "row_breathing_other": "和 {{name}} 一起呼吸了 {{count}} 次",
+        "row_breathing_other": "{{count}} rows breathing for {{name}}",
         "row_earliest": "最早的开始：{{time}}",
         "row_latest": "你俩最晚的一次：{{time}}",
         "row_reminders_other": "设定了 {{count}} 个提醒",
@@ -1618,7 +1620,13 @@
           "search_issues": "搜索 issues…",
           "search_issues_2": "搜索 issues",
           "time_since_the_issue_list_was_last_fetched_from": "距上次从 GitHub 获取 issue 列表的时间",
-          "updated": "更新时间"
+          "updated": "更新时间",
+          "re_fetch_issues_and_labels_from": "{{provider}}에서 이슈와 라벨 다시 가져오기",
+          "search": "{{label}} 검색…",
+          "time_since_issue_list_last_fetched_from": "이슈 목록을 {{provider}}에서 마지막으로 가져온 이후 경과 시간",
+          "tracked_items_are_project_scoped": "작업 항목은 {{project}} 프로젝트 전체에 속하므로 그 안의 모든 저장소가 같은 목록을 표시합니다.",
+          "search_2": "Search the issue list ({{label}})",
+          "work_item_other": "{{count}} work items"
         },
         "labelPalette": {
           "close_label_search": "关闭标签搜索",
@@ -1833,7 +1841,8 @@
           "search_2": "搜索 {{label}}",
           "select_for_bulk": "选择 {{subject}} #{{number}} 以执行批量操作",
           "time_since_the_pr_list_was_last_fetched_from_git": "距上次从 GitHub 获取 PR 列表的时间",
-          "updated": "更新时间"
+          "updated": "更新时间",
+          "time_since_list_last_fetched_from": "{{label}} 목록을 {{provider}}에서 마지막으로 가져온 후 경과한 시간"
         },
         "prRunActions": {
           "cancel_run": "取消 {{name}} 运行",
@@ -1846,7 +1855,8 @@
           "self_managed_instance": "自管理实例：{{host}}"
         },
         "readOnlyTag": {
-          "read_only": "只读"
+          "read_only": "只读",
+          "read_only_repo_needs_triage_or_push_access": "읽기 전용 저장소 — 심사 또는 푸시 권한이 필요합니다"
         },
         "refLink": {
           "closed": "已关闭",
@@ -1880,6 +1890,17 @@
           "connect_repo": "连接仓库",
           "general": "通用",
           "repository_settings": "仓库设置"
+        },
+        "depsSection": {
+          "blocked_by": "차단 요인",
+          "blocking": "차단 중",
+          "open_here": "{{sigil}}{{number}} 여기서 열기",
+          "source_inferred": "inferred",
+          "source_native": "native",
+          "state_closed": "closed",
+          "state_merged": "merged",
+          "state_open": "open",
+          "title": "의존성"
         }
       },
       "connectPanel": {
@@ -1905,7 +1926,11 @@
         "session_install_and_sign_in_to": "会话。请安装并登录",
         "then": "，然后",
         "through_your_own": "读取",
-        "you_contributed_to": "你参与贡献过"
+        "you_contributed_to": "你参与贡献过",
+        "azure_also_needs_the_devops_extension": "Azure DevOps에는 전용 CLI 확장도 필요합니다. 아래 명령으로 한 번 설치하세요.",
+        "https_dev_azure_com_org_project_git_repo": "https://dev.azure.com/<org>/<project>/_git/<repo>",
+        "no_repositories_in_your_organization_paste_a_url": "조직에 저장소가 없습니다. 아래에 URL을 붙여넣어 연결하세요.",
+        "repositories_in_your_organization": "조직의 저장소"
       },
       "connectRepoModal": {
         "close": "关闭",
@@ -1923,6 +1948,9 @@
           "crew_sort_status": "状态",
           "crew_sort_name": "名称",
           "crew_sort_created": "已创建"
+        },
+        "links": {
+          "read_only_here_apply_in_provider": "여기서는 읽기 전용입니다 — {{provider}} 저장소는 {{productName}}에서 변경할 수 없습니다. {{provider}}에서 변경하세요"
         }
       },
       "manifest": {
@@ -1960,7 +1988,7 @@
             "trailer_hint": "会加到小队的每个提交上，这样在 git log 里就能追溯到它的工作。",
             "trailer_label": "提交尾注（trailer）",
             "trailer_required": "请输入提交尾注。",
-            "unit_hours_other": "小时"
+            "unit_hours_other": "{{count}} hours"
           },
           "editor": {
             "agent_hint": "任何代理都可以。每当小队简报从对话中消失，系统就会重新注入会话，你不用手动粘贴到代理里。",
@@ -2131,11 +2159,13 @@
           "unanswered": "未回复",
           "unassigned": "未分配",
           "untriaged": "未分类",
-          "untriaged_2": "未分类"
+          "untriaged_2": "未分类",
+          "re_fetch_issues_and_labels_from": "{{provider}}에서 이슈 + 레이블 다시 가져오기"
         },
         "registry": {
           "overview": "概览",
-          "tagging": "打标签"
+          "tagging": "打标签",
+          "graph": "그래프"
         },
         "settings": {
           "generalSettings": {
@@ -2255,7 +2285,9 @@
             "read_only_repo_needs_triage_push_access": "仓库只读 — 需要 triage/push 权限",
             "suggest_again": "再次建议",
             "suggest_new_labels": "建议新标签",
-            "suggested_new_labels_not_created_until_you_say_s": "建议的新标签 — 未经你确认不会创建"
+            "suggested_new_labels_not_created_until_you_say_s": "建议的新标签 — 未经你确认不会创建",
+            "create_this_label_on": "{{provider}}에서 이 라벨 만들기",
+            "re_fetch_this_repo_s_labels_from": "이 저장소의 레이블을 {{provider}}에서 다시 가져오기"
           },
           "untaggedIssueCard": {
             "add": "添加",
@@ -2266,7 +2298,8 @@
             "click_to_remove_2": "{{reason}} — 点击移除",
             "no_label_fits": "没有合适的标签",
             "read_only_repo_needs_triage_or_push_access": "仓库只读 — 需要 triage 或 push 权限",
-            "select_issue": "选择 issue #{{number}}"
+            "select_issue": "选择 issue #{{number}}",
+            "add_these_labels_on": "{{provider}}에서 이 라벨 추가"
           }
         },
         "taggingView": {
@@ -2294,7 +2327,48 @@
           "untagged": "未标记",
           "untagged_issues": "未标记的 issue",
           "what_you_see_below_is_the_previous_result_not_th": "下方显示的是上一次的结果，而非当前状态。",
-          "write_every_staged_label_to_github": "将所有暂存的标签写入 GitHub"
+          "write_every_staged_label_to_github": "将所有暂存的标签写入 GitHub",
+          "write_every_staged_label_to": "준비된 라벨을 모두 {{provider}}에 기록"
+        },
+        "graphView": {
+          "aria_node": "{{kind}}-{{number}}, {{state}}: {{title}}",
+          "aria_tree": "{{kind}}-{{number}}의 의존성 트리: 노드 {{nodes}}개, 활성 간선 {{edges}}개",
+          "ci_fail": "CI 실패",
+          "empty_blurb": "이 저장소에는 그릴 의존성 간선이 없습니다. gh issue edit --add-blocked-by로 네이티브 의존성을 설정하거나, 다음 동기화 때 Issue Radar가 상호 참조에서 추론합니다.",
+          "empty_board": "빈 보드",
+          "empty_title": "아직 의존성이 없습니다",
+          "empty_unavailable_blurb": "그래프를 불러오지 못했습니다. 이 저장소에서 deps 라우트가 아직 활성화되지 않았을 수 있습니다. 활성화 후 다시 시도하세요.",
+          "empty_unavailable_title": "의존성 데이터를 사용할 수 없음",
+          "fewer_waiting": "간략히 보기",
+          "focus_caption": "선택한 항목의 전체 활성 의존성 트리입니다. 노드를 클릭하면 루트 재설정, Enter로 열기. 점선=추론, 취소선=해소됨.",
+          "focus_empty": "항목을 선택하면 의존성 트리를 그립니다.",
+          "frontier_caption": "새로 해제된 항목은 기록된 차단 항목이 모두 닫히거나 병합되었습니다. 항목을 열어 이유를 펼치거나 그 트리를 여세요.",
+          "frontier_heading": "프런티어",
+          "frontier_sub": "새로 해제 {{ready}}개 · 대기 중 {{waiting}}개",
+          "ghost_satisfied": "해소됨",
+          "header": "의존성",
+          "jump_label": "항목으로 이동",
+          "jump_placeholder": "항목 #으로 이동…",
+          "led_done": "DONE",
+          "led_open": "OPEN",
+          "led_ready": "RDY",
+          "led_run": "RUN",
+          "led_wait": "WAIT",
+          "loading": "의존성 불러오는 중…",
+          "more_waiting": "… {{n}}개 더",
+          "no_frontier": "의존성이 기록된 열린 항목이 없습니다.",
+          "open_tree": "트리 열기 →",
+          "ready_count": "새로 해제 {{n}}개",
+          "refresh": "의존성 데이터 새로 고침",
+          "retry": "다시 시도",
+          "tab_focus": "포커스 트리",
+          "tab_frontier": "프런티어",
+          "tree_stat": "{{kind}}-{{number}}의 트리: 노드 {{nodes}}개 · 활성 간선 {{edges}}개",
+          "views_label": "의존성 보기",
+          "waiting_heading": "대기 중({{n}})",
+          "why_all_satisfied": "모든 차단 항목 해소됨: {{refs}}",
+          "why_satisfied": "해소됨: {{refs}}",
+          "why_waiting": "대기 중: {{refs}}"
         }
       },
       "welcomeCarousel": {
@@ -3772,8 +3846,11 @@
         "save_and_compile_hint": "按 Cmd+S（Windows 和 Linux 上为 Ctrl+S）保存并编译。",
         "session_title": "Papyrus：{{name}}",
         "warning_count_other": "{{count}} 个警告",
-        "word_count_other": "{{count}} 个词"
-      }
+        "word_count_other": "{{count}} 个词",
+        "co_author_conflict_discard_button": "편집 버리기",
+        "co_author_conflict_discard_title": "저장하지 않은 편집을 버리시겠습니까?"
+      },
+      "editor": {}
     },
     "personalShopper": {
       "manifest": {
@@ -4094,7 +4171,17 @@
           "tab_tasks": "任务",
           "tells_the_agent_this_phase_is_approved_and_to_mo": "告知代理此阶段已通过、可以继续——与在聊天中输入相同",
           "the_agent_is_writing_the_next_document": "已批准 — 代理正在撰写下一个文档",
-          "working": "正在处理…"
+          "working": "正在处理…",
+          "approved": "승인됨",
+          "approved_by_user": "{{user}}이(가) 승인",
+          "archive_this_spec": "이 스펙 보관",
+          "changed_since_approval": "승인 후 변경됨",
+          "duplicate_this_spec": "이 스펙 복제",
+          "name_for_the_copy": "사본 이름",
+          "rename_this_spec_label_the_folder_name_stays": "이 스펙의 라벨을 바꿉니다. 폴더 이름과 브랜치 이름은 그대로입니다.",
+          "restore_this_spec": "이 스펙 복원",
+          "spec_label": "스펙 라벨",
+          "this_document_changed_after_it_was_approved": "이 문서는 승인된 뒤에 변경되었습니다"
         },
         "specRail": {
           "agent_working": "代理工作中",
@@ -4133,6 +4220,17 @@
           "plan_your_next_feature_with_a_spec": "用 spec 规划你的下一个功能",
           "resize_spec_list": "调整 spec 列表大小",
           "start_your_first_spec": "创建你的第一个 spec"
+        },
+        "taskList": {
+          "done": "완료",
+          "done_of_total": "{{total}}개 중 {{done}}개 완료",
+          "no_tasks_yet": "아직 작업이 없습니다. 설계를 승인하면 순서가 정해진 작업 목록이 여기에 표시되고, 하나씩 실행할 수 있습니다.",
+          "pause_the_build_first": "작업 하나만 실행하려면 먼저 구축을 일시 중지하세요",
+          "run": "실행",
+          "run_only_this_task_and_stop": "이 작업만 실행한 뒤 멈춥니다",
+          "run_task": "작업 실행: {{task}}",
+          "starting": "시작 중…",
+          "task_progress": "작업 진행률"
         }
       },
       "manifest": {
@@ -4238,6 +4336,103 @@
         "command": "命令",
         "setting": "设置",
         "view": "视图"
+      },
+      "action_ask": "질문",
+      "action_enter": "뷰 열기",
+      "action_open": "열기",
+      "action_open_app": "앱 페이지 열기",
+      "action_open_session": "세션 열기",
+      "action_run": "실행",
+      "action_search_sessions": "세션 검색",
+      "action_show_recent": "최근 항목 표시",
+      "ask_agent": "에이전트에게 질문: ‘{{query}}’",
+      "group_attention": "확인 필요",
+      "no_match_show_recent": "‘{{query}}’와 일치하는 세션이 없습니다 — 최근 항목 표시"
+    },
+    "autoTriagePipeline": {
+      "manifest": {
+        "page_label": "자동 분류 파이프라인",
+        "description": "A full-page view of Kiro Crew's own auto-triage pipeline: one horizontal lane per crew work item across the phase enum, so an operator sees at a glance which phase each item is in, where items are piling up, and which have stalled. Reads the crew ledger through Issue Radar's crew-fabric seam — the lane drawing answers 'where is this item', a queue summary answers 'how is the queue doing'.",
+        "display_name": "Kiro Crew Auto Triage Pipeline"
+      },
+      "pipeline": {
+        "and_counting": "{{dwell}} 이상, 계속 증가",
+        "aria_diagram": "크루 파이프라인: 작업 항목마다 단계 열을 가로지르는 가로 레인 하나",
+        "card_next": "다음",
+        "card_reopen": "재개 x{{count}}",
+        "card_table_at": "시각",
+        "card_table_dwell": "체류",
+        "card_table_phase": "페이즈",
+        "card_tag_done": "종점",
+        "card_tag_editing": "CREW가 편집 중",
+        "card_tag_exit": "클레임 해제",
+        "card_tag_reply": "사람 응답 대기",
+        "card_tag_waiting": "체크 대기",
+        "dashboard_editing_cap": "한 번에 편집 슬롯 1개",
+        "dashboard_per_phase": "페이즈별",
+        "dwell_open": "+{{dwell}}",
+        "empty_body": "이 파이프라인은 크루 작업 항목이 단계를 거쳐 이동할 때마다 레인 하나를 그립니다. 아직 실행된 항목이 없습니다 — 크루를 연결하고 작업을 맡기면 여기에 레인이 나타납니다.",
+        "empty_footer": "Issue Radar에서 crew를 설정하여 파이프라인을 시작하세요.",
+        "empty_title": "아직 크루 활동이 없습니다",
+        "fence_label": "편집 페이즈 -- 최대 1개 항목",
+        "head_await_reply": "응답 대기",
+        "head_done": "완료",
+        "head_editing": "편집 중",
+        "head_released": "해제됨",
+        "head_waiting": "대기 중",
+        "lane_issue": "이슈-{{number}}",
+        "legend_done": "완료",
+        "legend_editing": "편집 중",
+        "legend_heading": "범례",
+        "legend_hint": "레인에 마우스를 올리면 전체 제목과 체류 시간이 표시됩니다.",
+        "legend_released": "릴리스됨",
+        "legend_waiting": "대기 중",
+        "no_repo_body": "파이프라인은 연결된 리포지토리의 crew 작업 항목마다 하나의 레인을 그립니다. 아직 연결된 리포지토리가 없습니다 — 하나를 연결하면 해당 crew 작업 항목이 여기에 표시됩니다.",
+        "no_repo_title": "연결된 리포지토리 없음",
+        "notes_heading": "참고",
+        "refresh": "파이프라인 새로고침",
+        "repo_picker_label": "리포지토리 전환",
+        "repo_picker_prefix": "리포",
+        "subtitle": "크루 작업 항목마다 레인 하나씩, 모든 단계를 가로질러 표시 — 각 항목이 어느 단계에 있고 어디에 쌓이고 있는지 한눈에 확인하세요.",
+        "summary_editing": "편집 중",
+        "summary_in_flight": "진행 중",
+        "summary_longest_wait": "최장 대기",
+        "summary_longest_wait_in": "{{phase}}에서 대기 중",
+        "summary_longest_wait_none": "대기 없음",
+        "summary_reopens": "에스컬레이션",
+        "titleblock_generated": "접음",
+        "titleblock_items": "작업 항목",
+        "titleblock_live": "진행 중",
+        "titleblock_repo": "REPO",
+        "note_1": "Rows marked red render out of place — the lane did not respect its sort order.",
+        "note_2": "A red band above a column means the lane kept a blank row where content should flow.",
+        "note_3": "The legend chips sit immediately below their diagram, not one lane lower.",
+        "note_4": "Dotted outlines mark cards that are staged but not yet committed.",
+        "note_5": "Every number comes from the live layout probe — resize the window to regenerate.",
+        "empty_row_1": "Nothing queued. Add repositories on the Sources tab to start a run.",
+        "empty_row_2": "No active runs. Kick one off from the command bar.",
+        "empty_row_3": "No results yet — runs land here the moment a lane reports back.",
+        "exit_skipped": "SKIPPED",
+        "exit_yielded": "YIELDED",
+        "exit_handed_back": "HANDED BACK",
+        "exit_preempted": "PREEMPTED",
+        "exit_await_reply": "AWAIT REPLY",
+        "caption_selected": "LOCAL, PRE-CLAIM",
+        "caption_claimed": "LABEL + ASSIGNEE",
+        "caption_investigating": "READING, NOT EDITING",
+        "caption_implementing": "THE EDITING PHASE",
+        "caption_awaiting_ci": "CHECKS RUNNING",
+        "caption_addressing_review": "EDITING AGAIN",
+        "caption_awaiting_merge": "GREEN, NEEDS A HUMAN",
+        "caption_resolved": "TERMINAL",
+        "header_selected": "SELECTED",
+        "header_claimed": "CLAIMED",
+        "header_investigating": "INVESTIG.",
+        "header_implementing": "IMPLEMENT",
+        "header_awaiting_ci": "AWAIT CI",
+        "header_addressing_review": "ADDR REV",
+        "header_awaiting_merge": "AWAIT MRG",
+        "header_resolved": "RESOLVED"
       }
     }
   },
@@ -4411,7 +4606,10 @@
       "some_setup_could_not_be_read": "{{productName}} 无法读取 {{sources}} —— 下方未列出。",
       "files_could_not_be_read": "无法读取文件",
       "your_existing_kirocrew_setup_will_not_be_affecte": "Your existing {{productName}} setup will not be affected.",
-      "your_selected_setup_is_ready_in_kiro_crew": "Your selected setup is ready in {{productName}}."
+      "your_selected_setup_is_ready_in_kiro_crew": "Your selected setup is ready in {{productName}}.",
+      "kiro_crew": "{{productName}}",
+      "skip_all": "Skip all",
+      "skip_all_setup_and_onboarding": "Skip all setup and onboarding"
     },
     "agentSelector": {
       "agent_list": "代理列表",
@@ -4456,7 +4654,10 @@
       "rejected": "已拒绝",
       "running": "正在运行：",
       "tool_approval_requested": "已请求工具审批：",
-      "trusted_auto_approving_future_calls": "已信任 — 后续调用将自动批准"
+      "trusted_auto_approving_future_calls": "已信任 — 后续调用将自动批准",
+      "approval_no_longer_pending": "이 승인은 만료되었거나 이미 결정되었습니다 — 에이전트가 더 이상 기다리지 않습니다.",
+      "decision_failed": "이 결정이 기록되지 않았을 수 있습니다 — 요청이 실패했습니다.",
+      "decision_not_recorded_error": "이 결정이 기록되지 않았습니다: {{error}}"
     },
     "approvalModePicker": {
       "all_tools_will_get_auto_approved_across_all_sess": "所有会话中的全部工具都将自动批准。",
@@ -4602,7 +4803,9 @@
     "artifactBody": {
       "artifact": "工件：{{slug}}",
       "image_could_not_be_loaded": "无法加载图片",
-      "rendering": "渲染中…"
+      "rendering": "渲染中…",
+      "could_not_render": "Couldn't render this artifact",
+      "retry": "Retry"
     },
     "artifactChatPanel": {
       "agent_chat": "智能体对话",
@@ -4772,7 +4975,18 @@
       "upload_file": "上传文件",
       "use_a_skill": "使用技能",
       "used": "已用",
-      "voice_input": "语音输入"
+      "voice_input": "语音输入",
+      "drop_to_attach": "놓아서 첨부",
+      "finishing": "마무리 중…",
+      "hold_to_talk": "눌러서 말하기",
+      "keep_holding_to_record": "누른 상태로 녹음",
+      "release_to_cancel": "놓으면 취소",
+      "release_to_transcribe": "놓으면 텍스트 변환",
+      "send_a_message_or_tap_the_mic_for_voice": "메시지를 보내거나 마이크를 눌러 음성 사용",
+      "slide_up_to_cancel": "위로 밀어 취소",
+      "switch_not_confirmed": "전환이 아직 확인되지 않았습니다. 연결이 복구되면 적용됩니다.",
+      "switch_to_keyboard": "키보드로 전환",
+      "switch_to_voice": "음성으로 전환"
     },
     "chatPane": {
       "agent_list": "代理列表",
@@ -5235,7 +5449,8 @@
       "stopped": "已停止",
       "pin_crew": "将 {{name}} 置顶到顶栅",
       "unpin_crew": "取消置顶 {{name}}",
-      "pinned_no_room": "已置顶，顶栅空间不足"
+      "pinned_no_room": "已置顶，顶栅空间不足",
+      "keep_tab_order_fixed": "탭 순서 고정"
     },
     "instancesViewport": {
       "connecting": "正在连接…",
@@ -5426,7 +5641,14 @@
       "your_crew_is_almost_ready": "你的 crew 即将就绪。",
       "agent_specs_rejected": "Agent specs rejected",
       "kiro_cli_will_not_load_kiro_crew_s_agent_specs": "Kiro CLI will not load {{productName}}'s agent specs",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "sign_in_again_to_continue": "계속하려면 다시 로그인하세요.",
+      "sign_in_required": "로그인 필요",
+      "copy_sign_in_command": "Copy sign-in command",
+      "could_not_check_kiro_cli": "Could not check Kiro CLI.",
+      "or_run_in_terminal": "or run in terminal:",
+      "refresh": "Refresh",
+      "sessions_are_paused_until_the_gateway_check_succ": "Sessions are paused until the gateway check succeeds. Your artifacts, settings, and\n              history remain available."
     },
     "linkPreview": {
       "copied": "已复制",
@@ -5523,7 +5745,8 @@
       "unsaved_changes": "未保存的更改",
       "view_preview": "查看预览",
       "view_source": "查看源码",
-      "word_wrap": "自动换行"
+      "word_wrap": "自动换行",
+      "discard_changes_button": "변경 사항 버리기"
     },
     "markdownRenderer": {
       "click_to_browse_shift_click_to_open_in_file_explorer": "点击浏览 / Shift+点击在文件资源管理器中显示",
@@ -5763,7 +5986,7 @@
     "pastedChip": {
       "collapse_paste": "折叠粘贴内容",
       "expand_paste": "展开粘贴内容",
-      "paste_lines_other": "[ 粘贴 #{{seq}} · {{count}} 行 ]",
+      "paste_lines_other": "{{count}} lines (paste {{seq}})",
       "preview_more_lines_other": "… 还有 {{count}} 行"
     },
     "privacyChapter": {
@@ -6019,7 +6242,10 @@
     "runInTerminalBtn": {
       "couldn_t_run_in_terminal": "无法在终端中运行",
       "run_in_terminal": "在终端中运行",
-      "sent_to_terminal": "已发送到终端"
+      "sent_to_terminal": "已发送到终端",
+      "cancel": "Cancel",
+      "confirm_run_sensitive_command": "Confirm run sensitive command",
+      "run_anyway": "Run anyway"
     },
     "runInTerminalConfirm": {
       "body_multi": "将在本对话工作目录下的新终端标签页中运行 {{lines}} 行命令。",
@@ -6174,7 +6400,9 @@
       "search_everywhere": "全局搜索",
       "show_or_focus_the_kiro_crew_window": "显示或聚焦 {{productName}} 窗口",
       "use_ctrl_not_option_for_chat_1_9": "聊天 1–9 请用 ⌃ Ctrl（而非 ⌥ Option）",
-      "use_ctrl_not_option_for_chat_1_to_9": "聊天 1 至 9 请用 Ctrl（而非 Option）"
+      "use_ctrl_not_option_for_chat_1_to_9": "聊天 1 至 9 请用 Ctrl（而非 Option）",
+      "panel_toggles": "패널 표시 전환",
+      "unset": "설정 안 됨"
     },
     "sidePanelLayout": {
       "update_available": "有可用更新"
@@ -6244,7 +6472,9 @@
       "loading_skills": "正在加载技能…",
       "no_matching_skills": "无匹配的技能",
       "no_matching_skills_ctrl_enter_sends": "无匹配的技能 —— 按 Ctrl+Enter 直接发送消息",
-      "no_matching_skills_enter_sends": "无匹配的技能 —— 按 Enter 直接发送消息"
+      "no_matching_skills_enter_sends": "无匹配的技能 —— 按 Enter 直接发送消息",
+      "trust_needed_badge": "Needs trust",
+      "trust_needed_hint": "From this project. Choose it to review and trust the folder."
     },
     "slashCommandMenu": {
       "desc_agent": "切换或管理当前代理",
@@ -6435,7 +6665,9 @@
       "restart_update": "重启并更新",
       "restarting": "正在重启…",
       "the_app_will_stop_the_local_gateway_install_the": "应用将停止本地网关、安装更新并重新启动。",
-      "update_ready": "更新已就绪"
+      "update_ready": "更新已就绪",
+      "install_restart_timing": "설치에는 몇 분이 걸릴 수 있습니다. 앱이 닫히고 업데이트가 완료되면 자동으로 다시 열립니다.",
+      "windows_installer_handoff": "Windows 설치 창에 진행 상황이 표시됩니다."
     },
     "voiceDictationPanel": {
       "esc_to_cancel_click_mic_to_finish": "Esc 取消，点击麦克风完成",
@@ -6591,7 +6823,9 @@
       "rendering": "正在渲染…",
       "save_failed": "保存失败",
       "star_as_artifact": "加星标为工件",
-      "starred_as_click_to_remove": "已加星标为“{{name}}” — 点击取消"
+      "starred_as_click_to_remove": "已加星标为“{{name}}” — 点击取消",
+      "could_not_render": "Couldn't render this widget",
+      "retry": "Retry"
     },
     "widgetPlaceholder": {
       "generating": "生成中…"
@@ -6704,6 +6938,114 @@
       "billing_notice": "这是付费 AWS 服务。在你确认之前不会发送任何请求。",
       "confirm_button": "确认并启用",
       "withdraw": "撤销确认"
+    },
+    "confirmDialog": {
+      "cancel": "취소"
+    },
+    "crewWebhookSection": {
+      "could_not_load_webhooks": "Webhook을 불러오지 못해 지금은 무엇이 이 크루를 깨우는지 알 수 없습니다.",
+      "inbound_webhooks_are_switched_off": "인바운드 webhook이 꺼져 있어 바인딩된 토큰을 포함해 아무것도 호출할 수 없습니다.",
+      "last_used_ago": "{{time}} 사용",
+      "no_tokens_are_bound_to_this_crew": "이 크루에 바인딩된 webhook 토큰이 없습니다.",
+      "off": "꺼짐",
+      "open_webhooks": "Webhooks 열기",
+      "outside_systems_holding_one_of_these_credentials": "이 토큰을 가진 외부 시스템은 이 크루로 턴을 시작할 수 있습니다. 생성과 폐기는 Webhooks 페이지에서 하세요.",
+      "retry": "다시 시도",
+      "signed": "서명 필수",
+      "webhook": "Webhook",
+      "webhooks_that_wake_this_crew": "이 크루를 깨우는 Webhook",
+      "unbound_tokens_can_wake_any_crew_other": "{{count}} unbound tokens can wake any crews"
+    },
+    "tailnetMobile": {
+      "automatic_https": "이 tailnet에 HTTPS가 활성화되면 Tailscale이 비공개 인증서를 자동으로 만들고 갱신합니다.",
+      "setting_up": "휴대폰 액세스를 설정하는 중…",
+      "setup_action": "설정하고 QR 표시",
+      "setup_timeout": "휴대폰 액세스가 준비되지 않았습니다. 설정을 확인한 후 다시 시도하세요.",
+      "card_title": "Phone access",
+      "badge_on": "Active",
+      "badge_attention": "Needs attention",
+      "badge_setup": "Setup needed",
+      "pinned_title": "Blocked by policy",
+      "pinned_body": "Your administrator's security policy pins tailnet access off, so this dashboard cannot be published to a private network. Ask your administrator if you need it.",
+      "install_title": "Install Tailscale to use this on your phone",
+      "install_body": "Tailscale puts this computer and your phone on the same private network, so the dashboard stays reachable without exposing anything to the public internet. Install it, sign in on your phone with the same account, then come back.",
+      "start_daemon_title": "Start Tailscale",
+      "start_daemon_body": "Tailscale is installed but its background service is not answering. Open the Tailscale app, make sure it reports Running, then re-check.",
+      "sign_in_title": "Sign in to Tailscale",
+      "sign_in_body": "Tailscale is running, but this computer is not signed in to a network yet. Sign in with the account your phone uses, then re-check.",
+      "enable_magicdns_title": "Turn on MagicDNS",
+      "enable_magicdns_body": "This computer is signed in, but its network has no MagicDNS name for it, so there is no address to point a phone at. Enable MagicDNS in the Tailscale admin console, then re-check.",
+      "enable_https_title": "Enable HTTPS certificates in Tailscale",
+      "enable_https_body": "Tailscale requires one-time tailnet administrator consent before Serve can provision certificates. Enable HTTPS in the Tailscale admin console, then re-check.",
+      "trust_off_title": "Allow access by this computer's network name",
+      "trust_off_body": "The dashboard refuses requests from addresses it does not recognise. Allow its own private-network name so a phone can reach it. This opens no port to the internet and does not change how you sign in.",
+      "restart_gateway_title": "Restart Kiro Crew to finish",
+      "restart_gateway_body": "A network name is available now, but this server resolved none when it started, so the name is not trusted yet. Restart Kiro Crew once and the last step will be ready.",
+      "occupied_title": "Something else is already served here",
+      "occupied_body": "Tailscale is already serving something at this address, and publishing would replace it. Nothing was changed. Publish it yourself if you are sure it is safe to overwrite.",
+      "publish_title": "Put the dashboard on your private network",
+      "publish_body": "Everything is ready. This publishes the dashboard to your own Tailscale network only — never to the public internet — so your phone can open it.",
+      "ready_title": "Ready on your phone",
+      "ready_body": "Open this address on a phone signed in to the same Tailscale network. Show a QR code to skip typing it.",
+      "copy": "Copy",
+      "copy_link": "Copy link",
+      "download": "Download Tailscale",
+      "show_qr": "Show QR code",
+      "hide_qr": "Hide",
+      "stop": "Turn off",
+      "recheck": "Re-check",
+      "qr_alt": "QR code linking to this dashboard",
+      "qr_warning": "Scan within {{minutes}} min. This code contains a sign-in link — anyone who gets it can open your dashboard for {{hours}}h, so do not share it or post a screenshot.",
+      "keep_awake_note": "This computer will not sleep while phone access is on, so the dashboard stays reachable. Its screen can still turn off.",
+      "open_dns_admin": "Open Tailscale DNS settings",
+      "open_https_admin": "Open Tailscale HTTPS settings",
+      "install_teaser": "Use this on your phone",
+      "install_teaser_hint": "needs Tailscale",
+      "no_peers": "No other device has joined this Tailscale network yet, so nothing can open this address. Install Tailscale on your phone and sign in with the same account.",
+      "peers_offline": "Your other devices have joined this network but none is online right now, so the address will not load until one connects."
+    },
+    "projectSkillsTrust": {
+      "body": "${{skill}} comes from this project's own .kiro/skills folder.",
+      "confirm": "Trust this folder",
+      "consequence": "Trusting this folder lets its skill files enter this chat's context, where they can instruct the agent to run commands. Only trust a project you recognise.",
+      "decline": "Not now",
+      "decline_consequence": "If you decline, nothing is loaded and your message is left as you typed it.",
+      "grant_failed": "Could not record trust for this folder.",
+      "title": "Trust this project's skills?",
+      "withdraw_hint": "You can withdraw this later from the Skills settings page.",
+      "working": "Trusting…"
+    },
+    "projectSkillsTrustList": {
+      "folder_missing": "This folder no longer exists.",
+      "hint": "These project folders may load their own skills into a chat. Withdraw a folder to stop its skills loading.",
+      "revoke": "Withdraw",
+      "revoke_failed": "Could not withdraw trust for this folder.",
+      "revoking": "Withdrawing…",
+      "title": "Trusted project folders"
+    },
+    "updateFoundModal": {
+      "copied": "Copied",
+      "copy_command": "Copy command",
+      "could_not_save_choice": "Couldn't save your choice — it may ask again after a reload.",
+      "dismiss": "Dismiss",
+      "download": "Download",
+      "nothing_downloads_until_you_choose_to": "Nothing downloads until you choose to.",
+      "remind_me_tomorrow": "Remind me tomorrow",
+      "skip_this_version": "Skip this version",
+      "update_available": "Update available",
+      "update_failed": "Update failed. Try again from Settings → About.",
+      "update_now": "Update now",
+      "updating": "Updating…",
+      "updating_and_restarting": "Updating and restarting…",
+      "version_is_available": "{{productName}} <0>{{version}}</0> is available.",
+      "you_can_update_anytime_from_settings_about": "Update anytime from Settings → About."
+    },
+    "updatePill": {
+      "downloading": "Downloading…",
+      "downloading_percent": "Downloading {{percent}}%",
+      "open_update_settings": "Open update settings",
+      "update_available": "Update available",
+      "update_ready": "Update ready"
     }
   },
   "hooks": {
@@ -6754,7 +7096,10 @@
       "switch_to_remote_crew": "切换到远程 Crew {{n}}",
       "walk_back_mru_history": "回溯 MRU 历史",
       "stop_speaking": "停止朗读",
-      "toggle_focus_mode": "切换专注模式"
+      "toggle_focus_mode": "切换专注模式",
+      "toggle_left_sidebar": "왼쪽 사이드바 표시 전환",
+      "toggle_session_panel": "세션 패널 표시 전환",
+      "toggle_side_panel": "사이드 패널 표시 전환"
     },
     "usePanelTabs": {
       "artifacts": "工件",
@@ -7269,7 +7614,13 @@
       "public_by_link_warning": "发布的 URL 为凭链接公开：任何拥有该链接的人都可以查看内容——它通过公共互联网提供，没有任何身份验证。",
       "random_domain_note": "内容通过随机的 *.cloudfront.net 域名提供——不要发布任何你不愿放到公开互联网上的内容。",
       "cloud_deployment_disabled": "Cloud deployment is disabled",
-      "cloud_deployment_disabled_detail": "This installation does not permit provisioning infrastructure in a cloud account, so artifact deployment is unavailable. Contact your administrator if you believe this is a mistake."
+      "cloud_deployment_disabled_detail": "This installation does not permit provisioning infrastructure in a cloud account, so artifact deployment is unavailable. Contact your administrator if you believe this is a mistake.",
+      "destroy_button": "사이트 파기",
+      "destroy_title": "사이트를 파기하시겠습니까?",
+      "recall_button": "사이트 회수",
+      "recall_title": "사이트를 회수하시겠습니까?",
+      "remove_profile_button": "프로필 제거",
+      "remove_profile_title": "프로필을 제거하시겠습니까?"
     },
     "artifactDetailPage": {
       "a_newer_version_is_available_in_the_remote_copy": "· 远端副本中有更新的版本",
@@ -7383,7 +7734,10 @@
       "version": "版本",
       "via_dashboard": "通过仪表板",
       "view_remote": "查看远端",
-      "your_current_edits_are_saved_as_a_version_first": "你当前的修改会先保存为一个版本，因此不会丢失任何内容。"
+      "your_current_edits_are_saved_as_a_version_first": "你当前的修改会先保存为一个版本，因此不会丢失任何内容。",
+      "discard_changes_button": "변경 사항 버리기",
+      "iterate": "Iterate",
+      "iterate_discuss_this_artifact_with_the_agent": "Iterate — discuss this artifact with the agent"
     },
     "artifactPopoutFrame": {
       "artifact": "工件",
@@ -7637,7 +7991,9 @@
         "waiting_to_start_queued_behind_the_concurrency_l": "等待开始 — 受并发上限限制正在排队",
         "workflows": "工作流",
         "workspace_empty": "此工作区还没有文件",
-        "workspace_truncated": "工作区较大 — 仅显示前 10,000 个文件"
+        "workspace_truncated": "工作区较大 — 仅显示前 10,000 个文件",
+        "model_downgraded": "요청 {{requested}}, 실제 {{resolved}}",
+        "model_label": "모델: {{model}}"
       },
       "assistantMessage": {
         "applied_to_tasks": "已应用到任务",
@@ -7800,7 +8156,10 @@
         "tool_call_blocked": "工具调用被阻止",
         "tool_stopped_responding": "工具停止响应",
         "turn_interrupted": "轮次被中断",
-        "turn_stalled": "轮次停滞"
+        "turn_stalled": "轮次停滞",
+        "hook_fault_told_in_turn": "호출 전에 훅이 실패함 · 이번 턴 내에 에이전트에 이유 전달됨",
+        "invalid_name_told_in_turn": "도구 이름이 검증을 통과하지 못함 · 이번 턴 내에 에이전트에 이유 전달됨",
+        "safety_policy_told_in_turn": "안전 정책이 호출을 차단함 · 이번 턴 내에 에이전트에 이유 전달됨"
       },
       "sessionColorPicker": {
         "change_your_color_palette_in_display_settings": "在“显示”设置中更改你的配色方案",
@@ -7915,7 +8274,8 @@
         "stop_running_subagent": "停止运行中的子代理",
         "stop_subagent": "停止子代理 {{name}}",
         "stop_this_subagent": "停止此子代理",
-        "waiting_to_start_queued_behind_the_concurrency_l": "等待开始 — 受并发上限限制正在排队"
+        "waiting_to_start_queued_behind_the_concurrency_l": "等待开始 — 受并发上限限制正在排队",
+        "tool_other": "{{count}} tools"
       },
       "subagentRunCard": {
         "open_in_the_subagents_panel": "在“子代理”面板中打开",
@@ -7937,7 +8297,8 @@
         "expand_model_reasoning": "展开模型推理",
         "hide_reasoning": "隐藏推理",
         "show_reasoning": "显示推理",
-        "thinking": "思考中"
+        "thinking": "思考中",
+        "thought_process": "사고 과정"
       },
       "toolCallLine": {
         "aria_hide_diff": "隐藏 diff",
@@ -8010,7 +8371,8 @@
         "copy_preview": "复制文本",
         "copy_link": "复制消息链接",
         "unpin": "取消置顶",
-        "jump_to_message": "跳转到消息"
+        "jump_to_message": "跳转到消息",
+        "pin_limit_reached": "핀 한도에 도달했습니다 — 다른 메시지를 고정하려면 기존 핀을 해제하세요."
       },
       "earlierMessagesBar": {
         "load_earlier_messages": "加载更早的消息",
@@ -8063,7 +8425,8 @@
         "filter_placeholder": "筛选文件…",
         "refresh": "刷新",
         "resize": "调整文件浏览器大小",
-        "tree_mode": "文件列表模式"
+        "tree_mode": "文件列表模式",
+        "ctx_add_to_chat": "채팅에 추가"
       },
       "filesHome": {
         "no_project_dir": "此聊天未设置项目目录",
@@ -8358,7 +8721,8 @@
       "add_state_lanes": "添加自动栏",
       "lane_seed_failed": "无法添加自动栏。",
       "lane_seed_retry": "重试",
-      "lane_legacy_column_hint": "显示所有会话"
+      "lane_legacy_column_hint": "显示所有会话",
+      "show_collapsed_folders": "Show collapsed folders:"
     },
     "connectionsPage": {
       "action_failed": "操作失败：{{error}}",
@@ -8450,7 +8814,11 @@
       "strip_your_messages": "你的消息",
       "strip_your_messages_sub": "{{total}} 中的 {{chars}} 个字符",
       "tag_estimate": "估算",
-      "title": "上下文构成"
+      "title": "上下文构成",
+      "col_credits": "크레딧",
+      "total_credits_title": "추적된 턴 전체의 크레딧",
+      "turn_credits_duration_title": "이 턴에서 {{credits}} 크레딧 · {{duration}}",
+      "turn_credits_title": "이 턴에서 {{credits}} 크레딧"
     },
     "devFleetPage": {
       "actions": "操作",
@@ -8971,7 +9339,10 @@
         "nodes": "个节点，",
         "all_sources": "所有来源",
         "filter_by_source": "按来源筛选",
-        "recenter": "重新居中"
+        "recenter": "重新居中",
+        "graph_region_label": "지식 엔티티 그래프",
+        "pause_physics": "일시정지",
+        "start_physics": "물리 시뮬레이션"
       },
       "sourceGroup": {
         "items_added_directly": "直接添加的条目",
@@ -9232,7 +9603,10 @@
       "unsupported_platform": "共享后端需要 Unix 域套接字，因此在当前平台不可用。",
       "view_assessment": "共享评估",
       "view_servers": "服务器",
-      "views_aria": "MCP 管理视图"
+      "views_aria": "MCP 管理视图",
+      "state_direct_env": "직접 (env)",
+      "state_direct_env_legend": "직접 (env) — 서버가 공유 백엔드가 전달하지 않는 환경 키를 선언하므로 {{productName}}은(는) 스텁을 만들지 않습니다. 세션이 직접 실행하며 공유 백엔드도, 서버 자체 UI도 없습니다.",
+      "state_direct_env_reason": "스텁 없지만 선택은 저장된 상태로 유지됩니다."
     },
     "migrationPage": {
       "app_migration": "应用迁移",
@@ -9500,7 +9874,11 @@
         "session_other": "{{count}} 个会话",
         "summarize_now": "立即总结",
         "tool": "工具",
-        "when": "时间"
+        "when": "时间",
+        "lesson_already_covered": "기존 학습 내용에 이미 포함되어 있습니다({{reason}}). 새로운 내용을 추가하려면 문구를 바꾸세요.",
+        "lesson_already_stored": "이 학습 내용은 이미 저장되어 있습니다.",
+        "lesson_not_saved": "학습 내용을 저장하지 못했습니다({{reason}}). 수정한 후 다시 시도하세요.",
+        "no_lessons": "No lessons"
       },
       "portabilityTab": {
         "archive_contents": "压缩包内容：",
@@ -9637,7 +10015,8 @@
         "workspace": "工作区",
         "auto_create_hint": "Kiro Crew 还可以从已完成的会话中自动起草技能 — 默认关闭，由 <settingRef/> 控制。",
         "approval_required_hint": "候选技能在此等待你的批准。当 <settingRef/> 关闭时，纯文本技能可以自动发布 — 包含脚本的技能始终需要审查。",
-        "scripts_always_require_review": "捆绑的脚本始终需要人工审查，即使已关闭技能审批。"
+        "scripts_always_require_review": "捆绑的脚本始终需要人工审查，即使已关闭技能审批。",
+        "no_skills_installed": "No skills installed"
       },
       "steeringTab": {
         "always_on_markdown_conventions_injected_into_eve": "注入到每个会话的常开 markdown 约定。全局文件位于 ~/.kiro/steering，在所有位置生效；工作区文件位于 <project>/.kiro/steering，仅对相应项目生效。",
@@ -10033,7 +10412,7 @@
       "continue_session": "继续会话",
       "create_your_first_job": "创建你的第一个任务",
       "cronFolders": {
-        "batch_move_failed_other": "{{total}} 个任务中有 {{count}} 个无法移动",
+        "batch_move_failed_other": "{{count}} of {{total}} batch moves failed",
         "collapse_folder": "折叠文件夹",
         "confirm_delete_folder": "删除 \"{{name}}\"？任务将变为未分组。",
         "create": "创建",
@@ -10122,7 +10501,8 @@
       "script_source_failed": "无法加载脚本源代码。",
       "script_source_truncated": "已截断 — 脚本超出预览大小限制。",
       "no_owning_session": "无所属会话",
-      "owning_session": "所属会话"
+      "owning_session": "所属会话",
+      "no_matching_jobs": "No matching jobs"
     },
     "servicesTab": {
       "connected": "已连接",
@@ -10152,7 +10532,18 @@
       "stopped": "已停止",
       "threads": "线程数",
       "uptime": "运行时长",
-      "working_directory": "工作目录"
+      "working_directory": "工作目录",
+      "channels": "채널",
+      "connect_error": "연결 오류",
+      "discord": "Discord",
+      "feishu": "Feishu",
+      "imessage": "iMessage",
+      "teams": "Microsoft Teams",
+      "telegram": "Telegram",
+      "webex": "Webex",
+      "wecom": "WeCom",
+      "weixin": "WeChat",
+      "whatsapp": "WhatsApp"
     },
     "sessionArchive": {
       "fuzzy_filter_substring_match": "模糊筛选（子串匹配）",
@@ -10207,7 +10598,27 @@
       "trash_empty": "空",
       "trash_note": "仍在占用磁盘空间，直到清空为止。这里的内容不会自动移除。",
       "trash_summary": "{{sessions}} 个会话 · {{size}}",
-      "unknown_session": "未列出的会话"
+      "unknown_session": "未列出的会话",
+      "busy_emptying": "휴지통을 비우고 있습니다. 완료될 때까지 일부 작업이 중지됩니다.",
+      "emptied": "{{size}}을(를) 확보했습니다.",
+      "empty_failed": "{{freed}}을(를) 확보한 후 중단되었습니다.",
+      "empty_failed_next_step": "'완전히 삭제'를 다시 시도하세요. 자세한 내용은 게이트웨이 로그에 있습니다.",
+      "emptying": "휴지통 비우기 진행 중",
+      "emptying_leave_ok": "이 페이지를 떠나도 계속 진행됩니다.",
+      "emptying_progress": "{{total}} 중 {{freed}} 확보",
+      "empty_kept": "{{freed}}을(를) 확보했지만 전부 삭제하지는 못했습니다.",
+      "empty_not_started": "휴지통 비우기를 시작할 수 없습니다. 다시 시도하세요.",
+      "kept_incomplete": "디스크에서 제거할 수 없는 배치가 있어 목록에 그대로 남아 있습니다.",
+      "kept_next_step": "이 배치에서 복구할 수 있는 항목을 복원하세요. 삭제를 막은 파일은 게이트웨이 로그에 기록되어 있습니다.",
+      "kept_outside_root": "휴지통 밖을 가리키는 배치가 있어 그대로 남겼습니다.",
+      "kept_unknown": "이 버전이 인식하지 못하는 이유로 배치가 유지되었습니다.",
+      "kept_unlisted_files": "매니페스트에 없는 파일을 포함한 배치가 있어, 삭제하면 세션의 유일한 사본을 상실할 수 있습니다.",
+      "kept_unreadable": "배치를 전부 읽지 못해 그대로 남겼습니다.",
+      "next_page": "다음",
+      "no_matches": "검색 조건에 일치하는 대화가 없습니다.",
+      "page_of": "{{pages}}페이지 중 {{page}}페이지",
+      "prev_page": "이전",
+      "showing_range": "{{total}}개 중 {{from}}–{{to}}개 표시"
     },
     "sessionsTab": {
       "agent": "代理",
@@ -10349,7 +10760,10 @@
         "view_this_commit_on_github": "在 GitHub 上查看此提交",
         "what_s_new": "新增内容",
         "you_are_on_the_latest_version": "你已使用最新版本。",
-        "you_re_on_the_latest_version": "你已使用最新版本。"
+        "you_re_on_the_latest_version": "你已使用最新版本。",
+        "automatic_updates_are_unavailable_in_this_build": "Automatic updates are unavailable in this build",
+        "commits_ahead_other": "{{count}} commits aheads",
+        "commits_behind_other": "{{count}} commits behinds"
       },
       "botChannelPanel": {
         "allowed_user_ids": "允许的用户 ID",
@@ -10382,7 +10796,8 @@
         "file_sessions_in_folder": "将会话归入文件夹",
         "file_sessions_in_folder_desc": "新的 {{channel}} 会话会进入侧边栏的一个文件夹，而不是散落在外。",
         "session_folder_name": "文件夹名称",
-        "session_folder_name_desc": "保存这些设置时若不存在会自动创建。"
+        "session_folder_name_desc": "保存这些设置时若不存在会自动创建。",
+        "shared_channels": "공용 채널"
       },
       "browserPanel": {
         "use_builtin_label": "使用内置浏览器",
@@ -10436,7 +10851,9 @@
       },
       "channels": {
         "get_your_bot_credentials": "获取你的机器人凭证",
-        "threshold_description": "会话上下文超过此百分比时，提示使用 {{compact}} 或 {{new}}。"
+        "threshold_description": "会话上下文超过此百分比时，提示使用 {{compact}} 或 {{new}}。",
+        "hard_threshold_description": "이 비율에 도달하면 응답을 기다리지 않고 자동으로 압축해 컨텍스트 윈도가 넘치지 않도록 합니다.",
+        "hard_threshold_label": "하드 컨텍스트 임계값 %"
       },
       "channelsPanel": {
         "channels": "渠道",
@@ -10613,7 +11030,25 @@
         "failed_to_save_provider": "Failed to save provider settings",
         "failed_to_save_vision_mode": "Failed to save vision input mode.",
         "failed_to_save_vision_redirect": "Failed to save the text-only redirect policy.",
-        "failed_to_save_vision_fallback": "Failed to save the vision fallback model."
+        "failed_to_save_vision_fallback": "Failed to save the vision fallback model.",
+        "effort_needs_reasoning_model": "추론 가능한 모델에만 적용되므로 위에서 선택한 모델에는 영향이 없습니다.",
+        "fallback_auto": "자동(권장)",
+        "fallback_auto_hint": "자동(기본값)은 백엔드가 사용 가능한 모델로 라우팅하도록 합니다. 폴백 전환은 채팅에 표시되며 모델이 복구될 때까지 유지됩니다. 사용 안 함은 폴백을 끕니다.",
+        "fallback_disabled": "사용 안 함",
+        "fallback_model": "폴백 모델",
+        "model_tried_when_your_current_model_stays_rate_li": "현재 모델이 재시도 한도를 넘어 속도 제한 상태가 지속될 때 시도되는 모델입니다.",
+        "role_model_auto": "자동(공급자가 선택)",
+        "throttle_fallback": "속도 제한 폴백",
+        "failed_to_save_fallback_model": "Failed to save fallback model",
+        "auto_add_documents": "Auto-Add Documents",
+        "auto_add_saved_artifacts": "Auto-Add Saved Artifacts",
+        "auto_ingest_limit_per_scan": "Auto-Ingest Limit Per Scan",
+        "auto_register_project_documents": "Auto-Register Project Documents",
+        "how_much_an_automatically_registered_source_may_i": "How much an automatically-registered source may take in one pass. Each piece of a document costs one extraction call, so this is what bounds the cost; newest documents land first and the rest follow on later passes. 0 removes the bound. Default {{count}}.",
+        "knowledge_library": "Knowledge Library",
+        "let_the_agent_add_documents_it_reads_while_workin": "Let the agent add documents it reads while working to your knowledge library, so they stay searchable later. The agent reads documents with tools you approve; Kiro Crew does not fetch them directly. Added documents appear in one “Auto-added” source you can remove in a click.",
+        "mirror_documents_you_save_as_artifacts_into_the_l": "Mirror documents you save as artifacts into the library, keep them in sync as you edit, and remove them when you delete the artifact.",
+        "register_the_documents_of_each_project_you_work_i": "Register the documents of each project you work in, so its design docs, specs and READMEs become searchable without adding the folder by hand. Documents only — never source code, agent instructions or generated files."
       },
       "computerUsePanel": {
         "accessibility": "辅助功能",
@@ -10672,7 +11107,18 @@
         "thread_warning": "Thread mode enables Discord's global Message Content intent. Discord delivers content from every server channel the bot can see; {{productName}} discards traffic outside approved threads. Everyone who can view an approved thread can read agent replies and tool output.",
         "threshold_description": "会话上下文超过此百分比时，提示使用 !compact 或 !new。",
         "token_description": "来自开发者门户的 Bot 页面（点击 Reset Token 查看一次）。",
-        "token_placeholder": "粘贴 Discord 机器人令牌"
+        "token_placeholder": "粘贴 Discord 机器人令牌",
+        "allowed_server_channel_ids": "허용된 서버 채널 ID",
+        "auto_thread_description": "허용된 채널에 보낸 메시지는 새 공개 스레드를 열고, 턴은 공용 채널이 아니라 그 스레드에서 실행됩니다.",
+        "auto_thread_label": "새 스레드에서 답장",
+        "auto_thread_off_hint": "자동 스레드가 꺼져 있어 위 채널의 메시지는 무시됩니다. {{productName}}은(는) 공용 채널에서 직접 답하지 않습니다.",
+        "channel_allowlist_description": "선택 사항입니다. 승인된 사용자는 이 공용 서버 채널에서도 에이전트를 실행할 수 있습니다. 비어 있으면 공용 채널을 사용하지 않습니다.",
+        "channel_help": "개발자 모드를 켠 상태에서 채널을 오른쪽 클릭 → <mono>Copy Channel ID</mono>. 채널 안의 스레드 ID가 아니라 채널 자체의 ID를 사용하세요.",
+        "channel_warning": "공용 채널은 스레드보다 더 넓은 공개 경계입니다. 채널을 볼 수 있는 사람과 턴이 실행되는 공개 스레드를 열 수 있는 사람은 누구나 에이전트가 쓴 내용과 도구가 출력한 내용을 읽을 수 있습니다. 채널의 모든 구성원에게 보여도 괜찮을 때만 추가하세요.",
+        "reactions_description": "에이전트가 어느 단계에 있는지 내 메시지에 이모지 리액션으로 표시합니다(대기 → 사고 → 코딩 → 완료). 끄면 메시지에 아무 표시도 남지 않습니다.",
+        "reactions_label": "단계 리액션",
+        "thinking_description": "모델 추론의 미리 보기를 답변 위에 별도의 작은 글씨 메모로 게시합니다. 끄면 채널에는 답변만 남습니다.",
+        "thinking_label": "사고 과정 표시"
       },
       "displayPanel": {
         "applying": "正在应用…",
@@ -10862,7 +11308,9 @@
         "up_to": "最多",
         "update_setting_failed": "更新设置失败：{{error}}",
         "use_an_absolute_path_no": "）。\n            请使用绝对路径（不含",
-        "enable_via_setting": "或者，设置 <settingRef/>，然后运行 <restartCmd/>。"
+        "enable_via_setting": "或者，设置 <settingRef/>，然后运行 <restartCmd/>。",
+        "dashboard_url": "dashboard.url",
+        "distinct": "distinct"
       },
       "notificationsPanel": {
         "always_interrupts_cannot_be_muted_or_lowered": "始终打断 — 无法静音或降低优先级",
@@ -11158,7 +11606,9 @@
         "profile_unusable_title": "Fallback profile in effect",
         "profile_unusable_body": "A policy fallback ceiling is in effect. Affected profiles:",
         "profile_unusable_which": "Affected: {{profiles}}.",
-        "profile_unusable_detail": "These come from the profiles folder of your Kiro Crew data home. Each one extends a profile that is missing, so it falls back until the missing file is restored."
+        "profile_unusable_detail": "These come from the profiles folder of your Kiro Crew data home. Each one extends a profile that is missing, so it falls back until the missing file is restored.",
+        "unknown_scopes_tip": "아래 프로필에는 이 빌드에 등록되지 않은 기능 범위가 포함되어 있습니다. 대개 컴패니언 에디션이 추가하는 범위지만, 잘못 입력한 범위 키도 여기에 나타납니다. 이들은 건너뛰며 이 빌드에서는 아무 효과가 없습니다.",
+        "unknown_scopes_title": "이 빌드에 없는 프로필 범위"
       },
       "shortcutsPanel": {
         "bind_chat_tab_switching_to_ctrl_digit_instead_of": "将聊天标签切换绑定到 Ctrl+数字，而不是 Option+数字",
@@ -11171,7 +11621,9 @@
         "record_prompt": "按下按键…",
         "search": "搜索",
         "turn_keyboard_shortcuts_on_or_off_globally": "全局开启或关闭键盘快捷键 — {{mod}} + K（此快捷键参考）始终可用",
-        "use_ctrl_not_option_for_chat_1_9": "聊天 1–9 使用 ⌃ Ctrl（而不是 ⌥ Option）"
+        "use_ctrl_not_option_for_chat_1_9": "聊天 1–9 使用 ⌃ Ctrl（而不是 ⌥ Option）",
+        "clear_shortcut": "지우기",
+        "panel_toggles": "패널 표시 전환"
       },
       "skillsPanel": {
         "analyze_each_completed_session_and_draft_a_reusa": "分析每个已完成会话，当该会话展示出会复现的流程（即未来会话在处理不同目标时仍会再次执行的流程）时起草可复用 SKILL.md。默认关闭。草稿会暂存到“技能”标签页的待审队列中供审阅 — 未经你批准不会生效（见下文）。",
@@ -11402,7 +11854,12 @@
         "under": "在",
         "where_to_find_the_client_secret": "在哪里查找客户端密钥",
         "you_example_com_or_00000000_0000_0000_0000_00000": "you@example.com 或 00000000-0000-0000-0000-000000000000",
-        "your_host": "<your-host>"
+        "your_host": "<your-host>",
+        "active": "활성",
+        "jwt_required": "<strong>Microsoft Teams에는 PyJWT 종속성이 필요합니다.</strong> 수신되는 Bot Framework 요청에는 검증해야 하는 서명된 토큰이 포함되므로 이 종속성이 없으면 채널이 시작되지 않습니다. gateway를 실행하는 환경에서 <mono>pip install \"kirocrew[teams]\"</mono>을 실행한 다음 gateway를 다시 시작하세요.",
+        "needs_setup": "설정 필요",
+        "not_active": "활성 아님",
+        "save_rejected": "gateway가 이 설정을 거부했습니다({{code}})."
       },
       "telegramPanel": {
         "allowlist_description": "允许私聊机器人的 Telegram 数字用户 ID。留空 = 全部拒绝（失败关闭）：任何人都能通过 @username 找到 Telegram 机器人。",
@@ -11416,7 +11873,17 @@
         "guide_body": "在 Telegram 上给 `@BotFather` 发消息，发送 `/newbot`，然后按提示操作。BotFather 会回复一个机器人令牌 — 把它粘贴到下方。要查你的数字用户 ID，给 `@userinfobot` 发消息。",
         "guide_link_label": "打开 @BotFather",
         "token_description": "创建机器人后从 @BotFather 获取（形如 110201543:AAHdqT…）。",
-        "token_placeholder": "粘贴 Telegram 机器人令牌（123456:ABC-…）"
+        "token_placeholder": "粘贴 Telegram 机器人令牌（123456:ABC-…）",
+        "forum_activation_always": "모든 메시지",
+        "forum_activation_description": "허용된 주제 안에서 봇이 답변하는 시점입니다. 다이렉트 메시지는 이 설정과 무관하게 항상 답변합니다.",
+        "forum_activation_hint": "같은 주제에서 다른 사람들끼리도 대화한다면 '부를 때만'이 적합합니다. 이때는 @이름을 사용했을 때, 또는 봇이 보낸 메시지에 답장했을 때에만 답변합니다.",
+        "forum_activation_label": "주제에서 답변하기",
+        "forum_activation_mention": "부를 때만",
+        "forum_activation_off": "답변하지 않음",
+        "show_thinking_description": "각 답변 뒤에 추론 과정을 펼칠 수 있는 접힌 인용으로 게시합니다. 기본값은 꺼짐: Telegram의 속도 제한은 채팅 단위이며 답변이 이미 사용하는 스트리밍 편집과 공유되므로, 턴마다 메시지 하나가 더 듭니다.",
+        "show_thinking_label": "모델의 추론 과정 게시",
+        "voice_replies_description": "voice_reply 공급자 설정을 사용해 각 답변을 텍스트와 함께 음성 메시지로도 보냅니다. 기본값은 꺼짐입니다. Telegram의 요청 빈도 제한은 대화별로 계산되므로 턴마다 메시지가 하나 늘어나고, 음성 합성이 설치되지 않은 경우도 있습니다. 짧은 답변은 읽어 주지 않으며 텍스트 답변이 항상 먼저 도착합니다. /voice on 또는 /voice off로 대화 하나만 바꿀 수 있습니다.",
+        "voice_replies_label": "답변 읽어 주기"
       },
       "voicePanel": {
         "amazon_polly_cloud": "Amazon Polly（云端）",
@@ -11503,7 +11970,24 @@
         "webex_bot_token": "Webex 机器人令牌",
         "webex_settings_are_managed_on_the_machine_runnin": "Webex settings are managed on the machine running {{productName}} and are read-only from remote sessions.",
         "where_to_find_the_bot_token": "在哪里查找机器人令牌",
-        "you_example_com": "you@example.com"
+        "you_example_com": "you@example.com",
+        "allowed_room_ids": "허용된 공간 ID",
+        "allowed_room_ids_desc": "비워 두면 어떤 공간에도 응답하지 않으므로 스위치만 켜도 아무것도 허용되지 않습니다. 보낸 사람도 허용된 이메일 목록에 있어야 합니다. 공간 ID는 불투명한 문자열입니다. 다음 명령으로 목록을 확인하세요:\ncurl -H \"Authorization: Bearer $WEBEX_BOT_TOKEN\" https://webexapis.com/v1/rooms",
+        "allowed_room_ids_empty_hint": "아직 어떤 공간에도 응답하지 않습니다. 봇을 공간에 추가한 뒤 그 공간의 ID를 여기에 붙여넣으세요.",
+        "allow_group_spaces": "그룹 공간에서 응답",
+        "allow_group_spaces_desc": "기본값은 꺼짐입니다. 공간의 답장은 허용된 이메일 목록에 없는 사람까지 포함해 그 안의 모든 사람에게 표시됩니다.",
+        "behaviour": "동작",
+        "empty_allowlist_hint": "허용된 이메일이 없습니다: 봇이 모든 메시지를 거부합니다. 아래에 Webex 계정 이메일을 추가하세요.",
+        "hard_context_threshold": "하드 컨텍스트 임계값 %",
+        "hard_context_threshold_desc": "이 지점에서는 결정을 기다리지 않고 자동으로 압축해 컨텍스트 창이 넘치지 않게 합니다.",
+        "reply_in_thread": "스레드에서 답장",
+        "reply_in_thread_desc": "메시지에 스레드가 있으면 그 안에서 답장하므로 붐비는 공간도 읽기 쉬워집니다.",
+        "room_id_placeholder": "Y2lzY29zcGFyazovL3VzL1JPT00v…",
+        "soft_context_threshold": "소프트 컨텍스트 임계값 %",
+        "soft_context_threshold_desc": "대화의 컨텍스트가 이 값을 넘으면 자동으로 압축하지 않고 /compact 또는 /new를 제안합니다.",
+        "soft_threshold_must_not_exceed_hard": "소프트 임계값은 하드보다 클 수 없습니다. 하드를 먼저 검사하므로 더 큰 소프트 값에는 도달하지 않습니다.",
+        "soft_threshold_must_be_1_to_100": "Soft threshold must be an integer from 1 to 100",
+        "hard_threshold_must_be_1_to_100": "Hard threshold must be an integer from 1 to 100"
       },
       "weixinPanel": {
         "allowed_user_ids": "允许的用户 ID",
@@ -11635,11 +12119,80 @@
         "manage_webhooks": "管理 webhook",
         "tokens_count_other": "{{count}} 个访问令牌",
         "could_not_read_webhook_status": "无法读取 webhook 状态 — 检查网关是否正在运行"
+      },
+      "whatsAppPanel": {
+        "add_a_group": "그룹 추가",
+        "allowed_numbers_empty_adds_nobody": "에이전트와 대화할 수 있는 전화번호(국가 번호를 포함한 숫자, 더하기 기호 없음)입니다. 비워두면 당신 외에는 아무도 추가되지 않습니다.",
+        "allowed_wa_ids": "허용된 번호",
+        "already_paired_unlink_then_restart": "이미 연결되어 있습니다. 다른 기기를 연결하려면 아래에서 이 기기의 연결을 해제한 뒤 게이트웨이를 다시 시작하세요.",
+        "anyone_who_messages_you": "봇에 메시지를 보내는 누구나",
+        "blocked_by_whatsapp": "WhatsApp에서 차단됨",
+        "blocked_number_cannot_pair": "WhatsApp이 이 번호를 차단했으므로 연결을 시작할 수 없습니다.",
+        "channel_not_running_so_nothing_was_unlinked": "채널이 실행되고 있지 않아 아무것도 해제되지 않았습니다. 연결된 기기는 그대로 남으므로 휴대폰의 연결된 기기 목록에서 해제하세요.",
+        "confirm_unlink": "연결 해제 확인",
+        "connected": "연결됨",
+        "could_not_start_pairing": "연결을 시작할 수 없습니다.",
+        "could_not_start_the_login_flow": "연결 절차를 시작할 수 없습니다.",
+        "could_not_unlink_the_device": "기기 연결을 해제할 수 없습니다.",
+        "created_for_you_when_you_turn_this_on_if_it_does": "이 기능을 켤 때 아직 없으면 자동으로 생성됩니다.",
+        "enable_the_whatsapp_channel": "WhatsApp 채널 활성화",
+        "every_group_you_joined_is_already_listed": "참여 중인 모든 그룹이 이미 목록에 있습니다.",
+        "group_participation_is_opt_in_per_group": "그룹 참여는 그룹별로 선택합니다. 멘션 모드는 태그될 때만 응답하고, 규칙 모드는 대기 시간을 두고 요청 없이도 도울 수 있습니다. 비공식 WhatsApp Web 프로토콜을 사용하므로 개인 규모로만 사용하세요.",
+        "groups": "그룹",
+        "how_the_agent_joins_in": "에이전트가 참여하는 방식",
+        "me_plus_allowed_numbers": "나와 허용된 번호",
+        "mode_also_when_the_rules_apply": "규칙이 적용될 때도 참여",
+        "mode_off_keeping_the_entry": "끔, 항목은 유지",
+        "mode_only_when_mentioned": "멘션되거나 인용될 때만",
+        "nobody_ignore_all_messages": "아무도 안 됨 (모든 메시지 무시)",
+        "not_signed_in": "연결 안 됨",
+        "only_me_the_default": "나만 (내 메시지)",
+        "paired_but_not_connected": "연결되었지만 접속되지 않음",
+        "pairing_starts_when_the_channel_starts": "연결 코드는 채널이 연결을 진행하는 동안에만 존재하고, 연결은 채널이 시작될 때 시작됩니다. 아래에서 채널을 켠 뒤 게이트웨이를 다시 시작하세요.",
+        "pair_with_whatsapp": "WhatsApp으로 연결",
+        "phone_number_placeholder": "447700900000",
+        "remove_name_from_the_group_list": "그룹 목록에서 {{name}} 제거",
+        "revokes_the_linked_device_on_your_account": "WhatsApp 계정에서 이 연결된 기기를 해제하고 로컬 세션을 삭제합니다. 기기를 다시 연결할 때까지 에이전트는 메시지를 읽거나 보내지 않습니다.",
+        "rules_example_placeholder": "3D 프린팅 질문에 답하기",
+        "scanned_confirm_on_your_phone": "스캔되었습니다. 휴대폰에서 확인하세요.",
+        "scan_the_code_from_linked_devices": "휴대폰의 WhatsApp으로 코드를 스캔하세요: 설정, 연결된 기기, 기기 연결.",
+        "seconds_between_unprompted_replies": "자발적 응답 사이 간격(초)",
+        "setup_guide": "설정 가이드",
+        "show_pairing_code": "연결 코드 표시",
+        "signed_in_restart_the_gateway_to_start_receiving": "연결되었습니다. 메시지 수신을 시작하려면 게이트웨이를 다시 시작하세요.",
+        "status_unavailable": "상태를 확인할 수 없음",
+        "talk_to_your_agent_from_your_own_whatsapp": "연결된 기기로 등록한 자신의 WhatsApp 계정으로 에이전트와 대화하세요. 에이전트가 보내는 메시지는 당신의 번호에서 발송됩니다.",
+        "the_agent_ignores_every_group_not_listed": "여기에 없는 그룹은 에이전트가 모두 무시합니다.",
+        "the_agent_stays_silent_unless_these_apply": "자유 입력입니다. 이 규칙이 분명히 적용되지 않으면 에이전트는 말하지 않습니다.",
+        "the_channel_is_enabled_but_not_running": "채널은 켜져 있지만 실행되지 않고 있습니다. 게이트웨이를 다시 시작하세요.",
+        "the_channel_is_not_running_enable_and_restart": "WhatsApp 채널이 실행되고 있지 않습니다. 아래에서 켠 뒤 게이트웨이를 다시 시작하세요.",
+        "the_code_expired_try_again": "코드가 만료되었습니다. 다시 시도하세요.",
+        "the_link_was_revoked": "연결이 해제되었습니다",
+        "the_link_was_revoked_restart_to_pair_again": "연결이 해제되었습니다. 기기를 다시 연결하려면 게이트웨이를 다시 시작하세요.",
+        "unlinked_but_the_session_file_was_kept": "WhatsApp 연결은 해제했지만 로컬 세션 파일을 삭제하지 못했습니다. 다시 연결하기 전에 데이터 디렉터리에서 파일을 삭제하세요.",
+        "unlinked_restart_to_pair_again": "연결을 해제했습니다. 기기를 다시 연결하려면 게이트웨이를 다시 시작하세요.",
+        "unlink_this_device": "이 기기 연결 해제",
+        "unofficial_protocol_ban_risk": "비공식 프로토콜입니다. WhatsApp이 연결된 번호를 차단할 수 있습니다. 잃어도 괜찮은 번호만 연결하세요.",
+        "waiting_for_a_code": "코드를 기다리는 중…",
+        "waiting_for_scan": "스캔을 기다리는 중…",
+        "waiting_to_be_paired": "연결 대기 중",
+        "whatsapp": "WhatsApp",
+        "whatsapp_did_not_connect": "WhatsApp이 접속되지 않았습니다: {{error}}",
+        "whatsapp_pairing_qr_code": "WhatsApp 연결 QR 코드",
+        "whatsapp_refused_the_unlink_still_linked": "WhatsApp이 연결 해제를 거부했으므로 기기는 여전히 연결되어 있고 로컬 세션도 남아 있습니다. 다시 시도하거나 휴대폰의 연결된 기기 목록에서 해제하세요.",
+        "when_the_agent_may_speak": "에이전트가 말할 수 있는 시점",
+        "who_can_message_the_bot": "에이전트에게 메시지를 보낼 수 있는 사람",
+        "your_groups_load_once_the_channel_is_connected": "채널이 접속되면 그룹이 여기에 표시됩니다."
       }
     },
     "settingsPage": {
       "kirocrew_v": "{{productName}} v",
-      "settings": "设置"
+      "settings": "设置",
+      "search": {
+        "aria_label": "설정 검색",
+        "no_results": "일치하는 설정 없음",
+        "placeholder": "설정 검색…"
+      }
     },
     "systemPage": {
       "live_system_metrics": "实时系统指标",
@@ -11743,7 +12296,20 @@
       "was_value": "此前 {{value}}",
       "window_last": "OTEL 部分 · 窗口：最近",
       "window_tokens_col": "窗口（tokens）",
-      "off_body": "使用 <settingRef/> 启用。指标保留在本地 (<metricsDir/>) — 不会离开此计算机。"
+      "off_body": "使用 <settingRef/> 启用。指标保留在本地 (<metricsDir/>) — 不会离开此计算机。",
+      "context_col": "컨텍스트",
+      "detail_col": "상세",
+      "duration_col": "소요 시간",
+      "gauges": "게이지",
+      "gauges_latest": "최신 샘플",
+      "hide_turn_detail": "턴별 상세 숨기기",
+      "show_turn_detail": "턴별 상세 보기",
+      "time_col": "시간",
+      "turn_col": "턴",
+      "turns_empty": "이 기간에 턴별 사용량 기록이 없습니다.",
+      "turns_error": "턴을 불러오지 못했습니다.",
+      "turns_loading": "턴 불러오는 중…",
+      "turns_retry": "다시 시도"
     },
     "terminalPopoutFrame": {
       "return": "返回停靠面板",
@@ -11913,7 +12479,8 @@
     "worldsPopout": {
       "hide_controls": "隐藏控制项",
       "show_controls": "展开控制项"
-    }
+    },
+    "sessionMemoryCard": {}
   },
   "privacyDisclosure": {
     "anonymousHeartbeatBody": "每天最多一次。它标识一个已安装的副本，而非某个人。",

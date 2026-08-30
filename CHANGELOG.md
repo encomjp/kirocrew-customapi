@@ -1,3 +1,13 @@
+## [0.4.1-1.2] — 2026-08-30
+
+kirocrew-customapi release `v0.4.1-1.2` — kiro base `0.4.1` + fork version `1.2`.
+
+- Fix `muse-spark-1.2-contributor` via opencode: bare id now correctly routes via `opencode-go` native provider (was `kirocrew/bare` → Not Found), deduplicates bare vs `opencode-go/...` to single picker entry labeled `via opencode-go`, free variant `opencode/muse-spark-1.2-contributor-free` kept separate
+- Provider model picker now respects whitelist strictly: selecting only `muse-spark` shows only that model (was showing all `ollama`/`openai` via CLI union bypass), empty whitelist still shows all 90+ logged-in opencode models without reconfiguring
+- Isolated opencode HOME now inherits real `~/.local/share/opencode/auth.json` via `XDG_DATA_HOME` so `openai`/`ollama-cloud` oauth models work without copying keys, isolated `opencode.json` 0600, no secrets in logs
+- i18n parity: restored `tailnetMobile` (42 keys) + 312 upstream `en.json` keys, fixed `en.json`/`en.manual.json` shadowing, regenerated `en-XA`, placeholders aligned for `row_breathing`/`paste_lines`/`batch_move_failed`/`unit_hours`
+- Frontend: `kiro-native` Save button restored (was hidden, so switching to native never persisted), model cache invalidation on provider switch (clears `kc.acp.models.v1` + `available-models` + per-chat slot models)
+
 ## [0.4.1-1.0] — 2026-08-30
 
 kirocrew-customapi release `v0.4.1-1.0` — kiro base `0.4.1` + fork version `1.0`.

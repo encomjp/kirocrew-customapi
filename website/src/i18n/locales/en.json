@@ -710,6 +710,22 @@
         "highlight_4": "Tells you when a session finishes, fails, or needs your OK",
         "highlight_5": "Floats on your desktop with a swappable avatar",
         "page_label": "Crew Companion"
+      },
+      "memories": {
+        "days_together_one": "{{count}} days together",
+        "days_together_other": "{{count}} days togethers",
+        "row_breathing_one": "{{count}} row breathing for {{name}}",
+        "row_breathing_other": "{{count}} rows breathing for {{name}}",
+        "row_reminders_one": "{{count}} row reminders",
+        "row_reminders_other": "{{count}} row reminderss",
+        "row_breathing_zero": "{{count}} rows breathing for {{name}}",
+        "row_breathing_two": "{{count}} rows breathing for {{name}}",
+        "row_breathing_few": "{{count}} rows breathing for {{name}}",
+        "row_breathing_many": "{{count}} rows breathing for {{name}}"
+      },
+      "reminders": {
+        "scheduled_count_one": "{{count}} scheduled count",
+        "scheduled_count_other": "{{count}} scheduled counts"
       }
     },
     "designCritique": {
@@ -998,7 +1014,9 @@
           "search_issues": "Search Issues…",
           "search_issues_2": "Search issues",
           "time_since_the_issue_list_was_last_fetched_from": "Time since the issue list was last fetched from GitHub",
-          "updated": "Updated"
+          "updated": "Updated",
+          "work_item_one": "{{count}} work item",
+          "work_item_other": "{{count}} work items"
         },
         "labelPalette": {
           "close_label_search": "Close label search",
@@ -1096,7 +1114,15 @@
           "select_all_visible": "Select every row the current filter shows",
           "selected_one": "{{count}} selected",
           "selected_other": "{{count}} selected",
-          "type_to_confirm": "Type the confirmation word to continue"
+          "type_to_confirm": "Type the confirmation word to continue",
+          "auto_merge_n_one": "{{count}} auto merge n",
+          "auto_merge_n_other": "{{count}} auto merge ns",
+          "merge_halted_one": "{{count}} merge halted",
+          "merge_halted_other": "{{count}} merge halteds",
+          "merge_ready_one": "{{count}} merge ready",
+          "merge_ready_other": "{{count}} merge readys",
+          "merge_warning_one": "{{count}} merge warning",
+          "merge_warning_other": "{{count}} merge warnings"
         },
         "prDetail": {
           "added_a_commit": "added a commit",
@@ -1205,6 +1231,17 @@
           "connect_repo": "Connect repo",
           "general": "General",
           "repository_settings": "Repository settings"
+        },
+        "depsSection": {
+          "title": "Dependencies",
+          "blocked_by": "Blocked by",
+          "blocking": "Blocking",
+          "state_open": "open",
+          "state_closed": "closed",
+          "state_merged": "merged",
+          "source_native": "native",
+          "source_inferred": "inferred",
+          "open_here": "Open {{sigil}}{{number}} here"
         }
       },
       "connectPanel": {
@@ -1225,7 +1262,8 @@
         "session_install_and_sign_in_to": "session.\n        Install and sign in to",
         "then": ", then",
         "through_your_own": "through your own",
-        "you_contributed_to": "You contributed to"
+        "you_contributed_to": "You contributed to",
+        "https_dev_azure_com_org_project_git_repo": "https://dev.azure.com/<org>/<project>/_git/<repo>"
       },
       "connectRepoModal": {
         "close": "Close",
@@ -1365,6 +1403,63 @@
           "untagged": "Untagged",
           "untagged_issues": "Untagged issues",
           "what_you_see_below_is_the_previous_result_not_th": "what you see below is the previous result, not the current state."
+        },
+        "registry": {
+          "graph": "Graph"
+        },
+        "graphView": {
+          "header": "DEPENDENCIES",
+          "views_label": "Dependency views",
+          "tab_frontier": "FRONTIER",
+          "tab_focus": "FOCUS TREE",
+          "jump_label": "Jump to issue",
+          "jump_placeholder": "jump to issue #…",
+          "loading": "Loading dependencies…",
+          "refresh": "Refresh dependency data",
+          "ready_count": "{{n}} newly unlocked",
+          "frontier_heading": "FRONTIER",
+          "frontier_sub": "{{ready}} newly unlocked · {{waiting}} still waiting",
+          "no_frontier": "No open items with dependencies on record.",
+          "waiting_heading": "WAITING ({{n}})",
+          "more_waiting": "… +{{n}} more",
+          "fewer_waiting": "Show fewer",
+          "why_all_satisfied": "All blockers satisfied: {{refs}}",
+          "why_waiting": "Waiting on {{refs}}",
+          "why_satisfied": "Already satisfied: {{refs}}",
+          "open_tree": "open tree →",
+          "frontier_caption": "Newly unlocked items have every blocker on record closed or merged. Open an item to expand why, or open its tree.",
+          "focus_caption": "The whole live dependency tree of the selected item. Click any node to re-root. Enter opens it. Dashed = inferred, struck = satisfied.",
+          "focus_empty": "Select an item to render its dependency tree.",
+          "tree_stat": "tree of {{kind}}-{{number}}: {{nodes}} nodes · {{edges}} live edges",
+          "ghost_satisfied": "satisfied",
+          "ci_fail": "CI FAIL",
+          "led_wait": "WAIT",
+          "led_ready": "RDY",
+          "led_run": "RUN",
+          "led_done": "DONE",
+          "led_open": "OPEN",
+          "aria_tree": "Dependency tree of {{kind}}-{{number}}: {{nodes}} nodes, {{edges}} live edges",
+          "aria_node": "{{kind}}-{{number}}, {{state}}: {{title}}",
+          "empty_board": "UNPOPULATED BOARD",
+          "empty_title": "No dependencies yet",
+          "empty_blurb": "This repo has no dependency edges to draw. Set a native dependency with gh issue edit --add-blocked-by, or Issue Radar will infer edges from cross-references on the next sync.",
+          "empty_unavailable_title": "Dependency data unavailable",
+          "empty_unavailable_blurb": "The dependency graph could not be loaded. The backend deps route may not be enabled yet on this repo. Retry once it is available.",
+          "retry": "RETRY"
+        },
+        "crews": {
+          "desk": {
+            "unit_hours_one": "{{count}} hour",
+            "unit_hours_other": "{{count}} hours",
+            "unit_hours_zero": "{{count}} hours",
+            "unit_hours_two": "{{count}} hours",
+            "unit_hours_few": "{{count}} hours",
+            "unit_hours_many": "{{count}} hours"
+          },
+          "page": {
+            "slots_free_one": "{{count}} slots free",
+            "slots_free_other": "{{count}} slots frees"
+          }
         }
       },
       "welcomeCarousel": {
@@ -1867,7 +1962,8 @@
         "warning_count_other": "{{count}} warnings",
         "word_count_one": "{{count}} word",
         "word_count_other": "{{count}} words"
-      }
+      },
+      "editor": {}
     },
     "pptxMaker": {
       "boardFrame": {
@@ -3206,7 +3302,17 @@
           "tab_tasks": "Tasks",
           "tells_the_agent_this_phase_is_approved_and_to_mo": "Tells the agent this phase is approved and to move on — same as typing it in the chat",
           "the_agent_is_writing_the_next_document": "Approved — the agent is writing the next document",
-          "working": "working…"
+          "working": "working…",
+          "approved": "Approved",
+          "approved_by_user": "Approved by {{user}}",
+          "archive_this_spec": "Archive this spec",
+          "changed_since_approval": "Changed since approval",
+          "duplicate_this_spec": "Duplicate this spec",
+          "name_for_the_copy": "Name for the copy",
+          "rename_this_spec_label_the_folder_name_stays": "Rename this spec’s label. Its folder and branch name stay the same.",
+          "restore_this_spec": "Restore this spec",
+          "spec_label": "Spec label",
+          "this_document_changed_after_it_was_approved": "This document changed after it was approved"
         },
         "specRail": {
           "agent_working": "agent working",
@@ -3245,6 +3351,17 @@
           "plan_your_next_feature_with_a_spec": "Plan your next feature with a spec",
           "resize_spec_list": "Resize spec list",
           "start_your_first_spec": "Start your first spec"
+        },
+        "taskList": {
+          "done": "Done",
+          "done_of_total": "{{done}} of {{total}} tasks done",
+          "no_tasks_yet": "No tasks yet. Once the design is approved, the ordered task list lands here and you can run tasks one at a time.",
+          "pause_the_build_first": "Pause the build before running a single task",
+          "run": "Run",
+          "run_only_this_task_and_stop": "Run only this task, then stop",
+          "run_task": "Run task: {{task}}",
+          "starting": "Starting…",
+          "task_progress": "Task progress"
         }
       },
       "manifest": {
@@ -3256,6 +3373,92 @@
         "dismiss_error": "Dismiss error",
         "spec_builder": "Spec Builder",
         "talk_through_an_idea_review_the_plan_then_let_an": "Talk through an idea, review the plan, then let an agent build it."
+      }
+    },
+    "autoTriagePipeline": {
+      "manifest": {
+        "description": "A full-page view of Kiro Crew's own auto-triage pipeline: one horizontal lane per crew work item across the phase enum, so an operator sees at a glance which phase each item is in, where items are piling up, and which have stalled. Reads the crew ledger through Issue Radar's crew-fabric seam — the lane drawing answers 'where is this item', a queue summary answers 'how is the queue doing'.",
+        "display_name": "Kiro Crew Auto Triage Pipeline",
+        "page_label": "Auto Triage Pipeline"
+      },
+      "pipeline": {
+        "subtitle": "One lane per crew work item, across every phase — see which phase each item is in and where items are piling up.",
+        "refresh": "Refresh the pipeline",
+        "aria_diagram": "Crew pipeline: one horizontal lane per work item across the phase columns",
+        "and_counting": "{{dwell}} and counting",
+        "fence_label": "EDITING PHASES — AT MOST ONE ITEM",
+        "titleblock_repo": "REPO",
+        "titleblock_items": "WORK ITEMS",
+        "titleblock_generated": "FOLDED",
+        "titleblock_live": "IN FLIGHT",
+        "notes_heading": "NOTES",
+        "note_1": "A lane runs left to right across the phase columns; the head marks the item's live phase.",
+        "note_2": "A chamfered chip has a PR open; a plain rect has none yet.",
+        "note_3": "A dot-dash span means the item skipped a phase; an under-lane arc is a re-entered phase.",
+        "note_4": "A stub off the lane is an exit — skipped, yielded, handed back, preempted, or awaiting a reply.",
+        "note_5": "A dwell over an hour is flagged; the open dwell counts from the most recent entry into the current phase.",
+        "dashboard_per_phase": "PER PHASE",
+        "dashboard_editing_cap": "1 editing slot at a time",
+        "summary_in_flight": "In flight",
+        "summary_editing": "Editing",
+        "summary_reopens": "Escalations",
+        "summary_longest_wait": "Longest wait",
+        "summary_longest_wait_in": "Waiting in {{phase}}",
+        "summary_longest_wait_none": "nothing waiting",
+        "empty_title": "No crew activity yet",
+        "empty_body": "This pipeline draws one lane per crew work item as it moves through the phases. Nothing has run yet — connect a crew and give it work, and its lanes will appear here.",
+        "empty_row_1": "Each lane runs left to right across the phase columns, from selected to resolved.",
+        "empty_row_2": "Colour tells you the state at a glance: a crew editing, waiting on a check, or done.",
+        "empty_row_3": "Dwell labels show how long an item has sat in each phase, so a stuck item stands out.",
+        "empty_footer": "Set up crews in Issue Radar to start the pipeline.",
+        "no_repo_title": "No repository connected",
+        "no_repo_body": "The pipeline draws one lane per crew work item for a connected repository. No repository is connected yet — connect one to see its crew work items here.",
+        "repo_picker_label": "Switch repository",
+        "repo_picker_prefix": "Repo",
+        "legend_editing": "Editing",
+        "legend_waiting": "Waiting",
+        "legend_released": "Released",
+        "legend_done": "Done",
+        "legend_heading": "Legend",
+        "legend_hint": "Hover a lane for its full title and dwell.",
+        "head_editing": "EDITING",
+        "head_waiting": "WAITING",
+        "head_await_reply": "AWAIT REPLY",
+        "head_released": "RELEASED",
+        "head_done": "DONE",
+        "card_tag_editing": "A CREW IS EDITING",
+        "card_tag_waiting": "WAITING ON A CHECK",
+        "card_tag_reply": "WAITING ON A HUMAN",
+        "card_tag_exit": "CLAIM RELEASED",
+        "card_tag_done": "TERMINAL",
+        "card_reopen": "REOPEN ×{{count}}",
+        "card_next": "NEXT",
+        "card_table_phase": "PHASE",
+        "card_table_at": "WHEN",
+        "card_table_dwell": "DWELL",
+        "lane_issue": "IS-{{number}}",
+        "dwell_open": "+{{dwell}}",
+        "exit_skipped": "SKIPPED",
+        "exit_yielded": "YIELDED",
+        "exit_handed_back": "HANDED BACK",
+        "exit_preempted": "PREEMPTED",
+        "exit_await_reply": "AWAIT REPLY",
+        "caption_selected": "LOCAL, PRE-CLAIM",
+        "caption_claimed": "LABEL + ASSIGNEE",
+        "caption_investigating": "READING, NOT EDITING",
+        "caption_implementing": "THE EDITING PHASE",
+        "caption_awaiting_ci": "CHECKS RUNNING",
+        "caption_addressing_review": "EDITING AGAIN",
+        "caption_awaiting_merge": "GREEN, NEEDS A HUMAN",
+        "caption_resolved": "TERMINAL",
+        "header_selected": "SELECTED",
+        "header_claimed": "CLAIMED",
+        "header_investigating": "INVESTIG.",
+        "header_implementing": "IMPLEMENT",
+        "header_awaiting_ci": "AWAIT CI",
+        "header_addressing_review": "ADDR REV",
+        "header_awaiting_merge": "AWAIT MRG",
+        "header_resolved": "RESOLVED"
       }
     }
   },
@@ -3319,7 +3522,10 @@
       "some_setup_could_not_be_read": "{{productName}} could not read {{sources}} — not listed below.",
       "found_setup_but_could_not_read_it": "{{productName}} found {{sources}} but could not read the files, so nothing was imported.",
       "found_setup_kirocrew_could_not_read": "Found setup {{productName}} could not read",
-      "files_could_not_be_read": "Files could not be read"
+      "files_could_not_be_read": "Files could not be read",
+      "kiro_crew": "{{productName}}",
+      "skip_all": "Skip all",
+      "skip_all_setup_and_onboarding": "Skip all setup and onboarding"
     },
     "agentSelector": {
       "agent_list": "Agent list",
@@ -3450,7 +3656,9 @@
     },
     "artifactBody": {
       "image_could_not_be_loaded": "Image couldn't be loaded",
-      "rendering": "Rendering…"
+      "rendering": "Rendering…",
+      "could_not_render": "Couldn't render this artifact",
+      "retry": "Retry"
     },
     "artifactFolderDeleteDialog": {
       "cancel": "Cancel",
@@ -3458,7 +3666,11 @@
       "delete_folder_and_all_contents": "Delete folder and all contents",
       "delete_folder_only_keep_artifacts": "Delete folder only, keep artifacts",
       "permanently_deletes_every_artifact_and_subfolder": "Permanently deletes every artifact and subfolder inside. Cannot be undone.",
-      "this_folder_contains": "This folder contains"
+      "this_folder_contains": "This folder contains",
+      "artifact_one": "{{count}} artifact",
+      "artifact_other": "{{count}} artifacts",
+      "subfolder_one": "{{count}} subfolder",
+      "subfolder_other": "{{count}} subfolders"
     },
     "artifactPanel": {
       "add_instruction": "Add instruction",
@@ -3787,7 +3999,11 @@
       "more_information": "More information"
     },
     "inlineCommentOverlay": {
-      "open_comment_thread": "Open comment thread"
+      "open_comment_thread": "Open comment thread",
+      "comment_one": "{{count}} comment",
+      "comment_other": "{{count}} comments",
+      "comment_unread_one": "{{count}} comment unread",
+      "comment_unread_other": "{{count}} comment unreads"
     },
     "instanceTabBar": {
       "instances": "Remote crews",
@@ -3874,7 +4090,12 @@
       "then_the_dashboard_will_open_automatically": ", then\n              the dashboard will open automatically.",
       "try_again": "Try again",
       "we_could_not_check_kiro_cli": "We could not check Kiro CLI.",
-      "your_crew_is_almost_ready": "Your crew is almost ready."
+      "your_crew_is_almost_ready": "Your crew is almost ready.",
+      "copy_sign_in_command": "Copy sign-in command",
+      "could_not_check_kiro_cli": "Could not check Kiro CLI.",
+      "or_run_in_terminal": "or run in terminal:",
+      "refresh": "Refresh",
+      "sessions_are_paused_until_the_gateway_check_succ": "Sessions are paused until the gateway check succeeds. Your artifacts, settings, and\n              history remain available."
     },
     "logEntry": {
       "cancelled": "Cancelled",
@@ -4106,7 +4327,9 @@
       "setup_required": "Setup required",
       "size": "Size:",
       "ttl_time_to_live": "TTL (time to live)",
-      "via": "via"
+      "via": "via",
+      "scan_blocked_finding_one": "{{count}} scan blocked finding",
+      "scan_blocked_finding_other": "{{count}} scan blocked findings"
     },
     "pullRequestPanel": {
       "a_reviewer": "a reviewer",
@@ -4128,7 +4351,9 @@
       "ready_for_review": "Ready for review",
       "retry": "Retry",
       "the_provider_did_not_return_a_patch_for_this_fil": "The provider did not return a patch for this file.",
-      "updated": "Updated"
+      "updated": "Updated",
+      "files_changed_one": "{{count}} files changed",
+      "files_changed_other": "{{count}} files changeds"
     },
     "questionCard": {
       "collapse_all": "Collapse all",
@@ -4202,7 +4427,10 @@
     "runInTerminalBtn": {
       "couldn_t_run_in_terminal": "Couldn't run in terminal",
       "run_in_terminal": "Run in terminal",
-      "sent_to_terminal": "Sent to terminal"
+      "sent_to_terminal": "Sent to terminal",
+      "cancel": "Cancel",
+      "confirm_run_sensitive_command": "Confirm run sensitive command",
+      "run_anyway": "Run anyway"
     },
     "runInTerminalConfirm": {
       "body_multi": "{{lines}} lines will run in a new terminal tab, in this chat's working directory.",
@@ -4389,7 +4617,9 @@
     },
     "skillPickerMenu": {
       "loading_skills": "Loading skills…",
-      "no_matching_skills": "No matching skills"
+      "no_matching_skills": "No matching skills",
+      "trust_needed_badge": "Needs trust",
+      "trust_needed_hint": "From this project. Choose it to review and trust the folder."
     },
     "slotTagPopover": {
       "assign_tags": "Assign tags",
@@ -4579,7 +4809,9 @@
     "widgetFrame": {
       "download_as_html": "Download as HTML",
       "open_in_new_tab": "Open in new tab",
-      "save_failed": "save failed"
+      "save_failed": "save failed",
+      "could_not_render": "Couldn't render this widget",
+      "retry": "Retry"
     },
     "widgetPlaceholder": {
       "generating": "generating…"
@@ -4647,6 +4879,111 @@
       "billing_notice": "This is a paid AWS service. Until you confirm, no request is sent.",
       "confirm_button": "Confirm and enable",
       "withdraw": "Withdraw confirmation"
+    },
+    "projectSkillsTrust": {
+      "body": "${{skill}} comes from this project's own .kiro/skills folder.",
+      "confirm": "Trust this folder",
+      "consequence": "Trusting this folder lets its skill files enter this chat's context, where they can instruct the agent to run commands. Only trust a project you recognise.",
+      "decline": "Not now",
+      "decline_consequence": "If you decline, nothing is loaded and your message is left as you typed it.",
+      "grant_failed": "Could not record trust for this folder.",
+      "title": "Trust this project's skills?",
+      "withdraw_hint": "You can withdraw this later from the Skills settings page.",
+      "working": "Trusting…"
+    },
+    "projectSkillsTrustList": {
+      "folder_missing": "This folder no longer exists.",
+      "hint": "These project folders may load their own skills into a chat. Withdraw a folder to stop its skills loading.",
+      "revoke": "Withdraw",
+      "revoke_failed": "Could not withdraw trust for this folder.",
+      "revoking": "Withdrawing…",
+      "title": "Trusted project folders"
+    },
+    "updateFoundModal": {
+      "copied": "Copied",
+      "copy_command": "Copy command",
+      "could_not_save_choice": "Couldn't save your choice — it may ask again after a reload.",
+      "dismiss": "Dismiss",
+      "download": "Download",
+      "nothing_downloads_until_you_choose_to": "Nothing downloads until you choose to.",
+      "remind_me_tomorrow": "Remind me tomorrow",
+      "skip_this_version": "Skip this version",
+      "update_available": "Update available",
+      "update_failed": "Update failed. Try again from Settings → About.",
+      "update_now": "Update now",
+      "updating": "Updating…",
+      "updating_and_restarting": "Updating and restarting…",
+      "version_is_available": "{{productName}} <0>{{version}}</0> is available.",
+      "you_can_update_anytime_from_settings_about": "Update anytime from Settings → About."
+    },
+    "updatePill": {
+      "downloading": "Downloading…",
+      "downloading_percent": "Downloading {{percent}}%",
+      "open_update_settings": "Open update settings",
+      "update_available": "Update available",
+      "update_ready": "Update ready"
+    },
+    "tailnetMobile": {
+      "card_title": "Phone access",
+      "badge_on": "Active",
+      "badge_attention": "Needs attention",
+      "badge_setup": "Setup needed",
+      "pinned_title": "Blocked by policy",
+      "pinned_body": "Your administrator's security policy pins tailnet access off, so this dashboard cannot be published to a private network. Ask your administrator if you need it.",
+      "install_title": "Install Tailscale to use this on your phone",
+      "install_body": "Tailscale puts this computer and your phone on the same private network, so the dashboard stays reachable without exposing anything to the public internet. Install it, sign in on your phone with the same account, then come back.",
+      "start_daemon_title": "Start Tailscale",
+      "start_daemon_body": "Tailscale is installed but its background service is not answering. Open the Tailscale app, make sure it reports Running, then re-check.",
+      "sign_in_title": "Sign in to Tailscale",
+      "sign_in_body": "Tailscale is running, but this computer is not signed in to a network yet. Sign in with the account your phone uses, then re-check.",
+      "enable_magicdns_title": "Turn on MagicDNS",
+      "enable_magicdns_body": "This computer is signed in, but its network has no MagicDNS name for it, so there is no address to point a phone at. Enable MagicDNS in the Tailscale admin console, then re-check.",
+      "enable_https_title": "Enable HTTPS certificates in Tailscale",
+      "enable_https_body": "Tailscale requires one-time tailnet administrator consent before Serve can provision certificates. Enable HTTPS in the Tailscale admin console, then re-check.",
+      "trust_off_title": "Allow access by this computer's network name",
+      "trust_off_body": "The dashboard refuses requests from addresses it does not recognise. Allow its own private-network name so a phone can reach it. This opens no port to the internet and does not change how you sign in.",
+      "restart_gateway_title": "Restart Kiro Crew to finish",
+      "restart_gateway_body": "A network name is available now, but this server resolved none when it started, so the name is not trusted yet. Restart Kiro Crew once and the last step will be ready.",
+      "occupied_title": "Something else is already served here",
+      "occupied_body": "Tailscale is already serving something at this address, and publishing would replace it. Nothing was changed. Publish it yourself if you are sure it is safe to overwrite.",
+      "publish_title": "Put the dashboard on your private network",
+      "publish_body": "Everything is ready. This publishes the dashboard to your own Tailscale network only — never to the public internet — so your phone can open it.",
+      "ready_title": "Ready on your phone",
+      "ready_body": "Open this address on a phone signed in to the same Tailscale network. Show a QR code to skip typing it.",
+      "copy": "Copy",
+      "copy_link": "Copy link",
+      "download": "Download Tailscale",
+      "show_qr": "Show QR code",
+      "hide_qr": "Hide",
+      "stop": "Turn off",
+      "recheck": "Re-check",
+      "qr_alt": "QR code linking to this dashboard",
+      "qr_warning": "Scan within {{minutes}} min. This code contains a sign-in link — anyone who gets it can open your dashboard for {{hours}}h, so do not share it or post a screenshot.",
+      "keep_awake_note": "This computer will not sleep while phone access is on, so the dashboard stays reachable. Its screen can still turn off.",
+      "open_dns_admin": "Open Tailscale DNS settings",
+      "open_https_admin": "Open Tailscale HTTPS settings",
+      "install_teaser": "Use this on your phone",
+      "install_teaser_hint": "needs Tailscale",
+      "no_peers": "No other device has joined this Tailscale network yet, so nothing can open this address. Install Tailscale on your phone and sign in with the same account.",
+      "peers_offline": "Your other devices have joined this network but none is online right now, so the address will not load until one connects."
+    },
+    "crewWebhookSection": {
+      "unbound_tokens_can_wake_any_crew_one": "{{count}} unbound tokens can wake any crew",
+      "unbound_tokens_can_wake_any_crew_other": "{{count}} unbound tokens can wake any crews"
+    },
+    "pastedChip": {
+      "paste_lines_one": "{{count}} line (paste {{seq}})",
+      "paste_lines_other": "{{count}} lines (paste {{seq}})",
+      "preview_more_lines_one": "{{count}} preview more lines",
+      "preview_more_lines_other": "{{count}} preview more liness",
+      "paste_lines_zero": "{{count}} lines (paste {{seq}})",
+      "paste_lines_two": "{{count}} lines (paste {{seq}})",
+      "paste_lines_few": "{{count}} lines (paste {{seq}})",
+      "paste_lines_many": "{{count}} lines (paste {{seq}})"
+    },
+    "publicPublishAckModal": {
+      "exposure_window_ttl_one": "{{count}} exposure window ttl",
+      "exposure_window_ttl_other": "{{count}} exposure window ttls"
     }
   },
   "hooks": {
@@ -5071,7 +5408,9 @@
       "version": "Version",
       "via_dashboard": "via dashboard",
       "view_remote": "View remote",
-      "your_current_edits_are_saved_as_a_version_first": "Your current edits are saved as a version first, so nothing is lost."
+      "your_current_edits_are_saved_as_a_version_first": "Your current edits are saved as a version first, so nothing is lost.",
+      "iterate": "Iterate",
+      "iterate_discuss_this_artifact_with_the_agent": "Iterate — discuss this artifact with the agent"
     },
     "artifactPopoutFrame": {
       "return": "Return",
@@ -5180,7 +5519,9 @@
       "team_preset": "Team Preset",
       "this_will_reset_conversation_history_for_all_age": "This will reset conversation history for all agents. Configs are preserved.",
       "thread": "Thread",
-      "topic": "Topic"
+      "topic": "Topic",
+      "reply_2_one": "{{count}} reply 2",
+      "reply_2_other": "{{count}} reply 2s"
     },
     "chat": {
       "activityViewer": {
@@ -5334,7 +5675,10 @@
         "tool_call_blocked": "Tool call blocked",
         "tool_stopped_responding": "Tool stopped responding",
         "turn_interrupted": "Turn interrupted",
-        "turn_stalled": "Turn stalled"
+        "turn_stalled": "Turn stalled",
+        "safety_policy_told_in_turn": "safety policy blocked the call · the agent was told why, in this turn",
+        "invalid_name_told_in_turn": "tool name validation blocked the call · the agent was told why, in this turn",
+        "hook_fault_told_in_turn": "a hook faulted before the call · the agent was told why, in this turn"
       },
       "sessionColorPicker": {
         "change_your_color_palette_in_display_settings": "Change your color palette in Display settings",
@@ -5391,7 +5735,9 @@
         "s": "s",
         "stop": "Stop",
         "stop_this_subagent": "Stop this subagent",
-        "waiting_to_start_queued_behind_the_concurrency_l": "Waiting to start — queued behind the concurrency limit"
+        "waiting_to_start_queued_behind_the_concurrency_l": "Waiting to start — queued behind the concurrency limit",
+        "tool_one": "{{count}} tool",
+        "tool_other": "{{count}} tools"
       },
       "subagentRunCard": {
         "open_in_the_subagents_panel": "Open in the Subagents panel",
@@ -5405,7 +5751,8 @@
         "task_completion": "Task completion"
       },
       "thinkingBlock": {
-        "thinking": "Thinking"
+        "thinking": "Thinking",
+        "thought_process": "Thought process"
       },
       "toolDetails": {
         "auto": "Auto",
@@ -5456,11 +5803,16 @@
         "copy_preview": "Copy text",
         "copy_link": "Copy link to message",
         "unpin": "Unpin",
-        "jump_to_message": "Jump to message"
+        "jump_to_message": "Jump to message",
+        "pin_limit_reached": "Pin limit reached — unpin a message to add another."
       },
       "earlierMessagesBar": {
         "load_earlier_messages": "Load earlier messages",
         "error_retry": "Couldn't load earlier messages — retry"
+      },
+      "sessionSummary": {
+        "open_items_one": "{{count}} open items",
+        "open_items_other": "{{count}} open itemss"
       }
     },
     "chatPage": {
@@ -5506,7 +5858,9 @@
       "toggle_sessions": "Toggle sessions",
       "tokens": "tokens",
       "type_to_filter": "Type to filter…",
-      "what_can_i_do_for_you": "What can I do for you?"
+      "what_can_i_do_for_you": "What can I do for you?",
+      "knowledge_item_one": "{{count}} knowledge item",
+      "knowledge_item_other": "{{count}} knowledge items"
     },
     "chatSidebar": {
       "add_column_after_this_one": "Add column after this one",
@@ -5625,7 +5979,12 @@
       "crew_mode": "Crew Mode — topics run in parallel sub-sessions",
       "crew": "Crew",
       "autopilot_desc": "One job, done in steps — it plans first, you approve, then it runs stage by stage.",
-      "crew_desc": "Several jobs at once — each topic runs in its own sub-session and answers when it lands."
+      "crew_desc": "Several jobs at once — each topic runs in its own sub-session and answers when it lands.",
+      "show_collapsed_folders": "Show collapsed folders:",
+      "more_pull_request_in_this_session_one": "{{count}} more pull request in this session",
+      "more_pull_request_in_this_session_other": "{{count}} more pull request in this sessions",
+      "more_pull_request_or_issue_in_this_session_one": "{{count}} more pull request or issue in this session",
+      "more_pull_request_or_issue_in_this_session_other": "{{count}} more pull request or issue in this sessions"
     },
     "contextBreakdown": {
       "axis_bar": "bar length ∝ √chars · segments = that turn's composition",
@@ -5661,7 +6020,11 @@
       "strip_your_messages": "Your messages",
       "strip_your_messages_sub": "{{chars}} chars of {{total}}",
       "tag_estimate": "estimate",
-      "title": "Context Breakdown"
+      "title": "Context Breakdown",
+      "col_credits": "Credits",
+      "total_credits_title": "Credits across the traced turns",
+      "turn_credits_duration_title": "{{credits}} credits · {{duration}} this turn",
+      "turn_credits_title": "{{credits}} credits this turn"
     },
     "devFleetPage": {
       "actions": "Actions",
@@ -5743,7 +6106,9 @@
       "waiting_for_the_new_gateway_process_the_page_rel": "Waiting for the new gateway process. The page reloads automatically once it is up.",
       "worktree": "Worktree",
       "worktrees": "Worktrees",
-      "worktrees_created_under_a_previous_repository_na": "Worktrees created under a previous repository name. Hidden by default; still covered by Prune merged."
+      "worktrees_created_under_a_previous_repository_na": "Worktrees created under a previous repository name. Hidden by default; still covered by Prune merged.",
+      "commits_behind_main_2_one": "{{count}} commits behind main 2",
+      "commits_behind_main_2_other": "{{count}} commits behind main 2s"
     },
     "developer": {
       "featurePreviewsTab": {
@@ -5935,7 +6300,10 @@
         "nodes": "nodes,",
         "all_sources": "All sources",
         "filter_by_source": "Filter by source",
-        "recenter": "Recenter"
+        "recenter": "Recenter",
+        "start_physics": "Physics",
+        "pause_physics": "Pause",
+        "graph_region_label": "Knowledge entity graph"
       },
       "sourceGroup": {
         "next": "Next →",
@@ -5990,7 +6358,11 @@
         "upload_files": "Upload files",
         "upload_local_files_or_watch_a_local_folder_to_in": "Upload local files or watch a local folder to ingest documents",
         "use_sync_button_to_update": "Use Sync button to update",
-        "watches_folder_recursively_supported_files_auto": "Watches folder recursively. Supported files auto-ingested. Max 5,000 files per source."
+        "watches_folder_recursively_supported_files_auto": "Watches folder recursively. Supported files auto-ingested. Max 5,000 files per source.",
+        "files_failed_count_one": "{{count}} files failed count",
+        "files_failed_count_other": "{{count}} files failed counts",
+        "supported_file_found_one": "{{count}} supported file found",
+        "supported_file_found_other": "{{count}} supported file founds"
       }
     },
     "localStorageDebug": {
@@ -6247,7 +6619,8 @@
         "session_other": "{{count}} sessions",
         "summarize_now": "Summarize now",
         "tool": "tool",
-        "when": "When"
+        "when": "When",
+        "no_lessons": "No lessons"
       },
       "portabilityTab": {
         "archive_contents": "Archive contents:",
@@ -6322,7 +6695,8 @@
         "skill_md": "SKILL.md",
         "skills": "Skills",
         "auto_create_hint": "Kiro Crew can also draft skills from completed sessions automatically — off by default, controlled by <settingRef/>.",
-        "approval_required_hint": "Candidates wait here for your approval. Prose-only skills can go live automatically when <settingRef/> is off — skills that bundle scripts always require review."
+        "approval_required_hint": "Candidates wait here for your approval. Prose-only skills can go live automatically when <settingRef/> is off — skills that bundle scripts always require review.",
+        "no_skills_installed": "No skills installed"
       },
       "steeringTab": {
         "api_standards_md": "api-standards.md",
@@ -6627,7 +7001,18 @@
       "type": "Type",
       "type_verb_to_confirm": "Type",
       "no_owning_session": "No owning session",
-      "owning_session": "Owning session"
+      "owning_session": "Owning session",
+      "no_matching_jobs": "No matching jobs",
+      "cronFolders": {
+        "batch_move_failed_one": "{{count}} batch move failed",
+        "batch_move_failed_other": "{{count}} of {{total}} batch moves failed",
+        "job_count_one": "{{count}} job count",
+        "job_count_other": "{{count}} job counts",
+        "batch_move_failed_zero": "{{count}} of {{total}} batch moves failed",
+        "batch_move_failed_two": "{{count}} of {{total}} batch moves failed",
+        "batch_move_failed_few": "{{count}} of {{total}} batch moves failed",
+        "batch_move_failed_many": "{{count}} of {{total}} batch moves failed"
+      }
     },
     "servicesTab": {
       "connected": "Connected",
@@ -6712,7 +7097,27 @@
       "trash_empty": "empty",
       "trash_note": "Still taking up disk space until emptied. Nothing here is removed on its own.",
       "trash_summary": "{{sessions}} sessions · {{size}}",
-      "unknown_session": "an unlisted session"
+      "unknown_session": "an unlisted session",
+      "emptied": "Freed {{size}}.",
+      "empty_failed": "Stopped after freeing {{freed}}.",
+      "empty_kept": "Freed {{freed}}, but not everything could be deleted.",
+      "empty_not_started": "Couldn't start emptying the Trash. Try again.",
+      "emptying": "Emptying Trash",
+      "emptying_leave_ok": "This keeps running if you leave this page.",
+      "emptying_progress": "{{freed}} of {{total}} freed",
+      "kept_incomplete": "A batch could not be removed from disk, so it is still listed.",
+      "kept_next_step": "Restore what you can from this batch; the gateway log names the file that blocked the delete.",
+      "kept_outside_root": "A batch no longer resolves inside the Trash, so it was left alone.",
+      "kept_unknown": "A batch was kept for a reason this version does not recognise.",
+      "kept_unlisted_files": "A batch holds a staged file its manifest does not list, so deleting it could destroy the only copy of a session.",
+      "kept_unreadable": "A batch could not be read in full, so it was left alone.",
+      "next_page": "Next",
+      "no_matches": "No conversations match that search.",
+      "page_of": "Page {{page}} of {{pages}}",
+      "prev_page": "Previous",
+      "showing_range": "Showing {{from}}–{{to}} of {{total}}",
+      "busy_emptying": "Emptying the Trash. Some actions are paused until it finishes.",
+      "empty_failed_next_step": "Try Delete forever again. Details are in the gateway log."
     },
     "sessionsTab": {
       "agent": "Agent",
@@ -6792,7 +7197,12 @@
         "view_this_commit_on_github": "View this commit on GitHub",
         "what_s_new": "What's new",
         "you_are_on_the_latest_version": "You are on the latest version.",
-        "you_re_on_the_latest_version": "You're on the latest version."
+        "you_re_on_the_latest_version": "You're on the latest version.",
+        "automatic_updates_are_unavailable_in_this_build": "Automatic updates are unavailable in this build",
+        "commits_ahead_one": "{{count}} commits ahead",
+        "commits_ahead_other": "{{count}} commits aheads",
+        "commits_behind_one": "{{count}} commits behind",
+        "commits_behind_other": "{{count}} commits behinds"
       },
       "botChannelPanel": {
         "allowed_user_ids": "Allowed user IDs",
@@ -6934,7 +7344,16 @@
         "which_model_new_sessions_start_with_pick_a_model": "Which model new sessions start with when their agent pins none. Set a model per agent under Capabilities → Agents, or pick one inside a session to override it there.",
         "which_part_of_a_subagent_s_stream_to_keep_when_i": "Which part of a subagent's stream to keep when injecting its completion event into the parent session. Head preserves the start (default, matches legacy behavior). Tail preserves the final summary. Both keeps a slice from each end with a marker between them.",
         "widget_density": "Widget Density",
-        "your_role": "Your Role"
+        "your_role": "Your Role",
+        "auto_add_documents": "Auto-Add Documents",
+        "auto_add_saved_artifacts": "Auto-Add Saved Artifacts",
+        "auto_ingest_limit_per_scan": "Auto-Ingest Limit Per Scan",
+        "auto_register_project_documents": "Auto-Register Project Documents",
+        "how_much_an_automatically_registered_source_may_i": "How much an automatically-registered source may take in one pass. Each piece of a document costs one extraction call, so this is what bounds the cost; newest documents land first and the rest follow on later passes. 0 removes the bound. Default {{count}}.",
+        "knowledge_library": "Knowledge Library",
+        "let_the_agent_add_documents_it_reads_while_workin": "Let the agent add documents it reads while working to your knowledge library, so they stay searchable later. The agent reads documents with tools you approve; Kiro Crew does not fetch them directly. Added documents appear in one “Auto-added” source you can remove in a click.",
+        "mirror_documents_you_save_as_artifacts_into_the_l": "Mirror documents you save as artifacts into the library, keep them in sync as you edit, and remove them when you delete the artifact.",
+        "register_the_documents_of_each_project_you_work_i": "Register the documents of each project you work in, so its design docs, specs and READMEs become searchable without adding the folder by hand. Documents only — never source code, agent instructions or generated files."
       },
       "computerUsePanel": {
         "accessibility": "Accessibility",
@@ -7068,7 +7487,9 @@
         "tunnels_via_aws_ssm_start_session_no_inbound_ssh": "Tunnels via aws ssm start-session — no inbound SSH port or key needed. Requires the AWS CLI, the session-manager-plugin, and ssm:StartSession permission.",
         "up_to": "Up to",
         "use_an_absolute_path_no": ").\n            Use an absolute path (no",
-        "enable_via_setting": "Alternatively, set <settingRef/>, then run <restartCmd/>."
+        "enable_via_setting": "Alternatively, set <settingRef/>, then run <restartCmd/>.",
+        "dashboard_url": "dashboard.url",
+        "distinct": "distinct"
       },
       "notificationsPanel": {
         "app": "app",
@@ -7515,7 +7936,12 @@
     },
     "settingsPage": {
       "kirocrew_v": "{{productName}} v",
-      "settings": "Settings"
+      "settings": "Settings",
+      "search": {
+        "aria_label": "Search settings",
+        "no_results": "No matching settings",
+        "placeholder": "Search settings…"
+      }
     },
     "systemPage": {
       "system": "System",
@@ -7623,7 +8049,20 @@
       "was_value": "was {{value}}",
       "window_last": "OTEL sections · window: last",
       "window_tokens_col": "Window (tokens)",
-      "off_body": "Enable with <settingRef/>. Metrics stay local (<metricsDir/>) — nothing leaves this machine."
+      "off_body": "Enable with <settingRef/>. Metrics stay local (<metricsDir/>) — nothing leaves this machine.",
+      "context_col": "Context",
+      "detail_col": "Detail",
+      "duration_col": "Duration",
+      "hide_turn_detail": "Hide per-turn detail",
+      "show_turn_detail": "Show per-turn detail",
+      "time_col": "Time",
+      "turn_col": "Turn",
+      "turns_empty": "No per-turn usage recorded in this window.",
+      "turns_error": "Couldn't load the turns.",
+      "turns_loading": "Loading turns…",
+      "turns_retry": "Retry",
+      "gauges": "Gauges",
+      "gauges_latest": "latest sample"
     },
     "terminalPopoutFrame": {
       "return": "Return to dock",
@@ -7791,6 +8230,15 @@
       "present": "present,",
       "slot_one": "{{count}} slot",
       "slot_other": "{{count}} slots"
+    },
+    "sessionMemoryCard": {},
+    "mcpManagement": {
+      "assessment": {
+        "measure_finished_one": "{{count}} measure finished",
+        "measure_finished_other": "{{count}} measure finisheds",
+        "measure_unmeasured_one": "{{count}} measure unmeasured",
+        "measure_unmeasured_other": "{{count}} measure unmeasureds"
+      }
     }
   },
   "settings": {

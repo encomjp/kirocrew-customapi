@@ -909,7 +909,8 @@
         "command": "명령",
         "setting": "설정",
         "view": "보기"
-      }
+      },
+      "keep_typing": "Type at least {{min}} characters"
     },
     "crewCompanion": {
       "accessory": {
@@ -1093,7 +1094,7 @@
         "from_last_session": "마지막으로 함께한 시간부터",
         "loading": "돌아보는 중…",
         "offline": "데스크톱 앱을 열어 메모리를 확인하세요.",
-        "row_breathing_other": "{{name}}와(과) {{count}}번 호흡했습니다",
+        "row_breathing_other": "{{count}} rows breathing for {{name}}",
         "row_earliest": "가장 이른 시작: {{time}}",
         "row_latest": "가장 늦게까지 함께 깨어 있던 시각: {{time}}",
         "row_reminders_other": "리마인더 {{count}}개 설정",
@@ -1749,7 +1750,12 @@
           "search": "{{label}} 검색…",
           "search_2": "{{label}} 검색",
           "tracked_items_are_project_scoped": "작업 항목은 {{project}} 프로젝트 전체에 속하므로 그 안의 모든 저장소가 같은 목록을 표시합니다.",
-          "work_item_other": "{{count}}개의 작업 항목"
+          "work_item_other": "{{count}}개의 작업 항목",
+          "issues": "Issues",
+          "re_fetch_issues_labels_from_github": "Re-fetch issues + labels from GitHub",
+          "search_issues": "Search Issues…",
+          "search_issues_2": "Search issues",
+          "time_since_the_issue_list_was_last_fetched_from": "Time since the issue list was last fetched from GitHub"
         },
         "labelPalette": {
           "close_label_search": "라벨 검색 닫기",
@@ -1964,7 +1970,8 @@
           "search_2": "{{label}} 검색",
           "select_for_bulk": "일괄 작업을 위해 {{subject}} #{{number}} 선택",
           "updated": "업데이트됨",
-          "time_since_list_last_fetched_from": "{{label}} 목록을 {{provider}}에서 마지막으로 가져온 후 경과한 시간"
+          "time_since_list_last_fetched_from": "{{label}} 목록을 {{provider}}에서 마지막으로 가져온 후 경과한 시간",
+          "time_since_the_pr_list_was_last_fetched_from_git": "Time since the PR list was last fetched from GitHub"
         },
         "prRunActions": {
           "cancel_run": "{{name}} 실행 취소",
@@ -2072,9 +2079,7 @@
           "crew_sort_created": "생성됨"
         },
         "links": {
-          "read_only_here_apply_in_provider": "여기서는 읽기 전용입니다 — {{provider}} 저장소는 {{productName}}에서 변경할 수 없습니다. {{provider}}에서 변경하세요",
-          "tracked_items_work_items": "작업 항목",
-          "tracked_items_issues": "이슈"
+          "read_only_here_apply_in_provider": "여기서는 읽기 전용입니다 — {{provider}} 저장소는 {{productName}}에서 변경할 수 없습니다. {{provider}}에서 변경하세요"
         }
       },
       "manifest": {
@@ -2112,7 +2117,7 @@
             "trailer_hint": "크루가 만드는 모든 커밋에 추가되어, git log에서 어느 크루의 작업인지 확인할 수 있습니다.",
             "trailer_label": "커밋 트레일러",
             "trailer_required": "커밋 트레일러를 입력하세요.",
-            "unit_hours_other": "시간"
+            "unit_hours_other": "{{count}} hours"
           },
           "editor": {
             "agent_hint": "어떤 에이전트든 쓸 수 있습니다. 크루 브리프는 대화에서 사라질 때마다 세션에 다시 주입되므로, 에이전트에 직접 붙여 넣을 필요가 없습니다.",
@@ -2283,7 +2288,8 @@
           "unassigned": "할당 안 됨",
           "untriaged": "트리아지 안 됨",
           "untriaged_2": "트리아지 안 됨",
-          "re_fetch_issues_and_labels_from": "{{provider}}에서 이슈 + 레이블 다시 가져오기"
+          "re_fetch_issues_and_labels_from": "{{provider}}에서 이슈 + 레이블 다시 가져오기",
+          "re_fetch_issues_labels_from_github": "Re-fetch issues + labels from GitHub"
         },
         "registry": {
           "overview": "개요",
@@ -2408,7 +2414,9 @@
             "suggest_new_labels": "새 레이블 제안",
             "suggested_new_labels_not_created_until_you_say_s": "제안된 새 레이블 — 승인하기 전까지는 생성되지 않습니다",
             "re_fetch_this_repo_s_labels_from": "이 저장소의 레이블을 {{provider}}에서 다시 가져오기",
-            "create_this_label_on": "{{provider}}에서 이 라벨 만들기"
+            "create_this_label_on": "{{provider}}에서 이 라벨 만들기",
+            "create_this_label_on_github": "Create this label on GitHub",
+            "re_fetch_this_repo_s_labels_from_github": "Re-fetch this repo's labels from GitHub"
           },
           "untaggedIssueCard": {
             "add": "레이블 추가",
@@ -2419,7 +2427,8 @@
             "no_label_fits": "맞는 레이블 없음",
             "read_only_repo_needs_triage_or_push_access": "읽기 전용 저장소 — 트리아지 또는 푸시 권한이 필요합니다",
             "select_issue": "이슈 #{{number}} 선택",
-            "add_these_labels_on": "{{provider}}에서 이 라벨 추가"
+            "add_these_labels_on": "{{provider}}에서 이 라벨 추가",
+            "add_these_labels_on_github": "Add these labels on GitHub"
           }
         },
         "taggingView": {
@@ -2447,7 +2456,8 @@
           "untagged": "태그 없음",
           "untagged_issues": "태그 없는 이슈",
           "what_you_see_below_is_the_previous_result_not_th": "아래에 보이는 내용은 현재 상태가 아니라 이전 결과입니다.",
-          "write_every_staged_label_to": "준비된 라벨을 모두 {{provider}}에 기록"
+          "write_every_staged_label_to": "준비된 라벨을 모두 {{provider}}에 기록",
+          "write_every_staged_label_to_github": "Write every staged label to GitHub"
         },
         "graphView": {
           "header": "의존성",
@@ -2515,8 +2525,7 @@
         "selected_change_hidden_by_filters": "선택한 {{subject}}은(는) 활성 필터에 의해 숨겨져 있습니다.",
         "selected_issue_hidden_by_filters": "선택한 이슈는 활성 필터에 의해 숨겨져 있습니다.",
         "to_see_its_details": "세부 정보를 보려면",
-        "select_an_issue_to_see_its_details": "세부 정보를 보려면 이슈를 선택하세요.",
-        "select_a_work_item_to_see_its_details": "작업 항목을 선택하면 세부 정보가 표시됩니다."
+        "select_an_issue_to_see_its_details": "세부 정보를 보려면 이슈를 선택하세요."
       }
     },
     "mdNotebook": {
@@ -3969,7 +3978,8 @@
         "session_title": "Papyrus: {{name}}",
         "warning_count_other": "경고 {{count}}개",
         "word_count_other": "단어 {{count}}개"
-      }
+      },
+      "editor": {}
     },
     "personalShopper": {
       "manifest": {
@@ -4580,7 +4590,10 @@
       "some_setup_could_not_be_read": "{{productName}}이(가) {{sources}}을(를) 읽을 수 없습니다 — 아래에 표시되지 않습니다.",
       "files_could_not_be_read": "파일을 읽을 수 없습니다",
       "your_existing_kirocrew_setup_will_not_be_affecte": "Your existing {{productName}} setup will not be affected.",
-      "your_selected_setup_is_ready_in_kiro_crew": "Your selected setup is ready in {{productName}}."
+      "your_selected_setup_is_ready_in_kiro_crew": "Your selected setup is ready in {{productName}}.",
+      "kiro_crew": "{{productName}}",
+      "skip_all": "Skip all",
+      "skip_all_setup_and_onboarding": "Skip all setup and onboarding"
     },
     "agentSelector": {
       "agent_list": "에이전트 목록",
@@ -5630,7 +5643,12 @@
       "your_crew_is_almost_ready": "크루가 거의 준비되었습니다.",
       "agent_specs_rejected": "Agent specs rejected",
       "kiro_cli_will_not_load_kiro_crew_s_agent_specs": "Kiro CLI will not load {{productName}}'s agent specs",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "copy_sign_in_command": "Copy sign-in command",
+      "could_not_check_kiro_cli": "Could not check Kiro CLI.",
+      "or_run_in_terminal": "or run in terminal:",
+      "refresh": "Refresh",
+      "sessions_are_paused_until_the_gateway_check_succ": "Sessions are paused until the gateway check succeeds. Your artifacts, settings, and\n              history remain available."
     },
     "linkPreview": {
       "copied": "복사됨",
@@ -5968,7 +5986,7 @@
     "pastedChip": {
       "collapse_paste": "붙여넣기 접기",
       "expand_paste": "붙여넣기 펼치기",
-      "paste_lines_other": "[ 붙여넣기 #{{seq}} · {{count}}줄 ]",
+      "paste_lines_other": "{{count}} lines (paste {{seq}})",
       "preview_more_lines_other": "… {{count}}줄 더"
     },
     "privacyChapter": {
@@ -6224,7 +6242,10 @@
     "runInTerminalBtn": {
       "couldn_t_run_in_terminal": "터미널에서 실행하지 못했습니다",
       "run_in_terminal": "터미널에서 실행",
-      "sent_to_terminal": "터미널로 보냈습니다"
+      "sent_to_terminal": "터미널로 보냈습니다",
+      "cancel": "Cancel",
+      "confirm_run_sensitive_command": "Confirm run sensitive command",
+      "run_anyway": "Run anyway"
     },
     "runInTerminalConfirm": {
       "body_multi": "새 터미널 탭에서 이 채팅의 작업 디렉터리로 {{lines}}줄이 실행됩니다.",
@@ -6628,7 +6649,6 @@
       "trust": "신뢰",
       "trust_all_base": "<mono>{{base}}</mono> 명령 모두 신뢰",
       "trust_all_tools": "모든 도구 신뢰",
-      "trust_all_tools_channel": "이 채널의 모든 도구 신뢰 — 재시작 후에도 유지",
       "trust_this_command": "‘<mono>{{cmd}}</mono>’ 신뢰"
     },
     "tunnelStatus": {
@@ -6682,7 +6702,8 @@
       "later": "나중에",
       "restart_update": "업데이트 설치 후 앱 다시 시작",
       "restarting": "재시작 중…",
-      "update_ready": "업데이트 준비 완료"
+      "update_ready": "업데이트 준비 완료",
+      "the_app_will_stop_the_local_gateway_install_the": "The app will stop the local gateway, install the update, and relaunch."
     },
     "updatePill": {
       "downloading": "다운로드 중…",
@@ -6944,7 +6965,8 @@
       "tag_shared": "공유됨",
       "unsaved_changes": "저장되지 않은 변경",
       "webhook_unbound_short": "바인딩된 토큰 없음",
-      "wire_what_it_works_with": "무엇으로 작동하는지"
+      "wire_what_it_works_with": "무엇으로 작동하는지",
+      "webhook_unbound_reason": "Webhook tokens carry no crew binding yet, so any token can wake any crew."
     },
     "awsConsentGate": {
       "confirm_title": "첫 요청 전에 AWS 사용 확인",
@@ -7713,7 +7735,9 @@
       "version": "버전",
       "via_dashboard": "대시보드에서",
       "view_remote": "원격 보기",
-      "your_current_edits_are_saved_as_a_version_first": "현재 편집 내용이 먼저 버전으로 저장되므로 잃는 것은 없습니다."
+      "your_current_edits_are_saved_as_a_version_first": "현재 편집 내용이 먼저 버전으로 저장되므로 잃는 것은 없습니다.",
+      "iterate": "Iterate",
+      "iterate_discuss_this_artifact_with_the_agent": "Iterate — discuss this artifact with the agent"
     },
     "artifactPopoutFrame": {
       "artifact": "아티팩트",
@@ -7966,7 +7990,10 @@
         "waiting_to_start_queued_behind_the_concurrency_l": "시작 대기 중 — 동시 실행 한도로 대기열에 있습니다",
         "workflows": "워크플로",
         "workspace_empty": "이 워크스페이스에는 아직 파일이 없습니다",
-        "workspace_truncated": "큰 워크스페이스 — 처음 10,000개 파일만 표시합니다"
+        "workspace_truncated": "큰 워크스페이스 — 처음 10,000개 파일만 표시합니다",
+        "trusted": "Trusted",
+        "trusted_base": "Trusted base",
+        "trusted_command": "Trusted command"
       },
       "assistantMessage": {
         "applied_to_tasks": "작업에 적용됨",
@@ -8160,7 +8187,8 @@
         "refresh_blocked_busy": "Wait for the current answer to finish — refreshing now would discard the pending question",
         "steer_demoted_to_queue": "턴이 끝나 대기열에 추가했습니다",
         "thinking": "생각 중…",
-        "turn_other": "{{count}}턴"
+        "turn_other": "{{count}}턴",
+        "send": "Send"
       },
       "sidePanel": {
         "close_panel": "패널 닫기",
@@ -8693,7 +8721,8 @@
       "add_state_lanes": "자동 칼럼 추가",
       "lane_seed_failed": "자동 칼럼을 추가할 수 없습니다.",
       "lane_seed_retry": "다시 시도",
-      "lane_legacy_column_hint": "모든 세션 표시"
+      "lane_legacy_column_hint": "모든 세션 표시",
+      "show_collapsed_folders": "Show collapsed folders:"
     },
     "connectionsPage": {
       "action_failed": "작업에 실패했습니다: {{error}}",
@@ -9848,7 +9877,8 @@
         "session_other": "{{count}}개 세션",
         "summarize_now": "지금 요약",
         "tool": "도구",
-        "when": "시점"
+        "when": "시점",
+        "no_lessons": "No lessons"
       },
       "portabilityTab": {
         "archive_contents": "아카이브 내용:",
@@ -9985,7 +10015,8 @@
         "workspace": "워크스페이스",
         "auto_create_hint": "Kiro Crew는 완료된 세션에서 자동으로 스킬 초안을 작성할 수도 있습니다 — 기본적으로 꺼져 있으며 <settingRef/>로 제어됩니다.",
         "approval_required_hint": "후보는 여기서 승인을 기다립니다. <settingRef/>가 꺼져 있으면 스크립트가 없는 스킬은 자동으로 게시될 수 있습니다 — 스크립트가 포함된 스킬은 항상 검토가 필요합니다.",
-        "scripts_always_require_review": "번들된 스크립트는 스킬 승인을 꺼도 항상 수동 검토가 필요합니다."
+        "scripts_always_require_review": "번들된 스크립트는 스킬 승인을 꺼도 항상 수동 검토가 필요합니다.",
+        "no_skills_installed": "No skills installed"
       },
       "steeringTab": {
         "always_on_markdown_conventions_injected_into_eve": "모든 세션에 주입되는 상시 적용 Markdown 규약입니다. 전역 파일은 ~/.kiro/steering에 있으며 모든 곳에 적용되고, 워크스페이스 파일은 <project>/.kiro/steering에 있으며 해당 프로젝트에만 적용됩니다.",
@@ -10378,7 +10409,7 @@
       "continue_session": "세션 계속하기",
       "create_your_first_job": "첫 작업 만들기",
       "cronFolders": {
-        "batch_move_failed_other": "{{total}}개 중 {{count}}개의 작업을 이동하지 못했습니다",
+        "batch_move_failed_other": "{{count}} of {{total}} batch moves failed",
         "collapse_folder": "폴더 접기",
         "confirm_delete_folder": "‘{{name}}’을(를) 삭제하시겠습니까? 작업의 그룹이 해제됩니다.",
         "create": "만들기",
@@ -10470,7 +10501,8 @@
       "script_source_failed": "스크립트 소스를 불러오지 못했습니다.",
       "script_source_truncated": "잘렸습니다 — 스크립트가 미리보기 한도를 초과합니다.",
       "no_owning_session": "소유 세션 없음",
-      "owning_session": "소유 세션"
+      "owning_session": "소유 세션",
+      "no_matching_jobs": "No matching jobs"
     },
     "servicesTab": {
       "channels": "채널",
@@ -10632,8 +10664,6 @@
     },
     "settings": {
       "aboutPanel": {
-        "diverged": "분기됨",
-        "checkout_diverged_from_upstream": "이 체크아웃은 업스트림에서 분기되었습니다({{distance}}). rebase 또는 merge로 업데이트하세요 — 아무것도 자동으로 적용되지 않으므로 로컬 커밋은 안전합니다.",
         "commits_ahead_other": "{{count}}개 커밋 앞섬",
         "commits_behind_other": "{{count}}개 커밋 뒤처짐",
         "updates_managed_by_policy": "이 설치의 업데이트는 운영자가 정의한 업데이트 정책으로 관리됩니다. 새 버전은 해당 메커니즘을 통해 제공됩니다.",
@@ -10676,7 +10706,6 @@
         "downloading": "다운로드 중…",
         "insider": "Insider",
         "install_failed": "업데이트를 설치할 수 없습니다",
-        "install_update_restart_app": "업데이트 설치 후 앱 다시 시작",
         "installing_quiet_note": "설치 중 — 몇 분이 걸릴 수 있습니다. 업데이트가 완료되면 {{productName}}이(가) 자동으로 다시 열립니다.",
         "is_available": "사용 가능합니다.",
         "loading_changelog": "변경 기록 불러오는 중…",
@@ -10732,7 +10761,9 @@
         "view_this_commit_on_github": "GitHub에서 이 커밋 보기",
         "what_s_new": "새로운 기능",
         "you_are_on_the_latest_version": "최신 버전을 사용하고 있습니다.",
-        "you_re_on_the_latest_version": "최신 버전을 사용하고 있습니다."
+        "you_re_on_the_latest_version": "최신 버전을 사용하고 있습니다.",
+        "restart_update": "Restart & Update",
+        "automatic_updates_are_unavailable_in_this_build": "Automatic updates are unavailable in this build"
       },
       "botChannelPanel": {
         "allowed_user_ids": "허용된 사용자 ID",
@@ -10820,10 +10851,8 @@
       },
       "channels": {
         "get_your_bot_credentials": "봇 자격 증명 발급받기",
-        "hard_below_soft_error": "하드 컨텍스트 임계값은 소프트 컨텍스트 임계값보다 크거나 같아야 합니다",
         "hard_threshold_description": "이 비율에 도달하면 응답을 기다리지 않고 자동으로 압축해 컨텍스트 윈도가 넘치지 않도록 합니다.",
         "hard_threshold_label": "하드 컨텍스트 임계값 %",
-        "hard_threshold_range_error": "하드 컨텍스트 임계값은 1에서 100 사이의 숫자여야 합니다",
         "threshold_description": "세션 컨텍스트가 이 비율을 넘으면 {{compact}} 또는 {{new}}을(를) 안내합니다."
       },
       "channelsPanel": {
@@ -11009,7 +11038,17 @@
         "failed_to_save_provider": "Failed to save provider settings",
         "failed_to_save_vision_mode": "Failed to save vision input mode.",
         "failed_to_save_vision_redirect": "Failed to save the text-only redirect policy.",
-        "failed_to_save_vision_fallback": "Failed to save the vision fallback model."
+        "failed_to_save_vision_fallback": "Failed to save the vision fallback model.",
+        "failed_to_save_fallback_model": "Failed to save fallback model",
+        "auto_add_documents": "Auto-Add Documents",
+        "auto_add_saved_artifacts": "Auto-Add Saved Artifacts",
+        "auto_ingest_limit_per_scan": "Auto-Ingest Limit Per Scan",
+        "auto_register_project_documents": "Auto-Register Project Documents",
+        "how_much_an_automatically_registered_source_may_i": "How much an automatically-registered source may take in one pass. Each piece of a document costs one extraction call, so this is what bounds the cost; newest documents land first and the rest follow on later passes. 0 removes the bound. Default {{count}}.",
+        "knowledge_library": "Knowledge Library",
+        "let_the_agent_add_documents_it_reads_while_workin": "Let the agent add documents it reads while working to your knowledge library, so they stay searchable later. The agent reads documents with tools you approve; Kiro Crew does not fetch them directly. Added documents appear in one “Auto-added” source you can remove in a click.",
+        "mirror_documents_you_save_as_artifacts_into_the_l": "Mirror documents you save as artifacts into the library, keep them in sync as you edit, and remove them when you delete the artifact.",
+        "register_the_documents_of_each_project_you_work_i": "Register the documents of each project you work in, so its design docs, specs and READMEs become searchable without adding the folder by hand. Documents only — never source code, agent instructions or generated files."
       },
       "computerUsePanel": {
         "accessibility": "손쉬운 사용",
@@ -11268,7 +11307,10 @@
         "up_to": "최대",
         "update_setting_failed": "설정을 업데이트하지 못했습니다: {{error}}",
         "use_an_absolute_path_no": ").\n 절대 경로를 사용하세요(다음은 사용할 수 없습니다:",
-        "enable_via_setting": "또는 <settingRef/>를 설정한 후 <restartCmd/>를 실행하세요."
+        "enable_via_setting": "또는 <settingRef/>를 설정한 후 <restartCmd/>를 실행하세요.",
+        "is_already_used_by_another_instance_choose_a_dif": "is already used by another remote crew — choose a different one\n              (and configure that port on the remote host).",
+        "dashboard_url": "dashboard.url",
+        "distinct": "distinct"
       },
       "privacyPanel": {
         "recordMetricsLabel": "메트릭 기록",
@@ -11382,10 +11424,10 @@
         "disable_this_denied_command": "이 거부된 명령을 비활성화할까요?",
         "disabled_by_policy": "정책으로 비활성화됨",
         "disabled_for_this_surface": "호스트 표면에서 비활성화됨",
-        "profile_unusable_title": "폴백 프로필이 적용 중입니다",
-        "profile_unusable_body": "아래에 표시된 프로필을 로드할 수 없어 해당 표면이 정책 폴백 상한에 묶입니다. 더 느슨한 폴백이 선언되지 않는 한 전체 거부입니다. Kiro Crew 데이터 홈의 profiles 폴더에서 파일을 수정하십시오. 수정하면 자동으로 다시 로드됩니다.",
-        "profile_unusable_detail": "파일을 읽을 수 없거나, 구문 분석에 실패했거나, 확장 대상 프로필이 없습니다. 재시작은 파일이 실행 중인 빌드보다 최신 빌드용인 경우에만 필요합니다.",
-        "profile_unusable_which": "영향을 받는 프로필: {{profiles}}.",
+        "profile_unusable_title": "Fallback profile in effect",
+        "profile_unusable_body": "A policy fallback ceiling is in effect. Affected profiles:",
+        "profile_unusable_detail": "These come from the profiles folder of your Kiro Crew data home. Each one extends a profile that is missing, so it falls back until the missing file is restored.",
+        "profile_unusable_which": "Affected: {{profiles}}.",
         "unknown_scopes_title": "이 빌드에 없는 프로필 범위",
         "unknown_scopes_tip": "아래 프로필에는 이 빌드에 등록되지 않은 기능 범위가 포함되어 있습니다. 대개 컴패니언 에디션이 추가하는 범위지만, 잘못 입력한 범위 키도 여기에 나타납니다. 이들은 건너뛰며 이 빌드에서는 아무 효과가 없습니다.",
         "disabling_a_rule_that_overlaps_an_always_on_cont": "항상 켜져 있는 제어(민감 파일 읽기, IMDS, git-publish)와 겹치는 규칙을 비활성화해도 완전히 허용되지는 않습니다 — 다층 방어가 계속 차단합니다.",
@@ -11566,11 +11608,7 @@
         "yolo_duration_next_activation_note": "다음에 자동 승인을 켤 때 적용됩니다.",
         "yolo_duration_title": "자동 승인 유지 시간",
         "yolo_duration_until_shutdown": "Until {{productName}} restarts",
-        "your_custom_denies": "사용자 지정 차단",
-        "profile_unusable_title": "Fallback profile in effect",
-        "profile_unusable_body": "A policy fallback ceiling is in effect. Affected profiles:",
-        "profile_unusable_which": "Affected: {{profiles}}.",
-        "profile_unusable_detail": "These come from the profiles folder of your Kiro Crew data home. Each one extends a profile that is missing, so it falls back until the missing file is restored."
+        "your_custom_denies": "사용자 지정 차단"
       },
       "shortcutsPanel": {
         "bind_chat_tab_switching_to_ctrl_digit_instead_of": "채팅 탭 전환을 Option+숫자 대신 Ctrl+숫자에 할당합니다",
@@ -12441,7 +12479,8 @@
     "worldsPopout": {
       "hide_controls": "컨트롤 숨기기",
       "show_controls": "컨트롤 표시"
-    }
+    },
+    "sessionMemoryCard": {}
   },
   "privacyDisclosure": {
     "anonymousHeartbeatBody": "하루에 최대 1회. 설치된 사본을 식별하며 사람을 식별하지 않습니다.",

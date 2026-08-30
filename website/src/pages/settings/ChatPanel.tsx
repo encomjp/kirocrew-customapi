@@ -479,10 +479,15 @@ export function ChatPanel() {
       if (draft?.backend && draft.backend !== (mcCfg?.agent?.provider ?? 'acp')) {
         await api.patchConfig('agent.provider', draft.backend)
       }
-      if (draft?.url !== undefined && draft.url !== (mcCfg?.agent?.provider_base_url ?? '')) {
+      // URL/key/format ride the DRAFT only when the user actually typed in
+      // their fields. After a backend switch (switchBackend resets url to '')
+      // saving a kiro-native selection must NOT wipe the stored router
+      // URL/key — switching back to claude_code/opencode should restore the
+      // previous router untouched.
+      if (draft?.url !== undefined && draft.url !== (mcCfg?.agent?.provider_base_url ?? '') && draft.backend !== 'acp') {
         await api.patchConfig('agent.provider_base_url', draft.url)
       }
-      if (draft?.key) {
+      if (draft?.key && draft.backend !== 'acp') {
         await api.patchConfig('agent.provider_api_key', draft.key)
       }
       if (draft?.format && draft.format !== (mcCfg?.agent?.provider_api_format ?? (draft.backend === 'opencode' ? 'openai' : 'anthropic'))) {
@@ -491,6 +496,18 @@ export function ChatPanel() {
       if (modelSel.length !== savedWhitelist.length || modelSel.some((m, i) => m !== savedWhitelist[i])) {
         await api.patchConfig('agent.model_whitelist', modelSel)
       }
+      // Model ids are backend-scoped: a list cached under one backend (or its
+      // localStorage last-good copy) is meaningless on another. Invalidate the
+      // React Query cache AND the adapter's localStorage cache so the picker
+      // refetches from the new backend instead of showing deepseek rows from
+      // opencode while kiro-native is active.
+      try { localStorage.removeItem('kc.acp.models.v1') } catch { /* storage disabled */ }
+      qc.removeQueries({ queryKey: ['available-models'] })
+      await qc.invalidateQueries({ queryKey: ['available-models'] })
+      // Reset any sticky per-chat slot models (ol/*, mimo/* etc. from a
+      // previous provider) — otherwise the next turn still sends the
+      // old provider's id and kiro-cli rejects it as “not found”.
+      try { await api.chatSlotsModel('auto', true) } catch { /* best-effort; slots may not exist yet */ }
       qc.invalidateQueries({ queryKey: ['kirocrewConfig'] })
       setDraft(null)
     } catch {
@@ -630,9 +647,18 @@ export function ChatPanel() {
             </p>
           )}
 
-          {effBackend === 'acp' ? (
-            <p className="mt-3 text-[13px] text-muted">{i18nT('pages.settings.chatPanel.provider_managed_by_kiro_cli')}</p>
-          ) : (
+          {effBackend === 'acp' && (
+            <>
+              <p className="mt-3 text-[13px] text-muted">{i18nT('pages.settings.chatPanel.provider_managed_by_kiro_cli')}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <Btn primary onClick={providerSave} disabled={providerSaving || !draft}>
+                  {i18nT('pages.settings.chatPanel.provider_save')}
+                </Btn>
+                {providerSaveError && <span className="text-[13px] text-danger">{providerSaveError}</span>}
+              </div>
+            </>
+          )}
+          {effBackend !== 'acp' && (
             <>
               <SettingsSelect
                 label={i18nT('pages.settings.chatPanel.provider_preset')}

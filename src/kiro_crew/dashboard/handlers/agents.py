@@ -1076,7 +1076,17 @@ def _cc_model_row(model_id: str, description: str = "") -> dict:
     families the ACP image-input routing treats as native.
     """
     if not description:
-        family = model_id.split("/", 1)[0] if "/" in model_id else model_id
+        if "/" in model_id:
+            family = model_id.split("/", 1)[0]
+        else:
+            # Bare ids known to be opencode-go catalog should show via opencode-go
+            from kiro_crew.acp.client import _ROUTER_RAW_MODEL_IDS as _RM
+            if model_id in _RM.get("oc", ()) or model_id == "muse-spark-1.2-contributor":
+                family = "opencode-go"
+            elif model_id.endswith("-free") and model_id in _RM.get("oc", ()):
+                family = "opencode"
+            else:
+                family = model_id
         description = f"{model_id.split('/')[-1]} via {family}"
     row: dict[str, object] = {
         "model_name": model_id,
@@ -1152,8 +1162,39 @@ async def _opencode_models_response(request: web.Request) -> web.Response:
                                 rows.append(row)
         except Exception:
             logger.debug("opencode /v1/models fetch failed: %s", url, exc_info=True)
+    # Fork: also list every model the LOCAL OpenCode CLI knows (its own auth:
+    # `opencode models`). These cover provider-CLI accounts (openai oauth,
+    # ollama cloud, opencode zen) that need no base_url/key in kirocrew.json —
+    # selecting one runs through the opencode CLI's own credentials.
+    # When whitelist is empty (user wants all), CLI models are additive.
+    # When whitelist is set (user checked specific models), filter strictly.
+    try:
+        from kiro_crew.acp.client import _resolve_opencode_bin, _opencode_models_via_cli, strip_router_model_prefix
+
+        if _resolve_opencode_bin() is not None:
+            ok, cli_ids, _err = await asyncio.to_thread(_opencode_models_via_cli)
+            if ok:
+                # Deduplicate by stripped id so bare "muse-spark-1.2-contributor"
+                # and prefixed "opencode-go/muse-spark-1.2-contributor" don't both appear
+                live_stripped = {strip_router_model_prefix(r["model_id"]) for r in rows}
+                live_ids = {r["model_id"] for r in rows}
+                for mid in cli_ids:
+                    if mid in live_ids or strip_router_model_prefix(mid) in live_stripped:
+                        continue
+                    rows.append(_cc_model_row(mid))
+                    live_ids.add(mid)
+                    live_stripped.add(strip_router_model_prefix(mid))
+    except Exception:
+        logger.debug("opencode CLI model listing failed", exc_info=True)
     if cfg.agent.model_whitelist:
-        rows = [r for r in rows if r["model_id"] in cfg.agent.model_whitelist]
+        # Normalize whitelist: bare "muse-spark-1.2-contributor" should match
+        # any prefixed variant (opencode/muse-spark-..., opencode-go/..., oc/...)
+        from kiro_crew.acp.client import strip_router_model_prefix as _strip
+        wl = cfg.agent.model_whitelist
+        wl_stripped = {_strip(x) for x in wl}
+        wl_set = set(wl) | wl_stripped
+        # Also match where row is bare but whitelist has prefixed, and vice versa
+        rows = [r for r in rows if r["model_id"] in wl_set or _strip(r["model_id"]) in wl_set or _strip(r["model_id"]) in wl_stripped]
     if not rows:
         from kiro_crew.acp.client import AcpClient  # noqa: F811
 
