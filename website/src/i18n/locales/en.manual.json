@@ -2583,10 +2583,10 @@
       "unset": "설정 안 됨"
     },
     "tailnetMobile": {
-      "automatic_https": "이 tailnet에 HTTPS가 활성화되면 Tailscale이 비공개 인증서를 자동으로 만들고 갱신합니다.",
-      "setting_up": "휴대폰 액세스를 설정하는 중…",
-      "setup_action": "설정하고 QR 표시",
-      "setup_timeout": "휴대폰 액세스가 준비되지 않았습니다. 설정을 확인한 후 다시 시도하세요."
+      "automatic_https": "After HTTPS is enabled for this tailnet, Tailscale creates and renews the private certificate automatically.",
+      "setting_up": "Setting up phone access…",
+      "setup_action": "Set up & show QR",
+      "setup_timeout": "Phone access did not reach a ready state. Re-check the setup, then try again."
     },
     "gitPanel": {},
     "agentSelector": {},
