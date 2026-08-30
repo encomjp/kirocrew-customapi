@@ -2769,12 +2769,10 @@ class AcpClient:
         model_id = strip_router_model_prefix(model_id or "")
         # If model already carries a native opencode provider prefix (opencode/*),
         # don't create a synthetic kirocrew provider — let the native provider handle it.
-        # Also treat bare ids that are known oc raw ids (e.g. "muse-spark-1.2-contributor"
-        # from zen/go) as native so they route via opencode-go, not via kirocrew.
         _native_prefixes = ("opencode", "opencode-go", "openai", "ollama", "ollama-cloud")
         _orig_model = (self._extra_env or {}).get("KIROCREW_DEFAULT_MODEL", "") or getattr(self, "_model", "") or ""
         _raw_for_native = strip_router_model_prefix(_orig_model or model_id or "")
-        _is_native = ("/" in _orig_model and _orig_model.split("/",1)[0] in _native_prefixes) or (_raw_for_native in _ROUTER_RAW_MODEL_IDS.get("oc", ()) or _raw_for_native in _ROUTER_RAW_MODEL_IDS.get("ol", ()) or _raw_for_native in _ROUTER_RAW_MODEL_IDS.get("cx", ()))
+        _is_native = ("/" in _orig_model and _orig_model.split("/",1)[0] in _native_prefixes) or _raw_for_native in ("muse-spark-1.2-contributor", "muse-spark-1.2-contributor-free")
         if _is_native:
             models = {}
         else:
@@ -3007,18 +3005,12 @@ class AcpClient:
                 return model_id
             if "/" in raw and raw.split("/",1)[0] in ("opencode", "opencode-go", "openai", "ollama", "ollama-cloud"):
                 return raw
-            # Bare ids known to be opencode providers should route via their
-            # native prefix, not via synthetic kirocrew (which would 404).
-            if raw in _ROUTER_RAW_MODEL_IDS.get("oc", ()):
-                # oc = opencode-go (zen/go) — map bare to opencode-go prefix
-                # except the free variant which lives on opencode (api)
+            # Muse Spark is served natively by opencode-go / opencode, not via the
+            # synthetic kirocrew provider (which would 404 on zen/go).
+            if raw in ("muse-spark-1.2-contributor", "muse-spark-1.2-contributor-free"):
                 if raw.endswith("-free"):
                     return f"opencode/{raw}"
                 return f"opencode-go/{raw}"
-            if raw in _ROUTER_RAW_MODEL_IDS.get("ol", ()):
-                return f"ollama/{raw}" if "/" not in raw else raw
-            if raw in _ROUTER_RAW_MODEL_IDS.get("cx", ()):
-                return f"openai/{raw}" if "/" not in raw else raw
             return raw if raw.startswith("kirocrew/") else f"kirocrew/{raw}"
         return raw
 

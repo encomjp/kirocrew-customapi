@@ -91,6 +91,9 @@ def test_opencode_model_id_is_provider_qualified() -> None:
 
     assert client._wire_model_id("deepseek-v4-flash:0731") == "kirocrew/deepseek-v4-flash:0731"
     assert client._wire_model_id("kirocrew/deepseek-v4-flash:0731") == "kirocrew/deepseek-v4-flash:0731"
+    # Muse Spark is served natively by opencode-go / opencode, not via kirocrew
+    assert client._wire_model_id("muse-spark-1.2-contributor") == "opencode-go/muse-spark-1.2-contributor"
+    assert client._wire_model_id("muse-spark-1.2-contributor-free") == "opencode/muse-spark-1.2-contributor-free"
 
 
 @pytest.mark.asyncio

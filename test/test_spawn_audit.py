@@ -206,6 +206,11 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # unrouted.
         "mcp_core.py::_run_vision_analyze",
         "mcp_tools/vision.py::_run_vision_analyze",
+        # opencode CLI model list: fixed `opencode models` argv, no shell, no cwd,
+        # no agent-influenced args — lists locally authenticated providers (auth.json).
+        # NOT routed through sandboxed_spawn_argv: it must read the real
+        # XDG_DATA_HOME/opencode/auth.json which the sandbox would hide.
+        "acp/client.py::_opencode_models_via_cli",
         "acp/runtime.py::_get_rss_mb",
         # The userns probe child: ONE fixed argv, `sys.executable -I -S -c <shim>`,
         # no shell, no cwd, stdin/stdout are the two handshake pipes. Nothing is
