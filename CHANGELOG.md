@@ -1,3 +1,18 @@
+## [0.4.1-1.0] — 2026-08-30
+
+kirocrew-customapi release `v0.4.1-1.0` — kiro base `0.4.1` + fork version `1.0`.
+
+- Rebase onto upstream `v0.4.1` (whole-history rebase of all fork commits):
+  gateway auto-update hardening (primary-branch allowlist, tracked-upstream
+  check, exec-config refusal), desktop update flow rework, enterprise MCP
+  registry mode, harness-parity error-code contract
+- Fork feature set carried: `claude_code` / `opencode` backends for
+  self-hosted Anthropic-compatible routers, provider settings + presets,
+  vision image redirect, keyring secrets, kirocrew-customapi branding
+- Upstream 0.4.x adoption: model fallback chain, hold-to-talk voice input,
+  background auto-check for managed installs, touch gestures, Windows
+  cold-start/perf fixes
+
 ## [0.3.1-1.1] — 2026-08-25
 
 kirocrew-customapi release `v0.3.1-1.1` — kiro base `0.3.1` + fork version `1.1`.
