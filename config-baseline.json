@@ -22,12 +22,19 @@
         "fallback_model": "auto",
         "reasoning_effort": "",
         "provider": "acp",
-        "mcp_registry_mode": false,
-        "acp_backend": "",
+        "safe_mode": false,
+        "use_shim": false,
+        "shim_openai_base_url": "http://127.0.0.1:11434/v1",
+        "shim_openai_api_key": "",
         "provider_base_url": "",
         "provider_api_key": "",
+        "mcp_registry_mode": false,
+        "acp_backend": "",
+        "provider_api_format": "",
+        "model_whitelist": [],
         "image_redirect": "subagent",
         "vision_fallback_model": "cmc/mimo-v2.5",
+        "vision_providers": [],
         "text_only_models": [
           "oc/deepseek-v4-flash",
           "ol/deepseek-v4-flash:0731"
@@ -233,39 +240,65 @@
       "hasChildren": false,
       "enumValues": [
         "acp",
-        "claude_code"
+        "claude_code",
+        "opencode"
       ],
       "defaultValue": "acp"
     },
     {
-      "path": "agent.mcp_registry_mode",
+      "path": "agent.safe_mode",
       "kind": "core",
       "type": "boolean",
       "required": false,
       "deprecated": false,
       "sensitive": false,
       "tags": [],
-      "label": "Enterprise MCP Registry Mode",
-      "help": "Set true when this Kiro account is governed by an enterprise MCP registry (Kiro console -> Shared settings -> MCP Registry URL, which applies to IAM Identity Center and API-key sign-ins). In registry mode the client connects ONLY to mcpServers entries carrying 'type': \"registry\" that resolve to a catalog entry of the same name, so Kiro Crew stamps that marker on the servers it manages. Leave false on a personal account: with no registry configured the filter inverts and registry-marked entries are the ones dropped. The administrator must also allow-list kirocrew-core, kirocrew-cron and kirocrew-computer in the registry by those exact names.",
+      "label": "Safe Mode",
+      "help": "Refuse to start a claude_code/opencode session when provider_base_url resolves to a PUBLIC address (fail-closed on unresolvable hosts). Loopback, RFC1918, and Tailscale (100.64.0.0/10) endpoints are always allowed. Guardrail against accidentally pointing the agent at a public router.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": false
     },
     {
-      "path": "agent.acp_backend",
+      "path": "agent.use_shim",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Anthropic Shim Proxy",
+      "help": "Start the built-in localhost proxy that accepts Anthropic /v1/messages requests and translates them to OpenAI-shaped chat completions against agent.shim_openai_base_url. Lets the claude_code path drive plain OpenAI-compatible backends (Ollama, DeepSeek, llama.cpp server) with no external router.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": false
+    },
+    {
+      "path": "agent.shim_openai_base_url",
       "kind": "core",
       "type": "string",
       "required": false,
       "deprecated": false,
       "sensitive": false,
       "tags": [],
-      "label": "ACP Backend",
-      "help": "Which ACP agent to drive: '' = kiro-cli (default), 'kas' = kiro-agent. KAS runs chat but has no native subagent progress reporting yet.",
+      "label": "Shim: OpenAI Base URL",
+      "help": "Where the built-in Anthropic shim forwards translated chat requests. Any OpenAI-compatible endpoint works — Ollama's default is shown; DeepSeek: https://api.deepseek.com/v1.",
       "hasChildren": false,
-      "enumValues": [
-        "",
-        "kas"
-      ],
+      "enumValues": null,
+      "defaultValue": "http://127.0.0.1:11434/v1"
+    },
+    {
+      "path": "agent.shim_openai_api_key",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Shim: OpenAI API Key",
+      "help": "Bearer token forwarded to the OpenAI-compatible backend by the built-in shim. Empty is correct for local Ollama/llama.cpp.",
+      "hasChildren": false,
+      "enumValues": null,
       "defaultValue": ""
     },
     {
@@ -295,6 +328,83 @@
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
+    },
+    {
+      "path": "agent.mcp_registry_mode",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Enterprise MCP Registry Mode",
+      "help": "Set true when this Kiro account is governed by an enterprise MCP registry (Kiro console -> Shared settings -> MCP Registry URL, which applies to IAM Identity Center and API-key sign-ins). In registry mode the client connects ONLY to mcpServers entries carrying 'type': \"registry\" that resolve to a catalog entry of the same name, so Kiro Crew stamps that marker on the servers it manages. Leave false on a personal account: with no registry configured the filter inverts and registry-marked entries are the ones dropped. The administrator must also allow-list kirocrew-core, kirocrew-cron and kirocrew-computer in the registry by those exact names.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": false
+    },
+    {
+      "path": "agent.acp_backend",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "ACP Backend",
+      "help": "Which ACP agent to drive: '' = kiro-cli (default), 'kas' = kiro-agent, 'opencode' = OpenCode ACP (fork). KAS runs chat but has no native subagent progress reporting yet.",
+      "hasChildren": false,
+      "enumValues": [
+        "",
+        "kas",
+        "opencode"
+      ],
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.provider_api_format",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Provider API Format",
+      "help": "Wire format for the opencode backend ('anthropic' or 'openai'). Empty defaults to openai.",
+      "hasChildren": false,
+      "enumValues": [
+        "anthropic",
+        "openai"
+      ],
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.model_whitelist",
+      "kind": "core",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Model Whitelist",
+      "help": "Optional allowlist of model ids shown in the picker. Empty = all advertised/curated models.",
+      "hasChildren": true,
+      "enumValues": null,
+      "defaultValue": []
+    },
+    {
+      "path": "agent.model_whitelist.*",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "*",
+      "help": "",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": null
     },
     {
       "path": "agent.image_redirect",

@@ -6444,6 +6444,7 @@
       "desc_model": "Afficher ou changer le modèle actuel",
       "desc_onboarding": "Rejouer l’import de configuration et la visite de bienvenue",
       "desc_paste": "Coller une image depuis le presse-papiers",
+      "desc_plain": "Where things stand - or add a topic",
       "desc_prompts": "Lister ou invoquer les prompts enregistrés et les SOP d’agent",
       "desc_quit": "Quitter la session de chat",
       "desc_reply": "Répondre au dernier message de l’assistant",

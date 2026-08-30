@@ -109,6 +109,7 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("bench", "Run external memory benchmarks (LongMemEval, LoCoMo)"),
             ("perf", "Debug-only performance sampling (off by default)"),
             ("desktop", "Debug-only desktop app diagnostics (requires KIROCREW_DEBUG)"),
+            ("secret", "Manage the provider API key in the OS keyring"),
         ),
     ),
 )
