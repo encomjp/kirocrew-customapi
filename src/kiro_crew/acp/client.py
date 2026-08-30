@@ -2487,7 +2487,23 @@ class AcpClient:
         # after the first (off-loop) mkdir, so the per-prompt warm path pays
         # no filesystem syscall at all.
         self._work_dir_ready = False
-        self._model = model or DEFAULT_MODEL
+        # Fork: when model is auto/empty and user has whitelisted only specific
+        # models (Select models to show in picker), make auto respect the whitelist
+        # so "auto" goes through enabled models only, not the full provider catalog.
+        _m = model or DEFAULT_MODEL
+        if _m in ("", "auto", DEFAULT_MODEL):
+            try:
+                from kiro_crew.config.loader import KiroCrewConfig
+                _wl = KiroCrewConfig.load().agent.model_whitelist
+                if _wl:
+                    # Use first whitelisted entry that is valid for current backend.
+                    # For opencode, bare ids are valid after strip; for kiro, direct.
+                    _wl_clean = [x.strip() for x in _wl if isinstance(x, str) and x.strip()]
+                    if _wl_clean:
+                        _m = _wl_clean[0]
+            except Exception:
+                pass
+        self._model = _m or DEFAULT_MODEL
         self._agent = agent
         self._sandbox_mode = sandbox_mode
         self._acp_backend = acp_backend
