@@ -11166,7 +11166,7 @@
         "fallback_disabled": "사용 안 함",
         "fallback_model": "폴백 모델",
         "model_tried_when_your_current_model_stays_rate_li": "현재 모델이 재시도 한도를 넘어 속도 제한 상태가 지속될 때 시도되는 모델입니다.",
-        "role_model_auto": "자동(공급자가 선택)",
+        "role_model_auto": "Auto (provider picks)",
         "throttle_fallback": "속도 제한 폴백",
         "failed_to_save_fallback_model": "Failed to save fallback model",
         "auto_add_documents": "Auto-Add Documents",
