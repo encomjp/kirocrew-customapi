@@ -1,3 +1,11 @@
+## [0.4.1-1.3] — 2026-08-30
+
+kirocrew-customapi release `v0.4.1-1.3` — kiro base `0.4.1` + fork version `1.3`.
+
+- Packaged `kirocrew-bridge` MCP adapter with the native app: `mcp/kirocrew-bridge` (Node, bundled 583K) is now in `resources/kirocrew-bridge/` via `extraResources` and auto-installs to `~/.config/opencode/mcp/kirocrew-bridge/` on app start, registering `mcp__ssh__*`, `memory_tencentdb_*`, `cron_*` etc. for opencode sessions without manual `opencode mcp add`
+- Bridge proxies via `X-Internal-Secret` to `127.0.0.1:5476` (gateway) with `XDG_DATA_HOME` for `opencode` auth, fallback to direct `ssh` spawn when gateway is down
+- Published as stable (not prerelease) — `latest` now points to this build
+
 ## [0.4.1-1.1] — 2026-08-30
 
 kirocrew-customapi release `v0.4.1-1.1` — kiro base `0.4.1` + fork version `1.1`.

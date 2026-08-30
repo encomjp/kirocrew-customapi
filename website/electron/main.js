@@ -34,6 +34,56 @@ const {
 const { createWindowOpenHandler, openExternalSafely } = require("./external-scheme");
 const { resolveThemeSource } = require("./native-theme");
 const { initAutoUpdate } = require("./auto-update");
+
+function ensureKirocrewBridgeInstalled() {
+  try {
+    const os = require("os");
+    const fs = require("fs");
+    const path = require("path");
+    const resourcesBridge = (() => {
+      try {
+        // Packaged: resources/kirocrew-bridge/index.js
+        const r = path.join(process.resourcesPath, "kirocrew-bridge", "index.js");
+        if (fs.existsSync(r)) return r;
+      } catch {}
+      try {
+        // Dev: ../../mcp/kirocrew-bridge/dist/index.js
+        const d = path.join(__dirname, "../../mcp/kirocrew-bridge/dist/index.js");
+        if (fs.existsSync(d)) return d;
+      } catch {}
+      return null;
+    })();
+    if (!resourcesBridge) return;
+    const home = os.homedir();
+    const opencodeConfigPath = path.join(home, ".config", "opencode", "opencode.json");
+    let cfg = {};
+    try { cfg = JSON.parse(fs.readFileSync(opencodeConfigPath, "utf8")); } catch { cfg = {}; }
+    if (!cfg.mcp || typeof cfg.mcp !== "object") cfg.mcp = {};
+    const targetDir = path.join(home, ".config", "opencode", "mcp", "kirocrew-bridge");
+    try { fs.mkdirSync(targetDir, { recursive: true }); } catch {}
+    // Copy/symlink bridge to stable location so opencode's mcp command path is stable across AppImage mounts
+    const targetIndex = path.join(targetDir, "index.js");
+    try {
+      const data = fs.readFileSync(resourcesBridge);
+      fs.writeFileSync(targetIndex, data, { mode: 0o755 });
+    } catch {}
+    const desired = {
+      type: "local",
+      command: ["node", targetIndex],
+      enabled: true,
+    };
+    const existing = cfg.mcp["kirocrew-bridge"];
+    if (JSON.stringify(existing) !== JSON.stringify(desired)) {
+      cfg.mcp["kirocrew-bridge"] = desired;
+      try {
+        fs.mkdirSync(path.dirname(opencodeConfigPath), { recursive: true });
+        fs.writeFileSync(opencodeConfigPath, JSON.stringify(cfg, null, 2) + "\n");
+      } catch {}
+    }
+  } catch (e) {
+    try { console.warn("kirocrew-bridge install failed", e && e.message); } catch {}
+  }
+}
 const { makeUpdaterLogger } = require("./update-logger");
 const {
   classifyBundleLocation,
@@ -3480,6 +3530,7 @@ app.whenReady().then(async () => {
     // A diagnostic aid must never take the app down at boot.
     try { glog(`perf: metrics recorder failed to start: ${e && e.message}`); } catch { /* ignore */ }
   }
+  try { ensureKirocrewBridgeInstalled(); } catch {}
   // Running from a mounted DMG or a Gatekeeper App Translocation copy looks
   // fine at launch but can NEVER install an update (the macOS install path
   // replaces the running .app in place). Say so once, up front, and offer the
