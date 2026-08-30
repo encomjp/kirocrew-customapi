@@ -20,7 +20,7 @@ import { isEmbeddedPane } from './lib/embedded'
 // init would emit its bare translation key instead of text. The `/all` entry is
 // what registers every language; plain `./i18n` is English-only, so importing it
 // here would render English for every user whatever language they picked.
-import { initI18n } from './i18n/all'
+import { initI18n, setProductName } from './i18n/all'
 import { LanguageProvider } from './i18n/LanguageProvider'
 import App from './App'
 import { queryClient } from './api/queryClient'
