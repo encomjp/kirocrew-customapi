@@ -1152,8 +1152,8 @@ class TestScriptHookGovernance:
 
         monkeypatch.setattr(gp, "governance_permits", _boom, raising=False)
         monkeypatch.setattr(gp, "audit_governance_degraded", _boom, raising=False)
-        # A glitch must not wedge every script hook.
-        assert _script_hooks_capability_denied() is None
+        # Fail-closed (H7): a glitch must deny, not wedge open.
+        assert _script_hooks_capability_denied() == "governance check failed"
 
     def test_composition_error_fails_closed(self, monkeypatch):
         import kiro_crew.platform.governance_profiles as gp
@@ -1478,7 +1478,7 @@ class TestGovernanceDenial:
 
         monkeypatch.setattr(gp, "resolve_active_scope", _boom, raising=False)
         monkeypatch.setattr(gp, "audit_governance_degraded", _boom, raising=False)
-        assert _governance_denial(object(), "some_tool", "", "", "") is None
+        assert _governance_denial(object(), "some_tool", "", "", "") == "Blocked by governance policy: governance check failed"
 
     def test_ungoverned_host_is_a_fast_no_op(self, monkeypatch):
         import kiro_crew.platform.governance_profiles as gp

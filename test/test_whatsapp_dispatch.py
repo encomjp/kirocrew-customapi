@@ -150,6 +150,9 @@ class FakeSessions:
     def get_pid(self, key):
         return None  # skip identity publication in tests
 
+    def is_mirror_paused(self, key: str, *, origin: bool = False) -> bool:
+        return False
+
 
 class FakeHooks:
     auto_approve_subagent_spawn = False

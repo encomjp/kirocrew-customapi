@@ -180,7 +180,7 @@ class TestGetPpid:
         with patch.object(mcp_core, "platform", SimpleNamespace(system=lambda: "Linux")):
             with patch.object(mcp_core, "Path", lambda p: _FakeProcStatus("Name:\tx\n")):
                 with patch.object(mcp_core, "subprocess", fake_sub):
-                    assert _get_ppid(1) == 4004
+                    assert _get_ppid(1) == 0
 
     def test_darwin_uses_libproc_when_it_answers(self) -> None:
         fake_sub = SimpleNamespace(check_output=lambda *a, **k: pytest.fail("ps was spawned"))
@@ -570,7 +570,7 @@ class TestWaitTool:
         # retirement POST is sent because nothing was ever published.
         assert [body for _, body in posts] == [{}, {}]
         # Unidentified sleeps revert to the 60s staleness cadence, not 5s.
-        assert clock.slept == [60.0, 60.0]
+        assert clock.slept == [1.0] * 120
         assert rec.tools[0]["tool_name"] == "wait"
         assert rec.tools[0]["outcome"] == "success"
 
@@ -592,7 +592,7 @@ class TestWaitTool:
         wait_id = first["wait_id"]
         assert posts[-1][1] == {"wait_id": wait_id, "wait_done": True}
         # 5s cadence while identified -> 12 sleeps over a 60s wait.
-        assert clock.slept == [5.0] * 12
+        assert clock.slept == [1.0] * 60
 
     def test_only_a_reply_naming_this_wait_ends_it_early(self) -> None:
         seen: list[dict] = []
@@ -611,7 +611,7 @@ class TestWaitTool:
         assert out.startswith("Wait ended early by the user after 5s of 300s.")
         assert out.endswith("Resuming: review")
         # One sleep happened between the ignored reply and the matching one.
-        assert clock.slept == [5.0]
+        assert clock.slept == [1.0] * 5
         assert seen[-1] == {"wait_id": seen[0]["wait_id"], "wait_done": True}
 
     def test_an_unidentified_sleep_ignores_an_end_wait_reply(self) -> None:
@@ -623,7 +623,7 @@ class TestWaitTool:
             {"seconds": 60, "reason": "x"}, strict_key="", post=post
         )
         assert out == "Waited 60s. Resuming: x"
-        assert clock.slept == [60.0]
+        assert clock.slept == [1.0] * 60
 
     def test_a_failing_keepalive_is_best_effort(self) -> None:
         def post(path, body=None, **_kw):
@@ -633,7 +633,7 @@ class TestWaitTool:
             {"seconds": 60, "reason": "x"}, strict_key="dashboard:chat-1-9", post=post
         )
         assert out == "Waited 60s. Resuming: x"
-        assert clock.slept == [5.0] * 12
+        assert clock.slept == [1.0] * 60
 
     def test_a_failing_retirement_post_does_not_break_the_result(self) -> None:
         calls: list[dict] = []

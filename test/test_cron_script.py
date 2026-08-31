@@ -1524,7 +1524,7 @@ class TestRunScriptSandboxedTimeout:
         # kill(-1, SIGKILL) — SIGKILLing every process this uid owns.
         # Always give mocked Popen objects a real, nonexistent int pid.
         mock_proc.pid = 2**22 + 12345  # > PID_MAX default, never a real pid
-        mock_proc.communicate.side_effect = [sp.TimeoutExpired("cmd", 30), ("", "")]
+        mock_proc.communicate.side_effect = [sp.TimeoutExpired("cmd", 30), ("", ""), ("", "")]
         with patch(
             "kiro_crew.cron_script.resolve_script_path", return_value=("/f.py", "run")
         ), patch("kiro_crew.cron_script.wrap_argv", return_value=(["true"], None)), patch(
@@ -1804,7 +1804,7 @@ class TestPostKillDrainTimeoutHardening:
         monkeypatch.setattr("kiro_crew.cron_script._resolve_command_shell", lambda: "sh")
         mock_proc = MagicMock()
         mock_proc.pid = 2**22 + 12345  # > PID_MAX default, never a real pid
-        mock_proc.communicate.side_effect = sp.TimeoutExpired("cmd", 30)
+        mock_proc.communicate.side_effect = [sp.TimeoutExpired("cmd", 30), sp.TimeoutExpired("cmd", 30), ("", "")]
         with patch("subprocess.Popen", return_value=mock_proc), patch(
             "kiro_crew.platform_compat.kill_process_tree", return_value=True
         ):

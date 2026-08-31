@@ -364,6 +364,9 @@ class FakeSessions:
     def get_pid(self, key: str) -> Any:
         return self._pid
 
+    def is_mirror_paused(self, key: str, *, origin: bool = False) -> bool:
+        return False
+
     def is_busy(self, key: str) -> bool:
         return self._busy
 

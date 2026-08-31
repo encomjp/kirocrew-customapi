@@ -2142,11 +2142,19 @@ class TestSpawnGraceCrossPlatform:
         assert sp._pid_age_seconds(4242) is None
 
     def test_windows_has_no_grace(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Windows keeps prior behavior (no age source, sweep stays functional)."""
+        """Windows now has grace via FILETIME (H7/bounds — leak-not-mis-kill)."""
         import kiro_crew.session_pid as sp
 
         monkeypatch.setattr(sp.platform_compat, "IS_WINDOWS", True)
+        # Unknown age is treated as young (safe) -> True, not False.
+        # Mock age to old to verify the window logic still works when age is known.
+        monkeypatch.setattr(sp, "_pid_age_seconds", lambda p: 9999.0)
         assert sp._pid_in_spawn_grace(4242) is False
+        monkeypatch.setattr(sp, "_pid_age_seconds", lambda p: 1.0)
+        assert sp._pid_in_spawn_grace(4242) is True
+        # And with the real FILETIME path (no mock), unknown token -> None -> True
+        monkeypatch.setattr(sp, "_pid_age_seconds", lambda p: None)
+        assert sp._pid_in_spawn_grace(4242) is True
 
 
 @pytest.mark.skipif(

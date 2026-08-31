@@ -1077,7 +1077,7 @@ class TestRunScriptSandboxed:
         }
 
         assert killed == [script_run.proc]
-        assert script_run.proc.communicate_calls == 2
+        assert script_run.proc.communicate_calls == 3
         assert cron_script._RUNNING_PROCS == {}
 
     def test_sandbox_cleanup_file_is_removed(self, script_run, monkeypatch, tmp_path):

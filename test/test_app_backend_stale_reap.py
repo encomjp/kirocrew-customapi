@@ -104,26 +104,22 @@ def test_reap_kills_matched_alive_orphan(pidfile):
     backend_mod._write_pidfile({"code_reviewer": {"pid": 4321, "start_time": "ST-1", "port": 9100}})
     alive = {"v": True}
 
-    def fake_kill(pid, sig):
-        if sig == 0 and not alive["v"]:
-            raise ProcessLookupError
-        return None
-
-    def fake_killpg(pgid, sig):
+    def fake_pinned(pid, expected, sig):
         if sig == signal.SIGTERM:
             alive["v"] = False  # SIGTERM took effect
+        return True
 
     with (
         patch.object(backend_mod, "_proc_start_time", return_value="ST-1"),
-        patch.object(backend_mod.os, "kill", side_effect=fake_kill),
-        patch.object(backend_mod.os, "getpgid", return_value=4321),
-        patch.object(backend_mod.os, "killpg", side_effect=fake_killpg) as mock_killpg,
+        patch.object(backend_mod.platform_compat, "pid_liveness", return_value=backend_mod.platform_compat.PID_ALIVE),
+        patch.object(backend_mod, "_pid_alive", side_effect=lambda pid: alive["v"]),
+        patch.object(backend_mod.platform_compat, "kill_process_tree_pinned", side_effect=fake_pinned) as mock_pinned,
         patch.object(backend_mod, "sel"),
     ):
         n = backend_mod._reap_stale_app_backends()
 
     assert n == 1
-    mock_killpg.assert_any_call(4321, signal.SIGTERM)
+    mock_pinned.assert_any_call(4321, "ST-1", signal.SIGTERM)
     assert backend_mod._read_pidfile() == {}  # cleared for the new generation
 
 
@@ -218,14 +214,15 @@ def test_reap_escalates_to_sigkill_when_sigterm_ignored(pidfile):
     backend_mod._write_pidfile({"app": {"pid": 4321, "start_time": "ST-1", "port": 9100}})
     signals: list[int] = []
 
-    def fake_killpg(pgid, sig):
+    def fake_pinned(pid, expected, sig):
         signals.append(sig)  # never dies, even after SIGTERM
+        return True
 
     with (
         patch.object(backend_mod, "_proc_start_time", return_value="ST-1"),
-        patch.object(backend_mod.os, "kill", return_value=None),  # always alive
-        patch.object(backend_mod.os, "getpgid", return_value=4321),
-        patch.object(backend_mod.os, "killpg", side_effect=fake_killpg),
+        patch.object(backend_mod.platform_compat, "pid_liveness", return_value=backend_mod.platform_compat.PID_ALIVE),
+        patch.object(backend_mod, "_pid_alive", return_value=True),  # always alive
+        patch.object(backend_mod.platform_compat, "kill_process_tree_pinned", side_effect=fake_pinned),
         patch.object(backend_mod, "sel"),
         patch.object(backend_mod, "_REAP_SIGTERM_GRACE", 0.05),
         patch.object(backend_mod, "_REAP_POLL_INTERVAL", 0.01),
@@ -248,11 +245,15 @@ def test_reap_per_pid_grace_not_shared(pidfile):
     })
     killed: list[tuple[int, int]] = []
 
+    def fake_pinned(pid, expected, sig):
+        killed.append((pid, sig))
+        return True
+
     with (
         patch.object(backend_mod, "_proc_start_time", return_value="ST"),
-        patch.object(backend_mod.os, "kill", return_value=None),  # always alive
-        patch.object(backend_mod.os, "getpgid", side_effect=lambda p: p),
-        patch.object(backend_mod.os, "killpg", side_effect=lambda pg, s: killed.append((pg, s))),
+        patch.object(backend_mod.platform_compat, "pid_liveness", return_value=backend_mod.platform_compat.PID_ALIVE),
+        patch.object(backend_mod, "_pid_alive", return_value=True),  # always alive
+        patch.object(backend_mod.platform_compat, "kill_process_tree_pinned", side_effect=fake_pinned),
         patch.object(backend_mod, "sel"),
         patch.object(backend_mod, "_REAP_SIGTERM_GRACE", 0.02),
         patch.object(backend_mod, "_REAP_POLL_INTERVAL", 0.01),
@@ -279,9 +280,9 @@ def test_reap_preserves_concurrent_write_during_scan(pidfile):
 
     with (
         patch.object(backend_mod, "_proc_start_time", side_effect=racing_start_time),
-        patch.object(backend_mod.os, "kill", return_value=None),  # alive, then exits
-        patch.object(backend_mod.os, "getpgid", return_value=4321),
-        patch.object(backend_mod.os, "killpg"),
+        patch.object(backend_mod.platform_compat, "pid_liveness", return_value=backend_mod.platform_compat.PID_ALIVE),
+        patch.object(backend_mod, "_pid_alive", return_value=False),  # exits after SIGTERM
+        patch.object(backend_mod.platform_compat, "kill_process_tree_pinned", return_value=True),
         patch.object(backend_mod, "sel"),
         patch.object(backend_mod, "_REAP_SIGTERM_GRACE", 0.0),  # skip the SIGKILL wait
         patch.object(backend_mod, "_REAP_POLL_INTERVAL", 0.01),
@@ -339,16 +340,17 @@ def test_reap_skips_sigkill_when_pid_recycled_during_grace(pidfile):
 
     sigkilled: list[int] = []
 
-    def fake_killpg(pgid, sig):
+    def fake_pinned(pid, expected, sig):
         if sig == signal.SIGKILL:
-            sigkilled.append(pgid)
+            sigkilled.append(pid)
         # SIGTERM is ignored: the (now-recycled) pid stays alive.
+        return True
 
     with (
         patch.object(backend_mod, "_proc_start_time", side_effect=start_time),
-        patch.object(backend_mod.os, "kill", return_value=None),  # always alive
-        patch.object(backend_mod.os, "getpgid", return_value=4321),
-        patch.object(backend_mod.os, "killpg", side_effect=fake_killpg),
+        patch.object(backend_mod.platform_compat, "pid_liveness", return_value=backend_mod.platform_compat.PID_ALIVE),
+        patch.object(backend_mod, "_pid_alive", return_value=True),  # always alive
+        patch.object(backend_mod.platform_compat, "kill_process_tree_pinned", side_effect=fake_pinned),
         patch.object(backend_mod, "sel"),
         patch.object(backend_mod, "_REAP_SIGTERM_GRACE", 0.02),
         patch.object(backend_mod, "_REAP_POLL_INTERVAL", 0.01),

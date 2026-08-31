@@ -97,6 +97,9 @@ class FakeProvider:
 
 
 class FakeSessions:
+    def is_mirror_paused(self, key: str, *, origin: bool = False) -> bool:
+        return False
+
     def __init__(self, provider=None, busy=False):
         self.provider = provider or FakeProvider()
         self._busy = busy
