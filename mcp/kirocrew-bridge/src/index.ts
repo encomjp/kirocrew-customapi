@@ -92,15 +92,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const { name, arguments: args } = req.params;
   try {
-    let result;
-    if (name === "kirocrew_call") {
-      // H7/bounds: check inner args.tool against whitelist, not outer kirocrew_call
-      const inner = (args as any)?.tool;
-      if (typeof inner !== "string" || !ALLOWED_TOOLS.has(inner)) throw new Error(`Tool not allowed: ${inner}`);
-      result = await callGateway(inner, (args as any).args || {});
-    } else {
-      result = await callGateway(name, args || {});
-    }
+    const result = await callGateway(name, args || {});
     return { content: [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result, null, 2) }] };
   } catch (e: any) {
     return { content: [{ type: "text", text: `Error: ${e.message}` }], isError: true };
