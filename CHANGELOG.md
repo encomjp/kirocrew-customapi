@@ -1,3 +1,15 @@
+## [0.4.1-1.6] — 2026-08-31
+
+kirocrew-customapi release `v0.4.1-1.6` — kiro base `0.4.1` + fork version `1.6`.
+
+- **Bridge:** `kirocrew_call` alias removed — `CallTool` now rejects unknown names including `kirocrew_call` (only 3 allowlisted tools)
+- **Tests:** `test_fork_review_regressions` now 11 behavior tests (PATCH mask, GET mask, `prefixed_router_model_id`, catalog union, `_model_via_env`, effective key, shim 502, bridge) instead of 6 `Path.read_text` checks
+- **Electron:** `package-lock.json` synced `0.4.1-1.0` → `0.4.1-1.5`/`1.6` (keep `pyproject` at `0.4.1` PEP440)
+
+### Contributors
+
+- @encomjp
+
 ## [0.4.1-1.5] — 2026-08-31
 
 kirocrew-customapi release `v0.4.1-1.5` — kiro base `0.4.1` + fork version `1.5`.
