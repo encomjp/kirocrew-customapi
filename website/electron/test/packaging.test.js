@@ -279,7 +279,7 @@ describe("first-download installer design contract", () => {
       path.join(REPO_ROOT, "packaging", "build-desktop.sh"),
       "utf8"
     );
-    assert.deepEqual(backendResource.filter, ["**/*"]);
+    assert.deepEqual(backendResource.filter, ["**/*", "!**/__pycache__/**", "!**/*.pyc"]);
     assert.match(buildScript, /rm -rf[\s\S]*?include libs tcl/);
     assert.match(buildScript, /llama_cpp_libs\/linux_aarch64/);
     assert.match(buildScript, /DLLs\/_tkinter\.pyd DLLs\/tcl\*\.dll DLLs\/tk\*\.dll/);

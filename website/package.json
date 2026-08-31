@@ -17,7 +17,7 @@
     "preview": "vite preview",
     "analyze": "vite build --mode analyze && node scripts/bundle-report.mjs",
     "test": "npm run test:website && npm run test:electron",
-    "test:website": "vitest run --coverage",
+    "test:website": "node scripts/gate-vitest.mjs",
     "test:electron": "npm test --prefix electron",
     "test:watch": "vitest",
     "test:integration": "vitest run integration/",

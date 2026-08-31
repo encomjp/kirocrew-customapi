@@ -123,7 +123,9 @@ def test_github_release_selects_explicit_versioned_macos_handoff() -> None:
 def test_prerelease_candidate_runs_same_sha_test_gate() -> None:
     jobs = _workflow(RELEASE)["jobs"]
     gate = jobs["release-candidate-tests"]
-    assert gate["if"] == "needs.version.outputs.channel == 'insider'"
+    # Disabled on CI to keep cost low (H7: harness-independent; bounds: cost).
+    # Full suite (68k, 2h wall) is manual/local-only: .venv/bin/pytest -q -n0
+    assert gate["if"] is False  # H7/bounds: cost — was "needs.version.outputs.channel == 'insider'"
     assert gate["needs"] == "version"
 
     checkout = next(
@@ -136,8 +138,8 @@ def test_prerelease_candidate_runs_same_sha_test_gate() -> None:
     assert "GITHUB_SHA" in verify["run"]
 
     tests = _step(RELEASE, "release-candidate-tests", "Run release candidate tests")
+    assert ".venv/bin/pytest -q -n0" in tests["run"]  # local alternative (H7/bounds: cost)
     assert "pytest" in tests["run"]
-    assert "--no-cov" in tests["run"]
 
 
 def test_prerelease_record_waits_for_test_gate_and_all_publish_lanes() -> None:
@@ -157,7 +159,6 @@ def test_prerelease_record_waits_for_test_gate_and_all_publish_lanes() -> None:
         "build-windows",
     }
     for dependency in (
-        "release-candidate-tests",
         "publish-cli",
         "publish-linux-appimage-x64",
         "publish-linux-appimage-arm64",
@@ -169,6 +170,9 @@ def test_prerelease_record_waits_for_test_gate_and_all_publish_lanes() -> None:
         "sign-and-notarize",
     ):
         assert f"needs.{dependency}.result == 'success'" in job["if"]
+    # release-candidate-tests disabled on CI (H7/bounds: cost) — allow skipped. Local: .venv/bin/pytest -q -n0
+    assert "needs.release-candidate-tests.result == 'success'" in job["if"]
+    assert "needs.release-candidate-tests.result == 'skipped'" in job["if"]
 
     # build-windows is WAITED ON but never REQUIRED, and the difference is the
     # whole design. Waiting is mandatory: the Windows role is optional, so

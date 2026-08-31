@@ -2364,6 +2364,18 @@ def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
     sets and require an unambiguous match — ``gpt-5.6-luna`` is served by both
     commandcode and Codex, so the raw id alone cannot disambiguate.
     """
+    # H7/bounds: vendor-namespace raws (cmc) contain '/' and must be checked as
+    # exact raw before treating '/' as a router prefix delimiter; cmc short-name
+    # whitelist (picker drops vendor) via rsplit — bounds the check to known raws.
+    _owned_prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(owned_by, "")
+    if _owned_prefix:
+        _raws = _ROUTER_RAW_MODEL_IDS.get(_owned_prefix, ())
+        if model_id in _raws:
+            return _router_picker_id(_owned_prefix, model_id)
+        if _owned_prefix == "cmc":
+            for _raw in _raws:
+                if _raw.rsplit("/", 1)[-1] == model_id:
+                    return _router_picker_id(_owned_prefix, _raw)
     # An already-prefixed 9router id: the leading group IS the source prefix.
     source_prefix, _, rest = model_id.partition("/")
     if rest:
@@ -2372,9 +2384,16 @@ def prefixed_router_model_id(model_id: str, owned_by: str = "") -> str | None:
             # Fall back to recognizing the embedded prefix directly.
             prefix = _ROUTER_OWNED_BY_TO_PREFIX.get(source_prefix, "")
         if prefix:
-            if rest not in _ROUTER_RAW_MODEL_IDS.get(prefix, ()):
+            _raws = _ROUTER_RAW_MODEL_IDS.get(prefix, ())
+            if rest in _raws:
+                return _router_picker_id(prefix, rest)
+            # H7/bounds: cmc short-name whitelist — rest is short name, raws carry vendor prefix
+            if prefix == "cmc":
+                for _raw in _raws:
+                    if _raw.rsplit("/", 1)[-1] == rest:
+                        return _router_picker_id(prefix, _raw)
                 return None
-            return _router_picker_id(prefix, rest)
+            return None
         # Unknown owned_by + unknown prefix: the id is not a recognized model.
         return None
 
@@ -3593,6 +3612,7 @@ class AcpClient:
         env = {**os.environ}
         if self._extra_env:
             env.update(self._extra_env)
+        _path_home = os.path.expanduser("~")  # H7: real home for PATH inheritance
         if self.backend == ACP_BACKEND_OPENCODE:
             # Isolate the OpenCode process from the user's global config
             # (~/.config/opencode/opencode.json and .jsonc) which may contain
@@ -3601,8 +3621,11 @@ class AcpClient:
             # config to ~/.config/kirocrew-customapi/opencode-home/.config/
             # opencode/opencode.json — setting HOME to that root makes
             # OpenCode see ONLY our config, with zero user plugins or MCP.
+            # H7/bounds: inherit real CLI — isolated HOME must not hide host CLI
+            # binaries or credentials. Pin PATH and XDG_DATA_HOME to the REAL home.
+            real_home = os.path.expanduser("~")
             isolated_home = os.path.join(
-                os.path.expanduser("~"),
+                real_home,
                 ".config", "kirocrew-customapi", "opencode-home",
             )
             env["HOME"] = isolated_home
@@ -3614,9 +3637,9 @@ class AcpClient:
             # ``openai/*`` or ``ollama-cloud/*`` model would 404 as
             # ``session/APIError Not Found``. Point XDG_DATA_HOME at the real
             # data dir so credentials stay inherited.
-            real_data_home = os.path.join(os.path.expanduser("~"), ".local", "share")
-            if os.path.isdir(os.path.join(real_data_home, "opencode")):
-                env["XDG_DATA_HOME"] = real_data_home
+            real_data_home = os.path.join(real_home, ".local", "share")
+            env["XDG_DATA_HOME"] = real_data_home
+            _path_home = real_home
         logger.debug(
             "spawn env check: ANTHROPIC_MODEL=%r ANTHROPIC_BASE_URL=%r model_via_env=%s argv=%r cwd=%s",
             env.get("ANTHROPIC_MODEL", "<unset>"),
@@ -3625,7 +3648,7 @@ class AcpClient:
             argv,
             str(self._work_dir),
         )
-        env["PATH"] = augmented_path(env.get("PATH", ""))
+        env["PATH"] = augmented_path(env.get("PATH", ""), home=_path_home)
         if self._is_claude and not env.get("CLAUDE_CODE_EXECUTABLE"):
             # Dormant seam (see _spawn docstring): the adapter's SDK needs a
             # native Claude binary we don't vendor and does NOT search PATH for

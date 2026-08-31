@@ -63,11 +63,12 @@ class TestWidgetBlockPlaceholder:
             assert "bg-[var(" not in result
 
     def test_pointer_is_short(self):
-        # Hard budget: each pointer branch stays under 300 chars. The old
-        # block was ~800. Catches accidental regrowth.
+        # Hard budget: each pointer branch stays under 700 chars. The old
+        # block was ~800, now includes both widgets + artifacts pointers (638).
+        # Catches accidental regrowth beyond the current bundled skill pointers.
         for density in ("more", "less"):
             result = _resolve("{{WIDGET_BLOCK}}", "dashboard:abc", density=density)
-            assert len(result) < 300, f"{density} pointer too long: {len(result)} chars"
+            assert len(result) < 700, f"{density} pointer too long: {len(result)} chars"
 
     def test_dashboard_underscore_key_also_matches(self):
         # Some dashboard sessions use `dashboard_<slot>` instead of `dashboard:<slot>`.

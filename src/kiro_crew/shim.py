@@ -273,6 +273,34 @@ async def _stream_translation(
     ``input_json_delta`` partials. Usage, when the backend reports it (final
     chunk via ``stream_options.include_usage``), lands in ``message_delta``.
     """
+    # H7/bounds: map non-200 backend status to 502 SSE error (parity with non-stream path at handle_messages:232-249)
+    if resp.status != 200:
+        try:
+            data = await resp.json(content_type=None)
+            detail = (
+                data.get("error", {}).get("message", str(data)[:300])
+                if isinstance(data, dict)
+                else str(data)[:300]
+            )
+        except Exception:
+            try:
+                detail = (await resp.text())[:300]
+            except Exception:
+                detail = f"status {resp.status}"
+        err_msg = f"backend {resp.status}: {detail}"
+        out = web.StreamResponse(
+            status=502,
+            headers={
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "connection": "keep-alive",
+            },
+        )
+        await out.prepare(request)
+        payload = {"type": "error", "error": {"type": "api_error", "message": err_msg}}
+        await out.write(f"event: error\ndata: {json.dumps(payload)}\n\n".encode())
+        await out.write_eof()
+        return out
     out = web.StreamResponse(
         headers={
             "content-type": "text/event-stream",

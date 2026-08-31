@@ -16730,7 +16730,6 @@ var StdioServerTransport = class {
 var import_fs = require("fs");
 var import_path = require("path");
 var import_os = require("os");
-var import_child_process = require("child_process");
 function getGatewayInfo() {
   const home = process.env.KIROCREW_HOME || (0, import_path.join)((0, import_os.homedir)(), ".kiro", "crew");
   const configPath = (0, import_path.join)(home, "config.json");
@@ -16777,7 +16776,15 @@ function getGatewayInfo() {
   }
   return { home, port, secret };
 }
+var ALLOWED_TOOLS = /* @__PURE__ */ new Set([
+  "mcp__ssh__execute_command",
+  "memory_tencentdb_memory_search",
+  "memory_tencentdb_conversation_search"
+]);
 async function callGateway(tool, args) {
+  if (!ALLOWED_TOOLS.has(tool)) {
+    throw new Error(`Tool not allowed: ${tool}`);
+  }
   const { port, secret } = getGatewayInfo();
   const url = `http://127.0.0.1:${port}/api/${tool.replace(/^mcp__/, "").replace(/^memory_tencentdb_/, "memory/")}`;
   const endpoints = [
@@ -16795,16 +16802,6 @@ async function callGateway(tool, args) {
       if (res.ok) return await res.json();
     } catch {
     }
-  }
-  if (tool.includes("ssh") && args.cmdString) {
-    return new Promise((resolve, reject) => {
-      const p = (0, import_child_process.spawn)("bash", ["-c", args.cmdString], { env: process.env });
-      let out = "", err = "";
-      p.stdout.on("data", (d) => out += d);
-      p.stderr.on("data", (d) => err += d);
-      p.on("close", (code) => resolve({ stdout: out, stderr: err, code }));
-      p.on("error", reject);
-    });
   }
   throw new Error(`Gateway call failed for ${tool} - is KiroCrew gateway running on port ${port}?`);
 }

@@ -37,6 +37,19 @@ const { initAutoUpdate } = require("./auto-update");
 
 function ensureKirocrewBridgeInstalled() {
   try {
+    // H7/bounds: require explicit consent before copying to ~/.config/opencode — do not
+    // auto-enable the bridge. Consent via KIROCREW_BRIDGE_CONSENT=1 or electron-store flag
+    // `kirocrewBridgeConsent`. Without it, return without touching the filesystem.
+    let consented = false;
+    try { if (process.env.KIROCREW_BRIDGE_CONSENT === "1") consented = true; } catch {}
+    if (!consented) {
+      try {
+        const Store = require("electron-store");
+        const _s = new Store();
+        if (_s.get("kirocrewBridgeConsent")) consented = true;
+      } catch {}
+    }
+    if (!consented) return;
     const os = require("os");
     const fs = require("fs");
     const path = require("path");

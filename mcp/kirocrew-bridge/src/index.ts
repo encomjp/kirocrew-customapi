@@ -5,7 +5,6 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
-import { spawn } from "child_process";
 
 function getGatewayInfo() {
   const home = process.env.KIROCREW_HOME || join(homedir(), ".kiro", "crew");
@@ -47,10 +46,21 @@ function getGatewayInfo() {
   return { home, port, secret };
 }
 
+// H7/bounds: whitelist + no local fallback — only explicitly allowed tools are proxied
+// to the gateway via X-Internal-Secret; no bash -c or generic proxy remains.
+const ALLOWED_TOOLS = new Set<string>([
+  "mcp__ssh__execute_command",
+  "memory_tencentdb_memory_search",
+  "memory_tencentdb_conversation_search",
+]);
+
 async function callGateway(tool: string, args: any) {
+  // H7: fail-closed on unlisted tools — kirocrew_call cannot forward arbitrary tools.
+  if (!ALLOWED_TOOLS.has(tool)) {
+    throw new Error(`Tool not allowed: ${tool}`);
+  }
   const { port, secret } = getGatewayInfo();
   const url = `http://127.0.0.1:${port}/api/${tool.replace(/^mcp__/, "").replace(/^memory_tencentdb_/, "memory/")}`;
-  // Fallback generic proxy: try POST to /api/tools/call
   const endpoints = [
     `http://127.0.0.1:${port}/api/tools/call`,
     `http://127.0.0.1:${port}/api/mcp/call`,
@@ -65,17 +75,6 @@ async function callGateway(tool: string, args: any) {
       });
       if (res.ok) return await res.json();
     } catch {}
-  }
-  // Fallback: direct ssh via spawn if tool is ssh
-  if (tool.includes("ssh") && args.cmdString) {
-    return new Promise((resolve, reject) => {
-      const p = spawn("bash", ["-c", args.cmdString], { env: process.env });
-      let out = "", err = "";
-      p.stdout.on("data", d => out += d);
-      p.stderr.on("data", d => err += d);
-      p.on("close", code => resolve({ stdout: out, stderr: err, code }));
-      p.on("error", reject);
-    });
   }
   throw new Error(`Gateway call failed for ${tool} - is KiroCrew gateway running on port ${port}?`);
 }

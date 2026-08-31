@@ -509,9 +509,11 @@ async def _http_describe_image(
             }
         )
 
+    from kiro_crew.acp.client import strip_router_model_prefix  # H7/bounds: picker->raw before POST
+
     payload = json.dumps(
         {
-            "model": vision_model,
+            "model": strip_router_model_prefix(vision_model),
             "messages": [{"role": "user", "content": content}],
             "max_tokens": 1024,
         }

@@ -2022,6 +2022,22 @@ async def api_kirocrew_config_patch(request: web.Request) -> web.Response:
         caller = "dashboard"
 
     def _log_sel(outcome: str, resources: str) -> None:
+        # H7/bounds: SEL is a durable, browsable audit log — plaintext API keys
+        # must not be stored. Schema-driven masking (sensitive=True -> _is_sensitive_path)
+        # ensures the value is redacted while the key remains for audit.
+        try:
+            if "=" in resources:
+                _maybe_path, _maybe_val = resources.split("=", 1)
+                _maybe_path = _maybe_path.strip()
+                # Fixed sentinels (read_failed etc.) carry no secret; do not mask them.
+                if _maybe_val not in ("read_failed", "section_not_dict", "write_failed"):
+                    from kiro_crew.config.schema import JSON_SCHEMA as _JS  # lazy: avoid import cycle
+                    from kiro_crew.config.validation import _is_sensitive_path as _isp
+
+                    if _isp(_JS, _maybe_path):
+                        resources = f"{_maybe_path}={_SENSITIVE_MASK}"
+        except Exception:
+            pass
         _sel().log_api_access(
             caller=caller,
             operation="config.patch",
