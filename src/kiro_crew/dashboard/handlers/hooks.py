@@ -491,8 +491,10 @@ def _verify_hook_signature(
 
     Any other return value is the ``SIG_ERR_*`` string naming the cause, used
     verbatim as the 401 ``error`` and in the recorded run detail. Tokens without
-    ``require_signature`` (including the legacy config scalar, which has no
-    secret to verify against) are accepted on the bearer alone.
+    ``require_signature`` are accepted on the bearer alone. The legacy scalar
+    (``LEGACY_TOKEN_ID``) and any deprecated entry have no signing secret and
+    fail closed (H7, bounds-guaranteed) with ``SIG_ERR_NO_SECRET`` — bearer-only
+    is not a policy.
 
     Fails closed when a token is marked as requiring signatures but has no
     stored secret: that combination only arises from a hand-edited or truncated
@@ -500,7 +502,9 @@ def _verify_hook_signature(
     bearer-only.
     """
     if token_id == webhooks.LEGACY_TOKEN_ID:
-        return None
+        # Require signature even for legacy/deprecated (H7): no secret to verify
+        # against, so fail closed rather than bypassing HMAC.
+        return webhooks.SIG_ERR_NO_SECRET
     entry = webhooks.token_store().entry_for(token_id)
     if entry is None:
         # A concurrent revocation between bearer lookup and this read must fail

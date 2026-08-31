@@ -733,6 +733,15 @@ async def api_ws(request: web.Request) -> web.WebSocketResponse:
                         )
                 except (json.JSONDecodeError, Exception):
                     pass
+            elif msg.type == WSMsgType.BINARY:
+                # Binary frames are not part of the dashboard protocol — fail
+                # fast with 1003 (unsupported data) rather than ignoring and
+                # leaving the peer thinking its payload was accepted.
+                try:
+                    await ws.close(code=WSCloseCode.UNSUPPORTED_DATA, message=b"binary not supported")
+                except Exception:
+                    pass
+                break
             elif msg.type in (WSMsgType.ERROR, WSMsgType.CLOSE):
                 break
     except (asyncio.CancelledError, Exception):
@@ -744,6 +753,18 @@ async def api_ws(request: web.Request) -> web.WebSocketResponse:
         # A prefetch still debouncing for a closed dashboard serves nobody.
         if _focus_task is not None and not _focus_task.done():
             _focus_task.cancel()
+        # H7/bounds: await the cancelled background tasks so they don't leak
+        # as pending tasks on the loop (finally leak). Gather with
+        # return_exceptions to absorb CancelledError.
+        try:
+            _to_gather: list[asyncio.Task] = [status_task]
+            if check_task is not None:
+                _to_gather.append(check_task)
+            if _focus_task is not None:
+                _to_gather.append(_focus_task)
+            await asyncio.gather(*_to_gather, return_exceptions=True)
+        except Exception:
+            pass
         state.unsubscribe_logs(ws)
         state.unsubscribe_subagents(ws)
         state.unregister_ws(ws)

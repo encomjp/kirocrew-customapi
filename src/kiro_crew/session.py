@@ -197,16 +197,6 @@ def _provider_label(provider: Any) -> str:
     return provider_label(provider)
 
 
-def _provider_label(provider: Any) -> str:
-    """Return the session-map identity for an ACP provider backend."""
-    backend = getattr(getattr(provider, "client", None), "backend", "")
-    if backend == "claude":
-        return "claude_code"
-    if backend == "opencode":
-        return "opencode"
-    return "acp"
-
-
 def _provider_effectively_alive(provider: Any) -> bool:
     """Whether a session's provider should be treated as live (NOT stale).
 
@@ -1040,6 +1030,7 @@ class SessionManager:
         self._provider_factory = provider_factory
         self._sessions: dict[str, _Session] = {}
         self._lock = asyncio.Lock()
+        self._touch_lock = threading.Lock()  # sync touch() vs async _lock paths (H7: lock touch)
         # Set True (under _lock) at the top of close_all() so the multi-second
         # pre-shutdown drain window cannot be raced by a new turn: get_or_create
         # refuses once this is set, so a prompt that began AFTER the drain
@@ -5143,13 +5134,17 @@ class SessionManager:
         only the ACP runtime's activity clock, which feeds ``is_responsive()``
         and nothing else, leaving the idle sweep's clock untouched.
 
+        Thread-safe via ``_touch_lock`` so a concurrent ``wait`` keepalive and
+        the periodic idle sweep do not race ``last_used`` (H7: bounds).
+
         Returns True if a session existed for *key*.
         """
-        session = self._sessions.get(self._fold_key(key))
-        if session is None:
-            return False
-        session.last_used = time.monotonic()
-        return True
+        with self._touch_lock:
+            session = self._sessions.get(self._fold_key(key))
+            if session is None:
+                return False
+            session.last_used = time.monotonic()
+            return True
 
     def enqueue(
         self, key: str, msg_ts: str, text: str, *, force: bool = False, **kwargs: object

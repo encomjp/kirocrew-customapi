@@ -22,6 +22,7 @@ import subprocess
 import sys
 import unicodedata
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import PureWindowsPath
 from typing import Any
 
@@ -459,6 +460,7 @@ _PATTERN_CHILD_SRC = (
 )
 
 
+@lru_cache(maxsize=512)
 def _bounded_pattern_search(pattern: str, value: str) -> bool | None:
     """``re.search`` with hard input-size caps and a killable wall-clock bound.
 

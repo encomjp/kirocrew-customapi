@@ -297,14 +297,22 @@ def build_prompt_blocks(
     needed so the base64 payload stays within ``max_image_b64_bytes``, the
     backend's per-image byte ceiling.
     """
-    text = message
     images: list[dict] = []
+    replacements: list[tuple[int, int, str]] = []
 
     if allow_image:
-        seen: set[str] = set()
+        seen_inlined: set[str] = set()
+        seen_blocked: set[str] = set()
         for match in _PATH_RE.finditer(message):
             raw = match.group(1).strip()
-            if raw in seen:
+            start, end = match.span(1)
+            # Span-based rewrite (H7/bounds): avoid global str.replace which
+            # corrupts when one path is a substring of another (e.g. /tmp/a.png
+            # inside /tmp/a.png.bak.png). Replacements are applied by span.
+            if raw in seen_inlined:
+                replacements.append((start, end, f"[image: {Path(raw).name}]"))
+                continue
+            if raw in seen_blocked:
                 continue
             # UNC-shaped candidates name a HOST on Windows: gate them before
             # any filesystem call, or is_file() below opens an SMB connection
@@ -312,7 +320,7 @@ def build_prompt_blocks(
             # doubled leading slash is an ordinary local path), and _PATH_RE
             # is platform-gated anyway. See kiro_crew.hooks.unc_probe_allowed.
             if os.name == "nt" and is_unc_shape(raw) and not unc_probe_allowed(raw):
-                seen.add(raw)
+                seen_blocked.add(raw)
                 continue
             path = Path(raw)
             suffix = path.suffix.lower()
@@ -394,8 +402,20 @@ def build_prompt_blocks(
                 continue
             out_bytes, out_mime = downscaled
             data = base64.b64encode(out_bytes).decode("ascii")
-            seen.add(raw)
+            seen_inlined.add(raw)
             images.append({"type": "image", "data": data, "mimeType": out_mime})
-            text = text.replace(raw, f"[image: {path.name}]")
+            replacements.append((start, end, f"[image: {path.name}]"))
+
+    if replacements:
+        parts: list[str] = []
+        last = 0
+        for start, end, marker in sorted(replacements):
+            parts.append(message[last:start])
+            parts.append(marker)
+            last = end
+        parts.append(message[last:])
+        text = "".join(parts)
+    else:
+        text = message
 
     return [{"type": "text", "text": text}, *images]

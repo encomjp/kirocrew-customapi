@@ -477,17 +477,16 @@ class TestDeclaredDictProperties:
         assert "shell" in node.get("properties", {})
 
     def test_declared_key_type_violation_keeps_value_and_dict(self) -> None:
-        # _apply_field_default is deliberately depth-capped (deeper paths
-        # reach dict-field values the loader tolerates — see its docstring),
-        # so a violating declared 3-level sub-key is retained: the warning
-        # says "value kept", the surrounding dict survives untouched, and the
-        # value is re-validated by its consumer (_resolve_shell coerces and
-        # rejects at spawn time).
+        # B5 fix: _apply_field_default now recurses to depth, walks
+        # additionalProperties/items, warns on non-dict and strips by key
+        # presence (H7). A violating declared 3-level sub-key is therefore
+        # removed so the loader falls back to its default, and the warning
+        # says "using default".
         from kiro_crew.config.validation import validate_config_data
 
         data = {"dashboard": {"terminal": {"enabled": True, "shell": 123}}}
         validate_config_data(data)
-        assert data["dashboard"]["terminal"] == {"enabled": True, "shell": 123}
+        assert data["dashboard"]["terminal"] == {"enabled": True}
 
 
 class TestAgentWorkspaceBindingsSchema:

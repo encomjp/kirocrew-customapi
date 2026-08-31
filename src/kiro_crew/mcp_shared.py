@@ -408,10 +408,13 @@ def _resolve_excluded_tools(caller_session: str = "") -> set[str]:
                         for line in Path(f"/proc/{pid}/status").read_text().splitlines():
                             if line.startswith("PPid:"):
                                 return int(line.split()[1])
+                        return 0  # Linux has /proc; no ps fallback (misattributes)
                     elif system == "Darwin":
                         ppid = _ppid_via_libproc(pid)
                         if ppid:
                             return ppid
+                    if system in ("Linux", "Windows"):
+                        return 0
                     out = subprocess.check_output(
                         ["ps", "-o", "ppid=", "-p", str(pid)], text=True, timeout=2
                     )

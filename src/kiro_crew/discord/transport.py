@@ -18,6 +18,7 @@ new thread; turns never run directly in a normal guild channel.
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -121,9 +122,12 @@ class DiscordTransport(MessagingTransport):
         # itself into a brand-new thread at runtime (see ``receive`` below), and
         # that thread must immediately become valid for the user's own follow-up
         # replies -- not just for button interactions (tracked separately on the
-        # dispatcher's own allow-set). A frozenset here would silently strand
-        # every reply the user sends into the thread the bot just created.
+        # dispatcher's own allow-set). Guarded by a lock and snapshot as
+        # frozenset for readers (H7 race): a plain set race between the Gateway
+        # thread's ``add`` and a concurrent dispatched turn's membership test can
+        # corrupt the set or miss the new thread.
         self._allowed_threads: set[str] = {str(t) for t in allowed_thread_ids}
+        self._allowed_threads_lock = threading.Lock()
         self._allowed_channels: frozenset[str] = frozenset(str(c) for c in allowed_channel_ids)
         self._auto_thread = auto_thread
         self._on_thread_created = on_thread_created
@@ -149,6 +153,19 @@ class DiscordTransport(MessagingTransport):
         rename-away from silently killing active loops.
         """
         return getattr(self._dispatch, "__self__", None)
+
+    def _snapshot_threads(self) -> frozenset[str]:
+        """Thread-safe snapshot of allowed threads (H7, bounds-guaranteed)."""
+        with self._allowed_threads_lock:
+            return frozenset(self._allowed_threads)
+
+    def _is_allowed_thread(self, thread_id: str) -> bool:
+        with self._allowed_threads_lock:
+            return thread_id in self._allowed_threads
+
+    def _add_allowed_thread(self, thread_id: str) -> None:
+        with self._allowed_threads_lock:
+            self._allowed_threads.add(thread_id)
 
     # -- Tier-1 core --------------------------------------------------------
     async def send_message(
@@ -207,7 +224,7 @@ class DiscordTransport(MessagingTransport):
         ]
         targets.extend(
             ConfiguredChannelTarget(f"thread:{thread_id}", f"Discord thread · {thread_id}")
-            for thread_id in sorted(self._allowed_threads)
+            for thread_id in sorted(self._snapshot_threads())
         )
         return targets
 
@@ -217,7 +234,7 @@ class DiscordTransport(MessagingTransport):
             return None
         if kind == "user" and value in self._allowed:
             return await self.resolve_conversation(value), None
-        if kind == "thread" and value in self._allowed_threads:
+        if kind == "thread" and self._is_allowed_thread(value):
             # Keep outbound dashboard links on the same disclosure boundary as
             # inbound guild traffic: an allow-listed snowflake is not enough
             # if Discord reports that it is a normal shared channel.
@@ -381,7 +398,7 @@ class DiscordTransport(MessagingTransport):
                 # stop answering in a conversation they are still holding: worse
                 # than the memory, which is bounded in practice by that user's
                 # own thread count.
-                self._allowed_threads.add(created)
+                self._add_allowed_thread(created)
                 sel().log_api_access(
                     caller=inbound.user_id,
                     operation="discord_transport.auto_thread",
@@ -391,7 +408,7 @@ class DiscordTransport(MessagingTransport):
                 )
                 if self._on_thread_created is not None:
                     self._on_thread_created(created)
-            elif inbound.channel_id not in self._allowed_threads:
+            elif not self._is_allowed_thread(inbound.channel_id):
                 if inbound.user_id in self._allowed:
                     sel().log_api_access(
                         caller=inbound.user_id,

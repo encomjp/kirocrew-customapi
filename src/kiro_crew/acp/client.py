@@ -3775,38 +3775,84 @@ class AcpClient:
         # without re-introducing the per-delta flood it replaced.
         suppressed = 0
         last_summary = time.monotonic()
-        while True:
-            line = await stderr.readline()
-            if not line:
-                break
-            text = line.decode(errors="replace").strip()
-            if not text:
-                continue
-            # Liveness must advance for EVERY line, including suppressed ones:
-            # the adapter is provably alive while emitting them, and the idle
-            # watchdog (is_responsive) must not kill an actively-thinking turn.
-            # One monotonic read, reused for the throttle check below.
-            now = time.monotonic()
-            self._last_activity = now
-            if any(marker in text for marker in _SUPPRESSED_STDERR_MARKERS):
-                # Drop the line: no per-occurrence WARNING, and crucially do not
-                # append to the bounded _stderr_lines ring buffer — otherwise a
-                # thinking burst evicts the last real errors from diagnostics.
-                suppressed += 1
-                if now - last_summary >= _SUPPRESSED_STDERR_SUMMARY_INTERVAL_SECS:
-                    logger.debug("suppressed %d adapter stderr marker line(s)", suppressed)
-                    suppressed = 0
-                    last_summary = now
-                continue
-            self._stderr_lines.append(text)
-            redacted, _ = redact_exfiltration_urls(text)
-            redacted, _ = redact_credentials(redacted)
-            _bin_label = "claude-acp" if self._is_claude else KIRO_CLI_BIN
-            logger.warning("%s stderr: %s", _bin_label, redacted)
-        if suppressed:
-            # Flush the residual count once the stream closes so the final burst
-            # is still accounted for.
-            logger.debug("suppressed %d adapter stderr marker line(s)", suppressed)
+        try:
+            while True:
+                try:
+                    # Prefer readuntil so LimitOverrunError carries consumed for
+                    # _drain_oversize_line; fall back to readline for test mocks
+                    # that only stub readline (spec=["readline"]).
+                    if hasattr(stderr, "readuntil"):
+                        try:
+                            line = await stderr.readuntil(b"\n")
+                        except AttributeError:
+                            # Mock without readuntil despite hasattr check
+                            line = await stderr.readline()  # type: ignore[attr-defined]
+                    else:
+                        line = await stderr.readline()  # type: ignore[attr-defined]
+                except asyncio.IncompleteReadError as exc:
+                    line = exc.partial
+                    if not line:
+                        break
+                except asyncio.LimitOverrunError as exc:
+                    # Mirror AcpRuntime._reader_loop oversize handling: drain the
+                    # whole line THROUGH its newline via _drain_oversize_line so
+                    # the stream resyncs on the next frame boundary. Budget
+                    # (_OVERSIZE_DRAIN_MAX_BYTES) prevents an unterminated blob
+                    # from looping forever (H7/bounds).
+                    try:
+                        dropped = await _drain_oversize_line(stderr, exc)
+                    except asyncio.IncompleteReadError:
+                        break
+                    except OversizeLineUnrecoverable as fatal:
+                        logger.error("stderr unrecoverable: %s", fatal)
+                        break
+                    logger.warning("dropped an oversize stderr line (%d bytes): %s", dropped, exc)
+                    continue
+                except ValueError as exc:
+                    # CPython's readline wraps LimitOverrun as ValueError; readuntil
+                    # raises LimitOverrun directly, but keep this as a safety net
+                    # if the buffer limit is hit via another path.
+                    logger.warning("dropped an oversize stderr line: %s", exc)
+                    continue
+                if not line:
+                    break
+                text = line.decode(errors="replace").strip()
+                if not text:
+                    continue
+                # Liveness must advance for EVERY line, including suppressed ones:
+                # the adapter is provably alive while emitting them, and the idle
+                # watchdog (is_responsive) must not kill an actively-thinking turn.
+                # One monotonic read, reused for the throttle check below.
+                now = time.monotonic()
+                self._last_activity = now
+                if any(marker in text for marker in _SUPPRESSED_STDERR_MARKERS):
+                    # Drop the line: no per-occurrence WARNING, and crucially do not
+                    # append to the bounded _stderr_lines ring buffer — otherwise a
+                    # thinking burst evicts the last real errors from diagnostics.
+                    suppressed += 1
+                    if now - last_summary >= _SUPPRESSED_STDERR_SUMMARY_INTERVAL_SECS:
+                        logger.debug("suppressed %d adapter stderr marker line(s)", suppressed)
+                        suppressed = 0
+                        last_summary = now
+                    continue
+                self._stderr_lines.append(text)
+                redacted, _ = redact_exfiltration_urls(text)
+                redacted, _ = redact_credentials(redacted)
+                _bin_label = "claude-acp" if self._is_claude else KIRO_CLI_BIN
+                logger.warning("%s stderr: %s", _bin_label, redacted)
+            if suppressed:
+                # Flush the residual count once the stream closes so the final burst
+                # is still accounted for.
+                logger.debug("suppressed %d adapter stderr marker line(s)", suppressed)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            # An overlong stderr line (ValueError / LimitOverrunError from
+            # readuntil when no newline fits the buffer) or a low-level read
+            # error must not kill this task with an unhandled exception. Log and
+            # exit the drain cleanly rather than leaving a dead task behind.
+            # Mirrors AcpRuntime._drain_stderr wrapper (runtime.py:2815).
+            logger.debug("stderr drain task exiting on error: %s", exc, exc_info=True)
 
     async def _snapshot_process_tree(self) -> None:
         """Discover and track the full process tree after MCP servers are loaded.

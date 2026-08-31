@@ -263,9 +263,10 @@ class TestApiFileSearchDirs:
             resp = await client.get(
                 f"/api/file-search?q=widgets&kinds=bogus&project={tmp_path}"
             )
-            assert resp.status == 200
-            kinds = {r["kind"] for r in (await resp.json())["results"]}
-            assert kinds == {"dir", "file"}
+            # Invalid kinds are rejected (H7 bounds) — was fallback, now 400
+            assert resp.status == 400
+            body = await resp.json()
+            assert body.get("code") == "invalid_kinds"
 
     @pytest.mark.asyncio
     async def test_walk_fallback_offers_dot_dirs_but_not_skip_dirs(self, tmp_path, mock_sel):

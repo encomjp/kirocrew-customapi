@@ -1,3 +1,20 @@
+## [0.4.1-1.4] — 2026-08-31
+
+kirocrew-customapi release `v0.4.1-1.4` — kiro base `0.4.1` + fork version `1.4`.
+
+- **Hardened 30+ edge cases** across 10 subsystems: ACP stderr drain deadlock (oversize line) and streaming budget, prompt turn TOCTOU lock and blocking config load off-loop, provider secret masking for `provider_api_key` and `telegram.accounts`, torn-read fail-closed and atomic save lock, pipe-to-shell bypass (`|bash` without spaces), sandbox mount TOCTOU, governance fail-open, dashboard `500` on bad JSON and symlink race, workspace lost-update, websocket origin/CSRF via `X-Forwarded-For`, bounded image budget and concurrent vision describes, cron DST/leap and orphan kill, task parallel half-commit, FAISS and SQLite races, and `mcp wait` cancellation
+
+### Notable fixes
+
+- `api/send-message` now bounded at `100 KiB` with `413` and `400 body_not_object`, not `500`; `api/file-read` uses `O_NOFOLLOW`; `kinds` rejects `400 invalid_kinds`
+- `search_semantic` and episodic `LIKE` now `ESCAPE '\'` and FTS `MATCH` sanitized; `memory.db-wal/shm` and `memory_index.db` now `0600`
+- `prefixed_router_model_id` correctly maps `deepseek/deepseek-v4-pro` → `cmc/deepseek-v4-pro`; `cmc` vendor-prefixed raws no longer dropped
+- `subagent` recursion blocked (`subagent:` parent rejected), `cron` timeout now kills child tree, `task` retry counts separated
+
+### Contributors
+
+- @encomjp
+
 ## [0.4.1-1.3] — 2026-08-30
 
 kirocrew-customapi release `v0.4.1-1.3` — kiro base `0.4.1` + fork version `1.3`.

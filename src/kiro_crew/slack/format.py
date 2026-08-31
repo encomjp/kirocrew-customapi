@@ -183,6 +183,9 @@ def build_options_blocks(
     return blocks
 
 
+_ESCAPE_AMP_RE = re.compile(r"&(?!(?:amp|lt|gt);)")
+
+
 def escape_mrkdwn(text: str) -> str:
     """Escape the three characters Slack treats as mrkdwn entity markup.
 
@@ -211,7 +214,9 @@ def escape_mrkdwn(text: str) -> str:
     actually picked. Escaping belongs at the Slack-facing sink only, never on the
     copy the agent reads back.
     """
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    # H7/bounds: idempotent regex for &amp; — don't double-escape already-escaped entities
+    text = _ESCAPE_AMP_RE.sub("&amp;", text)
+    return text.replace("<", "&lt;").replace(">", "&gt;")
 
 
 def build_options_selected_blocks(

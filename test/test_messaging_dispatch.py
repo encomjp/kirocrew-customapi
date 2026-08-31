@@ -42,6 +42,9 @@ class _Sessions:
     def release(self, key):
         self.released += 1
 
+    def is_mirror_paused(self, key, *, origin=False):
+        return False
+
     def get_provider(self, key):
         return object()
 

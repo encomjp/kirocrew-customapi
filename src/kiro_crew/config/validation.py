@@ -70,6 +70,22 @@ def _lookup_schema_node(schema: dict, dot_path: str) -> dict | None:
         if part in props:
             node = props[part]
         else:
+            # For dict fields with dynamic keys, descend into additionalProperties.
+            # e.g. telegram.accounts.myacc.bot_token -> telegram.accounts is
+            # object with additionalProperties=TelegramAccountConfig, so "myacc"
+            # is a dynamic key that maps to that schema, and the next part
+            # resolves inside it.
+            addl = node.get("additionalProperties")
+            if isinstance(addl, dict) and addl:
+                # If the part is a property inside additionalProperties' value schema,
+                # handle via properties; otherwise it's the dynamic key itself.
+                addl_props = addl.get("properties", {})
+                if part in addl_props:
+                    node = addl_props[part]
+                    continue
+                # Dynamic key: descend into the value schema
+                node = addl
+                continue
             # For array-typed fields, descend into items.properties
             items = node.get("items", {})
             items_props = items.get("properties", {})
@@ -138,24 +154,88 @@ def _actual_type_name(value: object) -> str:
 def _apply_field_default(data: dict, dot_path: str) -> bool:
     """Remove the invalid value at *dot_path* so the loader falls back to defaults.
 
-    Only handles top-level and one-level nested paths (e.g. ``agent.provider``);
-    returns whether the value was actually removed. The depth cap is
-    deliberate: deeper paths reach values inside dict-typed fields
-    (``memory_stores.<name>.embedding_provider``, declared terminal sub-keys)
-    that the LOADER tolerates and round-trips even where the generated schema
-    is stricter — removing them here would make validation destroy
-    loader-valid data. Callers use the return value to log honestly: a kept
-    value must not be reported as "using default".
+    Recurses to arbitrary depth, walking dict keys and numeric array indices
+    (``items``). Dynamic dict keys (``additionalProperties``) are walked as
+    ordinary dict lookups. Warns when an intermediate is not an object/array
+    and strips by key presence (pop if present) so callers log honestly: a
+    kept value must not be reported as "using default". H7: validation never
+    widens the agent's effective ceiling by destroying loader-tolerated data;
+    depth is no longer capped.
     """
+    if not dot_path:
+        return False
     parts = dot_path.split(".")
-    if len(parts) == 1:
-        data.pop(parts[0], None)
-        return True
-    if len(parts) == 2:
-        section = data.get(parts[0])
-        if isinstance(section, dict):
-            section.pop(parts[1], None)
+    cur: object = data
+    for idx, part in enumerate(parts[:-1]):
+        if isinstance(cur, dict):
+            if part not in cur:
+                return False
+            nxt = cur[part]
+            if not isinstance(nxt, (dict, list)):
+                logger.warning(
+                    "Config: cannot remove '%s': intermediate '%s' is not an object (got %s)",
+                    dot_path,
+                    ".".join(parts[: idx + 1]),
+                    _actual_type_name(nxt),
+                )
+                return False
+            cur = nxt
+        elif isinstance(cur, list):
+            if not part.isdigit():
+                logger.warning(
+                    "Config: cannot remove '%s': expected array index at '%s' but got '%s'",
+                    dot_path,
+                    ".".join(parts[: idx + 1]),
+                    part,
+                )
+                return False
+            i = int(part)
+            if i < 0 or i >= len(cur):
+                return False
+            nxt = cur[i]
+            if not isinstance(nxt, (dict, list)):
+                logger.warning(
+                    "Config: cannot remove '%s': intermediate '%s' is not an object (got %s)",
+                    dot_path,
+                    ".".join(parts[: idx + 1]),
+                    _actual_type_name(nxt),
+                )
+                return False
+            cur = nxt
+        else:
+            logger.warning(
+                "Config: cannot remove '%s': intermediate '%s' is not an object (got %s)",
+                dot_path,
+                ".".join(parts[:idx]) if idx else "(root)",
+                _actual_type_name(cur),
+            )
+            return False
+    last = parts[-1]
+    if isinstance(cur, dict):
+        if last in cur:
+            cur.pop(last, None)
             return True
+        return False
+    if isinstance(cur, list):
+        if not last.isdigit():
+            logger.warning(
+                "Config: cannot remove '%s': expected array index '%s' but got '%s'",
+                dot_path,
+                ".".join(parts[:-1]),
+                last,
+            )
+            return False
+        i = int(last)
+        if 0 <= i < len(cur):
+            # Validation never removes a whole array element; keep it and report
+            # not removed so the warning says "value kept".
+            return False
+        return False
+    logger.warning(
+        "Config: cannot remove '%s': parent is not an object (got %s)",
+        dot_path,
+        _actual_type_name(cur),
+    )
     return False
 
 
@@ -166,10 +246,23 @@ def _coerce_legacy_numeric_values(data: dict, schema: dict) -> None:
     still accepts those values, so validation must not discard them before the
     field-level compatibility parsers can run. Malformed and non-finite values
     remain unchanged and are handled by the normal validation/loader fallback.
+    Walks ``properties`` and ``additionalProperties`` (dynamic dict keys) and
+    ``items`` (arrays), recurses to depth, and warns when an expected object
+    is not a dict so silent drops are observable. Bounds are enforced at the
+    coercion site (H7).
     """
+    if not isinstance(data, dict):
+        logger.warning(
+            "Config: expected object for numeric coercion but got %s",
+            _actual_type_name(data),
+        )
+        return
     properties = schema.get("properties", {})
     if not isinstance(properties, dict):
-        return
+        properties = {}
+    additional = schema.get("additionalProperties")
+
+    # Known properties
     for key, node in properties.items():
         if key not in data or not isinstance(node, dict):
             continue
@@ -194,8 +287,46 @@ def _coerce_legacy_numeric_values(data: dict, schema: dict) -> None:
                 float("-inf"),
             ):
                 data[key] = numeric_value
-        elif isinstance(value, dict):
-            _coerce_legacy_numeric_values(value, node)
+        # Recurse into objects and arrays (walk items) regardless of leaf coercion
+        cur_val = data[key]
+        if isinstance(cur_val, dict):
+            _coerce_legacy_numeric_values(cur_val, node)
+        elif isinstance(cur_val, list):
+            items = node.get("items")
+            if isinstance(items, dict):
+                for elem in cur_val:
+                    if isinstance(elem, dict):
+                        _coerce_legacy_numeric_values(elem, items)
+
+    # Dynamic keys via additionalProperties (e.g. workspaces.<name>, agents.<name>, memory_stores.<name>)
+    if isinstance(additional, dict) and additional:
+        for key, value in list(data.items()):
+            if key in properties:
+                continue
+            raw_type = additional.get("type")
+            types = raw_type if isinstance(raw_type, list) else [raw_type]
+            if "integer" in types and isinstance(value, str):
+                try:
+                    data[key] = int(value)
+                except (TypeError, ValueError, OverflowError):
+                    pass
+            elif "number" in types and isinstance(value, str):
+                try:
+                    nv = float(value)
+                except (TypeError, ValueError, OverflowError):
+                    continue
+                if nv == nv and nv not in (float("inf"), float("-inf")):
+                    data[key] = nv
+            # Recurse for dynamic objects/arrays
+            cur_val = data[key]
+            if isinstance(cur_val, dict):
+                _coerce_legacy_numeric_values(cur_val, additional)
+            elif isinstance(cur_val, list):
+                items = additional.get("items")
+                if isinstance(items, dict):
+                    for elem in cur_val:
+                        if isinstance(elem, dict):
+                            _coerce_legacy_numeric_values(elem, items)
 
 
 # ---------------------------------------------------------------------------

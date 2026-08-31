@@ -3907,17 +3907,18 @@ class TestKillProcessTreePinned:
         assert closed == [self.HANDLE]
 
     def test_posix_delegates_straight_through(self, monkeypatch):
-        """POSIX is unchanged: no handle exists to hold, so none is sought.
+        """POSIX verifies identity via process_start_time before killpg.
 
-        ``os.killpg`` is issued in-process by the same interpreter that did the
-        check. Introducing a Windows-shaped pin here would change a path this
-        finding is not about.
+        No handle exists to hold (in-process os.killpg), but the PID-reuse guard
+        must still compare process_start_time against expected_start_time — a
+        recycled PID must not be killed (H7/bounds: leak-not-mis-kill).
         """
         killed: list[tuple[int, int]] = []
         opened: list[int] = []
 
         monkeypatch.setattr(pc, "IS_WINDOWS", False)
         monkeypatch.setattr(pc, "_open_process_query_handle", opened.append)
+        monkeypatch.setattr(pc, "process_start_time", lambda pid: "anything")
         monkeypatch.setattr(
             pc, "kill_process_tree", lambda pid, sig: killed.append((pid, sig)) or True
         )

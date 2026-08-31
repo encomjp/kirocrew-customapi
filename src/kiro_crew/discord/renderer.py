@@ -353,7 +353,11 @@ def _fit_platform_cap(text: str) -> list[str]:
     render badly, where truncation keeps neither. Nothing here re-derives fence
     grammar — the splitter owns that, and this only bounds what reaches the API.
     """
-    return chunk_text(text, DISCORD_MAX_TEXT) or [text]
+    parts = chunk_text(text, DISCORD_MAX_TEXT) or [text]
+    # H7/bounds: every chunk must fit Discord's 2000-char cap; re-seal via blind slicing above already bounds it
+    for p in parts:
+        assert len(p) <= DISCORD_MAX_TEXT, f"chunk {len(p)} exceeds Discord cap (H7/bounds)"
+    return parts
 
 
 class DiscordApprovalDecider:

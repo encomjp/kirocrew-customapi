@@ -592,7 +592,9 @@ async def execute_task(
                 run=run,
             )
             run.last_task_time = _time.time()
+            # H7/bounds: keep logical attempt separate from recoveries counter (not counted as attempt)
             attempt -= 1
+            task.attempts = attempt
             continue
 
         except _ContextOverflow as cof:
@@ -628,7 +630,9 @@ async def execute_task(
                 run=run,
             )
             run.last_task_time = _time.time()
+            # H7/bounds: keep logical attempt separate from compactions (recoveries) counter
             attempt -= 1
+            task.attempts = attempt
             continue
 
         except asyncio.CancelledError:

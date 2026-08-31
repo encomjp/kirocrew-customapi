@@ -759,6 +759,19 @@ class TaskRunner:
                         failed_task = task
                         break
                 if failed_task:
+                    # Half-commit guard: revert sibling PASSED tasks in same group
+                    # so a parallel group is atomic (bounds: no half-committed group).
+                    for _t in resolved:
+                        if _t is not failed_task and _t.status == TaskStatus.PASSED:
+                            # best-effort git revert for the committed step
+                            if run.branch_name:
+                                try:
+                                    await git_coord.revert_step(run)
+                                except Exception:
+                                    pass
+                            _t.status = TaskStatus.PENDING
+                            _t.error = ""
+                            _t.result = ""
                     revised = await self._try_replan(run, failed_task)
                     if not revised and run.status == "running":
                         run.status = "failed"

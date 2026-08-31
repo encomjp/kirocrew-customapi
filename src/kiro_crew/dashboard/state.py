@@ -5389,6 +5389,10 @@ class DashboardState:
     # ``MAX_CONCURRENT_CEIL`` clamp): configurable, but never unbounded.
     MAX_BACKGROUND_TURNS = 4  # default in-flight unattended turns
     MAX_BACKGROUND_TURNS_CEIL = 16  # hard ceiling — config can raise up to here
+    # H7/bounds: cap WS send fan-out tasks to avoid unbounded memory growth
+    # under burst or slow-client backpressure. Matches the delivery ledger cap
+    # scale (128) and keeps the set bounded even if clients stall.
+    MAX_BACKGROUND_TASKS = 128
     # Longest a queued turn may sit waiting for a permit. Needed because the
     # queue wait happens INSIDE the coroutine ``spawn_guarded_turn`` already
     # bounds at ``CHAT_TURN_TIMEOUT`` (7200s), so an unbounded wait would let a
@@ -8218,7 +8222,23 @@ class DashboardState:
         # startup stays authoritative and bind_serving_loop remains the only
         # writer that can override. The send below runs on the loop we are on.
         self.serving_loop
+        # H7/bounds: keep the fan-out set bounded under backpressure — a slow
+        # client can stall sends and let the set grow without bound. Prune
+        # completed tasks first, then shed the newest frame if still over cap
+        # (backpressure drop) rather than evicting an arbitrary pending task
+        # which would leak as an untracked pending task.
+        if len(self._background_tasks) >= self.MAX_BACKGROUND_TASKS:
+            self._background_tasks = {t for t in self._background_tasks if not t.done()}
+            if len(self._background_tasks) >= self.MAX_BACKGROUND_TASKS:
+                logger.debug("WS send dropped: backpressure cap %s reached", self.MAX_BACKGROUND_TASKS)
+                return
         task = asyncio.ensure_future(ws.send_str(msg))
+        # Stash ws on the task so _on_ws_send_done can prune the dead peer
+        # without needing a closure that would capture the loop.
+        try:
+            task._ws = ws  # type: ignore[attr-defined]
+        except Exception:
+            pass
         self._background_tasks.add(task)
         task.add_done_callback(self._on_ws_send_done)
 
@@ -8230,6 +8250,10 @@ class DashboardState:
         exception, nobody reads it, and it's GC'd with the task — leaving operators
         blind to send failures under burst load. Log at DEBUG since peer disconnects
         are routine and expected, not errors.
+
+        On failure the peer is pruned via :meth:`_remove_ws` so a dead socket
+        does not remain in ``_ws_clients`` / ``_owner_ws_clients`` and cause
+        unbounded retries (H7/bounds leak).
         """
         self._background_tasks.discard(task)
         if task.cancelled():
@@ -8237,6 +8261,14 @@ class DashboardState:
         exc = task.exception()
         if exc is not None:
             logger.debug("WS send failed (client likely disconnected): %s", exc)
+            # Prune the dead peer that caused the failure; the task carries
+            # the ws via _spawn_ws_send's stash.
+            ws = getattr(task, "_ws", None)
+            if ws is not None:
+                try:
+                    self._remove_ws(ws)
+                except Exception:
+                    logger.debug("WS prune failed", exc_info=True)
 
     def _ws_client_allowed(self, ws: web.WebSocketResponse, msg_type: str, data: object) -> bool:
         """Return True if *ws* should receive an event with *msg_type* / *data*.

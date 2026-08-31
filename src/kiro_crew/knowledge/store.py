@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 import threading
+import weakref
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
@@ -82,6 +83,21 @@ def _validated_aliases(value: object) -> str:
     if not all(isinstance(alias, str) for alias in parsed):
         raise KnowledgeBundleError("'entities.aliases' must be a JSON array of strings")
     return text
+
+
+class _WeakConn:
+    """Weakrefable holder for sqlite connections (Connection itself is not weakrefable)."""
+
+    __slots__ = ("conn", "__weakref__")
+
+    def __init__(self, conn):
+        self.conn = conn
+
+    def __del__(self):
+        try:
+            self.conn.close()
+        except Exception:
+            pass
 
 
 class _NodeView:
@@ -269,6 +285,8 @@ class KnowledgeStore:
         # concurrent readers alongside a single writer, and busy_timeout
         # serializes rare cross-thread writes.
         self._thread_local = threading.local()
+        self._all_conns: weakref.WeakSet = weakref.WeakSet()
+        self._all_conns_lock = threading.Lock()
         self.graph = SimpleDiGraph()
         self._init_schema()
         self._migrate()
@@ -289,6 +307,10 @@ class KnowledgeStore:
         if conn is None:
             conn = self._connect()
             self._thread_local.conn = conn
+            holder = _WeakConn(conn)
+            self._thread_local.holder = holder
+            with self._all_conns_lock:
+                self._all_conns.add(holder)
         return conn
 
     def _init_schema(self):
@@ -1635,9 +1657,16 @@ class KnowledgeStore:
         return {"items_imported": items_imported, "entities_created": entities_created, "relations_rebuilt": relations_rebuilt}
 
     def close(self):
-        """Close the calling thread's connection (other threads' connections
-        are released when their thread or the store is garbage-collected)."""
+        """Close all thread-local connections tracked in WeakSet."""
+        with self._all_conns_lock:
+            for holder in list(self._all_conns):
+                try:
+                    holder.conn.close()
+                except Exception:
+                    pass
+            self._all_conns.clear()
         conn = getattr(self._thread_local, "conn", None)
         if conn is not None:
-            conn.close()
             self._thread_local.conn = None
+            if hasattr(self._thread_local, "holder"):
+                self._thread_local.holder = None

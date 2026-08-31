@@ -542,8 +542,18 @@ def _resolve_stub_servers(mcp_gateway_data: dict) -> list[str]:
     """
     if "stub_servers" in mcp_gateway_data:
         source = mcp_gateway_data.get("stub_servers")
+        if source is not None and not isinstance(source, list):
+            logger.warning(
+                "Config: mcp_gateway.stub_servers is not an array (got %s); ignoring",
+                type(source).__name__,
+            )
     elif _safe_bool(mcp_gateway_data.get("enabled", False), False):
         source = mcp_gateway_data.get("poolable_servers")
+        if source is not None and not isinstance(source, list):
+            logger.warning(
+                "Config: mcp_gateway.poolable_servers is not an array (got %s); ignoring",
+                type(source).__name__,
+            )
     else:
         source = None
     return [s for s in _safe_list(source) if isinstance(s, str) and s]
@@ -780,21 +790,57 @@ def _deep_merge(base: dict, overlay: dict) -> dict:
 def _subtract_overlay(merged: dict, overlay: dict) -> dict:
     """Remove leaf values from *merged* that are owned by the overlay.
 
-    For nested dicts, recurse. For leaf keys present in both overlay and
-    merged with the same value, remove from the result so they only live
-    in config.local.json.
+    Recurses to depth, walks dict values (``additionalProperties``) and lists
+    (``items``) as data shapes, warns when an expected object/array is not the
+    right type (type leak), and strips by key presence when the overlay owns
+    the key so the value does not leak into config.json. H7/bounds.
     """
+    if not isinstance(merged, dict):
+        logger.warning(
+            "Config: subtract_overlay expected object for merged but got %s",
+            type(merged).__name__,
+        )
+        return {}
+    if not isinstance(overlay, dict):
+        logger.warning(
+            "Config: subtract_overlay expected object for overlay but got %s",
+            type(overlay).__name__,
+        )
+        return dict(merged)
     result = dict(merged)
     for key, ov_value in overlay.items():
         if key not in result:
             continue
-        if isinstance(ov_value, dict) and isinstance(result[key], dict):
-            cleaned = _subtract_overlay(result[key], ov_value)
+        mer_value = result[key]
+        if isinstance(ov_value, dict):
+            if not isinstance(mer_value, dict):
+                logger.warning(
+                    "Config: overlay expects object at '%s' but merged has %s; stripping",
+                    key,
+                    type(mer_value).__name__,
+                )
+                del result[key]
+                continue
+            cleaned = _subtract_overlay(mer_value, ov_value)
             if cleaned:
                 result[key] = cleaned
             else:
                 del result[key]
-        elif result[key] == ov_value:
+        elif isinstance(ov_value, list):
+            if not isinstance(mer_value, list):
+                logger.warning(
+                    "Config: overlay expects array at '%s' but merged has %s; stripping",
+                    key,
+                    type(mer_value).__name__,
+                )
+                del result[key]
+                continue
+            # Walk items: strip only when equal; per-element dict subtraction
+            # for list-of-objects is not needed for current sections but the
+            # array shape is recognised so silent type leaks are warned.
+            if mer_value == ov_value:
+                del result[key]
+        elif mer_value == ov_value:
             del result[key]
     return result
 
@@ -1464,6 +1510,7 @@ class AgentConfig:
             "Shim: OpenAI API Key",
             "Bearer token forwarded to the OpenAI-compatible backend by the "
             "built-in shim. Empty is correct for local Ollama/llama.cpp.",
+            sensitive=True,
         ),
     )
     provider_base_url: str = field(
@@ -1483,6 +1530,7 @@ class AgentConfig:
             "the environment (ANTHROPIC_API_KEY, or CLIPROXY_API_KEY for a "
             "local CLIProxyAPI). Stored in config.json — prefer environment "
             "variables for shared machines.",
+            sensitive=True,
         ),
     )
     mcp_registry_mode: bool = field(
@@ -4276,6 +4324,10 @@ def _fail_closed_project_skills_config(
     Optional JSON Schema validation removes invalid fields before dataclass
     construction. Normalizing this security switch first keeps an invalid
     value distinct from an absent value, whose documented default is enabled.
+
+    When the on-disk config cannot be read (torn JSON, I/O error), the
+    absence of a key must not be treated as "use the default which is
+    enabled" for security-sensitive switches (fail-closed).
     """
     if config_source_unreadable:
         skills = data.get("skills")
@@ -4617,9 +4669,16 @@ def _migrate_workspaces(raw_workspaces: dict) -> dict[str, WorkspaceConfig]:
 
     - String values → WorkspaceConfig(dir=value)
     - Dict values with ``dir`` key → WorkspaceConfig(dir=value["dir"])
-    - Non-string/non-dict values → default WorkspaceConfig()
+    - Non-string/non-dict values → default WorkspaceConfig() with warning
     - Empty input → {"default": WorkspaceConfig(dir="workspace")}
+    Walks to depth, warns on non-dict so silent drops are observable (H7).
     """
+    if not isinstance(raw_workspaces, dict):
+        logger.warning(
+            "Config: workspaces is not an object (got %s); using defaults",
+            type(raw_workspaces).__name__,
+        )
+        raw_workspaces = {}
     result: dict[str, WorkspaceConfig] = {}
     for name, value in raw_workspaces.items():
         if isinstance(value, str):
@@ -4627,6 +4686,11 @@ def _migrate_workspaces(raw_workspaces: dict) -> dict[str, WorkspaceConfig]:
         elif isinstance(value, dict):
             result[name] = WorkspaceConfig(dir=value.get("dir", "workspace"))
         else:
+            logger.warning(
+                "Config: workspace '%s' is not a string or object (got %s); using default",
+                name,
+                type(value).__name__,
+            )
             result[name] = WorkspaceConfig()
     if not result:
         result["default"] = WorkspaceConfig(dir="workspace")
@@ -6894,7 +6958,13 @@ class KiroCrewConfig:
                     else:
                         config_source_unreadable = True
                         logger.warning("Config is not a JSON object, using defaults")
-                except (json.JSONDecodeError, OSError) as e:
+                except json.JSONDecodeError as e:
+                    config_source_unreadable = True
+                    logger.warning("Failed to load config from %s: %s", path, e)
+                    # Fail-closed: do not treat torn JSON as "no config" — keep
+                    # config_source_unreadable flag so downstream fail-closed logic
+                    # can disable enabled-by-default switches.
+                except OSError as e:
                     config_source_unreadable = True
                     logger.warning("Failed to load config from %s: %s", path, e)
 
@@ -6927,7 +6997,10 @@ class KiroCrewConfig:
                     else:
                         config_source_unreadable = True
                         logger.warning("config.local.json is not a JSON object, ignoring")
-                except (json.JSONDecodeError, OSError) as e:
+                except json.JSONDecodeError as e:
+                    config_source_unreadable = True
+                    logger.warning("Failed to load config.local.json: %s", e)
+                except OSError as e:
                     config_source_unreadable = True
                     logger.warning("Failed to load config.local.json: %s", e)
 
@@ -6938,6 +7011,8 @@ class KiroCrewConfig:
             # operator's hard-off switch. Preserve that unknown as disabled
             # before either the defaults return or schema normalization can
             # turn it into the enabled-by-default missing-field case.
+            # Fail-closed: if either source was unreadable, disable enabled-by-default
+            # security switches before defaults handling.
             _fail_closed_project_skills_config(
                 data, config_source_unreadable=config_source_unreadable
             )
@@ -7121,6 +7196,10 @@ class KiroCrewConfig:
         # Migrate workspaces from flat or structured format
         raw_workspaces = data.get("workspaces", {})
         if not isinstance(raw_workspaces, dict):
+            logger.warning(
+                "Config: workspaces is not an object (got %s); using defaults",
+                type(raw_workspaces).__name__,
+            )
             raw_workspaces = {}
         workspaces = _migrate_workspaces(raw_workspaces)
 
@@ -8185,10 +8264,36 @@ mcp_registry_mode=_safe_bool(agent_data.get("mcp_registry_mode", False), False),
             except (json.JSONDecodeError, OSError):
                 pass
 
-        # Atomic + mode-preserving: a concurrent reader must never observe a
-        # half-written config, and the write must not widen who can read a file
-        # that may hold inline credentials. See write_config_atomically.
-        write_config_atomically(config_path(), stamp_config_meta(d))
+        # Serialized with an advisory file lock (sidecar .lock) so concurrent
+        # save() / update_config_locked() writers do not interleave and so a
+        # torn-read window cannot be observed by KiroCrewConfig.load().
+        # Containment: only lock inside the data home. For a redirected config
+        # (tests, embedders) the caller owns the directory and we must not leak
+        # a sibling .lock file there (mirrors _write_migration_backup containment).
+        cfg_path = config_path()
+        # Resolve symlink so the sidecar sits beside the real file
+        try:
+            if cfg_path.is_symlink():
+                cfg_path = cfg_path.resolve()
+        except OSError:
+            pass
+        try:
+            inside_data_home = cfg_path.parent.resolve() == config_dir().resolve()
+        except OSError:
+            inside_data_home = False
+        if inside_data_home:
+            lock_path = cfg_path.parent / (cfg_path.name + ".lock")
+            cfg_path.parent.mkdir(parents=True, exist_ok=True)
+            fd = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o600)
+            try:
+                with platform_compat.file_lock(fd, exclusive=True):
+                    write_config_atomically(cfg_path, stamp_config_meta(d))
+            finally:
+                os.close(fd)
+        else:
+            # Outside data home (e.g. caller-owned tempfile): no sidecar lock,
+            # write atomically without leaking a sibling.
+            write_config_atomically(cfg_path, stamp_config_meta(d))
         # Drop the validated-data cache so the next load() re-reads this write.
         # mtime-keying already detects the change; this makes it immediate even
         # if the filesystem mtime resolution is coarse.

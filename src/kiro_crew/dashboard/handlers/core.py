@@ -401,7 +401,10 @@ async def api_theme_config(request: web.Request) -> web.Response:
         return web.json_response(_theme_payload(cfg))
 
     # PUT
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid JSON"}, status=400)
     if not isinstance(body, dict):
         raise web.HTTPBadRequest(text="request body must be an object")
     from kiro_crew.dashboard.handlers.agents import _get_config_lock

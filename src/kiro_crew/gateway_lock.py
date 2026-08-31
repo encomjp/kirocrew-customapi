@@ -168,10 +168,35 @@ class GatewayLock:
             return owner, self._describe_live_owner(owner, recorded_pid)
         if owner is not None:
             return owner, self._describe_orphaned_lock(owner, openers)
-        # No /proc/locks (non-Linux, or unreadable): the recorded pid is all we
-        # have. Say that, rather than presenting it as the proven holder.
+        # No /proc/locks (non-Linux, or unreadable): triple fallback — openers
+        # as second layer, recorded pid as third. H7/bounds: never present a
+        # stale recorded pid as proven holder.
+        if openers:
+            if len(openers) == 1:
+                # Single opener is the best candidate when no authoritative owner.
+                return openers[0], (
+                    f"{self._path} is locked, but the holder could not be identified "
+                    f"via /proc/locks. The file is open in pid {openers[0]} "
+                    f"(file records pid {recorded_pid} — may be stale). "
+                    "Stop the running gateway, or set KIROCREW_HOME to an isolated directory."
+                )
+            return openers[0], (
+                f"{self._path} is locked, but the holder could not be identified "
+                f"via /proc/locks. The file is open in {', '.join(f'pid {p}' for p in openers)} "
+                "(inheritor ambiguous). "
+                f"The file records pid {recorded_pid} — may be stale. "
+                "Stop the running gateway, or set KIROCREW_HOME to an isolated directory."
+            )
         if recorded_pid is None:
             return None, None
+        # Validate recorded pid liveness before presenting it as holder (stale
+        # pid file must not masquerade as proven holder).
+        if not platform_compat.pid_exists(recorded_pid):
+            return recorded_pid, (
+                f"{self._path} is locked, but the holder could not be identified. "
+                f"The file records pid {recorded_pid}, which is not running — may be stale. "
+                "Stop the running gateway, or set KIROCREW_HOME to an isolated directory."
+            )
         return recorded_pid, (
             f"{self._path} is locked, but the holder could not be identified. "
             f"The file records pid {recorded_pid}, which may be stale. "

@@ -13,8 +13,10 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import aiohttp
-from slack_sdk.errors import SlackClientError
+from slack_sdk.errors import SlackApiError, SlackClientError
 from slack_sdk.web.async_client import AsyncWebClient
+
+from kiro_crew.slack.retry import is_retryable_slack_error
 
 logger = logging.getLogger(__name__)
 
@@ -291,8 +293,30 @@ class RealSlackClient(SlackClientOps):
         if reply_broadcast and thread_ts is not None:
             kwargs["reply_broadcast"] = True
         self._inject_team(channel, kwargs)
-        resp = await self._web.chat_postMessage(**kwargs)
-        return resp["ts"]
+        # H7/bounds: bounded retry with linear backoff on transient Slack errors
+        for attempt in range(1, 4):
+            try:
+                resp = await self._web.chat_postMessage(**kwargs)
+                return resp["ts"]
+            except (SlackClientError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
+                retryable = False
+                if isinstance(exc, SlackApiError):
+                    retryable = is_retryable_slack_error(exc)
+                elif isinstance(exc, SlackClientError):
+                    # SlackClientError without ApiError response is treated as transient
+                    retryable = True
+                else:
+                    retryable = isinstance(exc, (aiohttp.ClientError, asyncio.TimeoutError))
+                if not retryable or attempt == 3:
+                    raise
+                logger.warning(
+                    "post_message attempt %d/3 failed, retrying in %ds",
+                    attempt,
+                    attempt,
+                    exc_info=True,
+                )
+                await asyncio.sleep(attempt)
+        raise RuntimeError("unreachable post_message retry")
 
     async def post_blocks(
         self,

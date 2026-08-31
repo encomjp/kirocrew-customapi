@@ -574,13 +574,17 @@ def acquire_lock(fd: int, *, exclusive: bool = True) -> None:
     """Low-level lock acquire for the acquire-now / release-later fd-handoff
     pattern (where a context manager does not fit).
 
-    POSIX: ``fcntl.flock`` (blocks until free). Windows: single-shot on the
-    asyncio loop thread, else a bounded poll up to ``_WIN_LOCK_TIMEOUT_SECS``
-    (see :func:`_win_acquire_blocking`). If the lock cannot be taken it FAILS
-    CLOSED — raises rather than letting the caller proceed unserialized — since
-    a stuck holder past the ceiling is an error, not a routine wait, and
-    proceeding lock-less is the fail-open that loses writes. Pair every call
-    with :func:`release_lock` on the same ``fd``.
+    POSIX: ``fcntl.flock`` (blocks until free) with true shared (LOCK_SH) vs
+    exclusive (LOCK_EX). Windows: ``msvcrt.locking`` has no shared mode — every
+    acquire is exclusive, so ``exclusive=False`` still serializes readers
+    (correctness over concurrency, H7/bounds — never torn reads).
+
+    On Windows the wait is single-shot on the asyncio loop thread, else a
+    bounded poll up to ``_WIN_LOCK_TIMEOUT_SECS`` (see :func:`_win_acquire_blocking`).
+    If the lock cannot be taken it FAILS CLOSED — raises rather than letting the
+    caller proceed unserialized — since a stuck holder past the ceiling is an error,
+    not a routine wait, and proceeding lock-less is the fail-open that loses writes.
+    Pair every call with :func:`release_lock` on the same ``fd``.
     """
     if IS_POSIX:
         fcntl.flock(fd, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
@@ -610,8 +614,10 @@ def release_lock(fd: int) -> None:
 def try_acquire_lock(fd: int, *, exclusive: bool = False) -> bool:
     """Attempt a non-blocking lock acquire. Returns True iff the lock was taken.
 
-    POSIX: ``fcntl.flock(... | LOCK_NB)``. Windows: ``msvcrt.locking`` with the
-    non-blocking codes. On success, the caller must :func:`release_lock` the fd.
+    POSIX: ``fcntl.flock(... | LOCK_NB)`` with true shared vs exclusive.
+    Windows: ``msvcrt.locking`` has no shared mode — every acquire is exclusive
+    (``exclusive=False`` still serializes, H7/bounds — shared documented as
+    exclusive on Windows). On success, the caller must :func:`release_lock` the fd.
     """
     if IS_POSIX:
         mode = (fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH) | fcntl.LOCK_NB
@@ -2996,13 +3002,17 @@ def kill_process_tree_pinned(pid: int, expected_start_time: str, sig: int = SIGT
     :func:`kill_process_tree` and propagates its exceptions unchanged, so
     ``except (ProcessLookupError, OSError)`` handlers keep firing as before.
 
-    POSIX is deliberately untouched: it delegates straight through, because
-    ``os.killpg`` is issued in-process by the same interpreter that did the
-    check and there is no handle to hold. The residual probe-to-signal window
-    there is the pre-existing one the callers already mitigate by re-confirming
-    identity before the destructive escalation.
+    POSIX verifies identity via ``process_start_time`` before signalling,
+    returning ``False`` (without killing) when the PID has been recycled or
+    the start time cannot be confirmed — the same fail-safe the Windows pin
+    provides. The in-process ``os.killpg`` still has a residual probe-to-signal
+    window, but the caller re-confirms identity before the destructive
+    escalation (see ``apps/backend.py``'s SIGKILL path).
     """
     if not IS_WINDOWS:
+        live = process_start_time(pid)
+        if live is None or live != expected_start_time:
+            return False
         return kill_process_tree(pid, sig)
     handle = _open_process_query_handle(pid)
     if handle is None:

@@ -234,6 +234,12 @@ if TYPE_CHECKING:
     from kiro_crew.cron import CronJob
 
 logger = logging.getLogger(__name__)
+# Force logging to stderr: stdout is the MCP JSON-RPC transport and script
+# launcher JSON channel — any log to stdout pollutes it (H7 bounds).
+if not logger.handlers:
+    _h = logging.StreamHandler(sys.stderr)
+    _h.setLevel(logging.INFO)
+    logger.addHandler(_h)
 
 
 class SkipError(Exception):
@@ -728,19 +734,24 @@ def run_script_sandboxed(
             text=True, env=clean_env, start_new_session=True,
         )
         _register_proc(job_id, proc)
+        _timed_out = False
         try:
             try:
                 stdout, stderr = proc.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
                 # Popen.communicate does not kill the child on timeout
-                # (unlike subprocess.run) — clean up before re-raising.
+                # (unlike subprocess.run) — clean up; defer decision until
+                # cancel flag is known so cancel takes precedence over timeout.
+                _timed_out = True
                 _kill_proc_group(proc)
                 _drain_after_kill(proc, job_id)
-                raise
+                proc.communicate(timeout=5)
         finally:
             cancelled = _unregister_proc(job_id, proc)
         if cancelled:
             return {"status": "cancelled", "error": "Cancelled by user"}
+        if _timed_out:
+            return {"status": "error", "error": f"Script timed out after {timeout}s"}
 
         if proc.returncode != 0 and not stdout.strip():
             # Report the TERMINAL stderr context, not the head. A process that
@@ -775,6 +786,7 @@ def run_script_sandboxed(
                 "error": f"Bad output: {redact(stdout)[:200]}",
             }
     except subprocess.TimeoutExpired:
+        # Fallback if timeout occurs outside the inner block (defensive)
         return {"status": "error", "error": f"Script timed out after {timeout}s"}
     except SandboxUnavailableError as exc:
         # Same reasoning as run_command_sandboxed: a host with no sandbox backend
@@ -945,18 +957,22 @@ def run_command_sandboxed(command: str, timeout: int = 300, job_id: str | None =
         if job_id:
             _register_proc(job_id, proc)
         cancelled = False
+        _timed_out = False
         try:
             try:
                 output, stderr_out = proc.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
+                _timed_out = True
                 _kill_proc_group(proc)
                 _drain_after_kill(proc, job_id)
-                return {"status": "error", "output": f"❌ Command timed out after {timeout}s", "exit_code": -1}
+                proc.communicate(timeout=5)
         finally:
             if job_id:
                 cancelled = _unregister_proc(job_id, proc)
         if cancelled:
             return {"status": "cancelled", "output": "Cancelled by user", "exit_code": proc.returncode}
+        if _timed_out:
+            return {"status": "error", "output": f"❌ Command timed out after {timeout}s", "exit_code": -1}
         if len(output) > _MAX_COMMAND_OUTPUT:
             output = output[:_MAX_COMMAND_OUTPUT] + "\n\n[truncated — output exceeded 64KB]"
         if proc.returncode != 0:

@@ -9878,20 +9878,49 @@ class GatewayOrchestrator:
                 pass
             except NotImplementedError:
                 # Windows ProactorEventLoop does not support add_signal_handler.
-                # Fall back to signal.signal for SIGINT so shutdown_event still
-                # gets set; SIGTERM is not meaningfully deliverable on Windows.
+                # Use set_wakeup_fd (async-safe) so the handler only writes a
+                # byte and the event loop does the real work (H7/bounds: no
+                # async-unsafe cleanup in signal context).
                 if sig == signal.SIGINT:
-
-                    def _sigint_fallback(*_a: object) -> None:
-                        try:
-                            loop.call_soon_threadsafe(_on_signal)
-                        except RuntimeError:
-                            _on_signal()  # loop already closed
-
                     try:
-                        signal.signal(sig, _sigint_fallback)
-                    except (ValueError, OSError):
-                        pass  # not in main thread
+                        r_fd, w_fd = os.pipe()
+                        try:
+                            os.set_blocking(r_fd, False)
+                            os.set_blocking(w_fd, False)
+                        except AttributeError:
+                            import fcntl
+
+                            for fd in (r_fd, w_fd):
+                                flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+                                fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+                        signal.set_wakeup_fd(w_fd)
+
+                        def _wakeup_reader() -> None:
+                            try:
+                                os.read(r_fd, 1024)
+                            except OSError:
+                                pass
+                            _on_signal()
+
+                        loop.add_reader(r_fd, _wakeup_reader)
+
+                        def _sigint_wakeup(*_a: object) -> None:
+                            # async-safe: just wake the loop via the fd
+                            pass
+
+                        signal.signal(sig, _sigint_wakeup)
+                    except (ValueError, OSError, RuntimeError):
+                        # Fallback to previous threadsafe path if wakeup fd fails
+                        def _sigint_fallback(*_a: object) -> None:
+                            try:
+                                loop.call_soon_threadsafe(_on_signal)
+                            except RuntimeError:
+                                _on_signal()  # loop already closed
+
+                        try:
+                            signal.signal(sig, _sigint_fallback)
+                        except (ValueError, OSError):
+                            pass  # not in main thread
 
         # Update check — fire-and-forget, NOT awaited. It runs five sequential
         # git subprocesses (fetch/rev-parse/...) whose timeouts sum to ~70s, and

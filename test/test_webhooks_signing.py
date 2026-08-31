@@ -539,11 +539,12 @@ class TestBearerOnlyTokensUnaffected:
 
     @pytest.mark.asyncio
     async def test_legacy_config_token_stays_bearer_only(self, wired, monkeypatch):
-        """Existing installs on hooks.webhook_token must not break on upgrade."""
+        """Legacy scalar has no signing secret — fail-closed (H7) requires signature."""
         monkeypatch.setattr(H, "_legacy_hook_token", lambda: "cfg-secret")
         resp = await _call(_hook_request(PROBE_BODY, bearer="cfg-secret"))
-        assert resp.status == 200
-        assert (await _payload(resp))["status"] == "accepted"
+        # Legacy/deprecated requires HMAC — bearer-only is not a policy (H7)
+        assert resp.status == 401
+        assert webhooks.SIG_ERR_NO_SECRET in (await _payload(resp)).get("error", "")
 
 
 class TestSignatureFailuresAreRecordedAndThrottled:

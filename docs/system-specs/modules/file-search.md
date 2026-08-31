@@ -20,7 +20,7 @@ directory listing or recursive content is inlined.
 | `q` | yes | Query string. Fewer than 2 characters returns an empty result set. |
 | `project` | no | Absolute project path to scope the search to. |
 | `workspace` | no | Workspace name to scope the search to, when `project` is absent. |
-| `kinds` | no | `all` (default), `files`, or `dirs`. Unrecognized values fall back to `all`. |
+| `kinds` | no | `all` (default), `files`, or `dirs`. Unrecognized values are rejected with 400 `invalid_kinds` (H7). |
 
 Response:
 

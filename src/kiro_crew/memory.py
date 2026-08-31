@@ -15,6 +15,7 @@ from __future__ import annotations
 import heapq
 import logging
 import os
+import re
 import stat as _stat
 import time
 from datetime import date as _date
@@ -92,6 +93,23 @@ def _is_corruption_error(exc: BaseException) -> bool:
     if "locked" in msg or "busy" in msg:
         return False
     return any(marker in msg for marker in _DB_CORRUPTION_MARKERS)
+
+
+_FTS_TOKEN_RE = re.compile(r"\w+", re.UNICODE)
+
+
+def _sanitize_fts_query(raw: str) -> str:
+    """Escape user input for safe FTS5 MATCH usage (H7/bounds).
+
+    Each token is individually double-quoted so it is treated as a literal
+    FTS5 string — the user's input never contributes FTS5 operators
+    (parameterized quoting). Unquoted operators (*, OR, \", column:) would
+    otherwise be syntax errors or change match semantics (injection).
+    Mirrors ``knowledge.retrieval._sanitize_fts5_query`` and
+    ``personal_shopper.store._fts_query``.
+    """
+    tokens = _FTS_TOKEN_RE.findall(raw)
+    return " OR ".join(f'"{t}"' for t in tokens)
 
 
 def workspace_dir() -> Path:
@@ -964,6 +982,12 @@ class MemoryStore:
 
     def search(self, query: str, limit: int = 5) -> list[dict]:
         """Search memory using FTS5. Returns [{path, snippet, rank}]."""
+        # H7/bounds: sanitize FTS MATCH input — raw user query may contain
+        # FTS5 operators (OR, *, \", column filters) that change semantics or
+        # raise syntax errors; quoting tokens neutralizes injection.
+        sanitized = _sanitize_fts_query(query)
+        if not sanitized:
+            return []
         conn = None
         try:
             # Inside the try, not around it: this method handles its own errors
@@ -975,7 +999,7 @@ class MemoryStore:
                 cursor = conn.execute(
                     "SELECT path, snippet(memory_fts, 1, '>>>', '<<<', '...', 32), rank "
                     "FROM memory_fts WHERE memory_fts MATCH ? ORDER BY rank LIMIT ?",
-                    (query, limit),
+                    (sanitized, limit),
                 )
                 results = [
                     {"path": row[0], "snippet": row[1], "rank": row[2]} for row in cursor.fetchall()

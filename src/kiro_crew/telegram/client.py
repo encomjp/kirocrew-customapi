@@ -1298,6 +1298,16 @@ class TelegramClient:
                 # here — which is what stops an undeliverable update replaying for
                 # the life of the install.
                 self._maybe_persist_offset()
+            except TelegramAuthError as exc:
+                # Fatal 401/403 — bad token, not a transient. Break the loop
+                # instead of infinite backoff (H7: bounded retry, fatal is closed).
+                logger.error(
+                    "Telegram polling fatal (%s) — check bot token. Channel stopped.",
+                    exc,
+                )
+                self._notify_status(False, str(exc)[:120])
+                self._closed = True
+                break
             except asyncio.CancelledError:
                 break
             except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as exc:
@@ -1335,10 +1345,14 @@ class TelegramClient:
         # a permanent ~30000ms mode. The Telemetry surface does not split on the
         # `method` attribute (see _OTHER_SPLIT_ATTRS), so filtering here is the
         # only way to keep the percentiles meaningful.
+        err: dict[str, Any] = {}
         result = await self._api(
-            "getUpdates", params, timeout=self._polling_timeout + 10, record=False
+            "getUpdates", params, timeout=self._polling_timeout + 10, record=False, err_out=err
         )
         if result is None:
+            code = err.get("error_code")
+            if code in (401, 403):
+                raise TelegramAuthError(f"Telegram rejected getUpdates (code {code})")
             return None  # API-level failure — signal the polling loop to back off
         # result is the array of Update objects ([] when there are none).
         if isinstance(result, list):

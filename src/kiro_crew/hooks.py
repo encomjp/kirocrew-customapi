@@ -1062,11 +1062,10 @@ def _governance_denial(
     neither a policy ceiling nor any profiles, so an ungoverned standalone host
     pays only an attribute read.  Emits a governance audit record on a deny.
 
-    Fail-closed discipline mirrors the CPP shims: a ``PlatformCompositionError``
+    Fail-closed discipline (H7): a ``PlatformCompositionError``
     (a non-standalone host that could not compose) is re-raised, never swallowed;
-    any other unexpected error degrades to "no governance opinion" (None) so a
-    transient profile-load glitch cannot wedge every tool call — the always-on
-    deny floor above already ran.
+    any other unexpected error fails CLOSED (deny) with a degraded audit so a
+    transient governance glitch cannot bypass the ceiling (bounds-guaranteed).
     """
     from kiro_crew.platform.context import PlatformCompositionError
 
@@ -1089,17 +1088,17 @@ def _governance_denial(
     except PlatformCompositionError:
         raise
     except Exception:
-        # Wrap the late import + audit so a broken/renamed/partially-installed
-        # governance_profiles cannot raise ImportError out of this except-branch
-        # and convert the intended soft fail-open into a hard fail-closed that
-        # wedges every tool call.
+        # Fail-closed (H7): any unexpected governance error must DENY, not fail
+        # open — a transient profile-load glitch must not become a bypass.
         try:
             from kiro_crew.platform.governance_profiles import audit_governance_degraded
 
-            audit_governance_degraded("hooks.on_tool_call", session_key=session_key, app=app)
+            audit_governance_degraded(
+                "hooks.on_tool_call", session_key=session_key, app=app, failed_closed=True
+            )
         except Exception:
             logger.debug("governance degrade audit unavailable", exc_info=True)
-        return None
+        return "Blocked by governance policy: governance check failed"
 
 
 def _app_owns_mcp_server(mcp_server_name: str, app: str) -> bool:
@@ -2826,10 +2825,10 @@ def _script_hooks_capability_denied(session_key: str = "") -> str | None:
     Script hooks run an operator/agent-authored shell command in a subprocess
     (``run_script_hook`` → ``/bin/sh -c``), an arbitrary code-execution surface.
     The ``capabilities.script_hooks`` gate (default OFF in the catalog) lets a
-    policy/profile forbid firing them.  Best-effort beyond the always-on
-    sandbox/redaction guards: a ``PlatformCompositionError`` propagates
-    (fail-closed CPP); any other error degrades to "no opinion" (None) so a
-    transient governance glitch cannot wedge every hook.
+    policy/profile forbid firing them.  Fail-closed (H7): a
+    ``PlatformCompositionError`` propagates (fail-closed CPP); any other error
+    fails CLOSED (deny) with a degraded audit so a transient governance glitch
+    cannot bypass the ceiling.
     """
     from kiro_crew.platform.context import PlatformCompositionError
 
@@ -2844,17 +2843,19 @@ def _script_hooks_capability_denied(session_key: str = "") -> str | None:
     except PlatformCompositionError:
         raise
     except Exception:
-        # Wrapped (see _governance_denial): a late-import failure must not turn the
-        # soft fail-open into a hard fail that wedges every script hook.
+        # Fail-closed (H7): a transient governance glitch must not become a bypass.
         try:
             from kiro_crew.platform.governance_profiles import audit_governance_degraded
 
             audit_governance_degraded(
-                "run_script_hook", session_key=session_key, scope="capabilities.script_hooks"
+                "run_script_hook",
+                session_key=session_key,
+                scope="capabilities.script_hooks",
+                failed_closed=True,
             )
         except Exception:
             logger.debug("governance degrade audit unavailable", exc_info=True)
-        return None
+        return "governance check failed"
 
 
 def _audit_governance_hook_decision(

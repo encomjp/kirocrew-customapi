@@ -2764,6 +2764,40 @@ class SubagentManager:
                 )
             except Exception:
                 logger.debug("SEL audit for conservative shutdown failed", exc_info=True)
+            # H7/bounds: even for shared, sweep child pids (per-subagent subtree) — the runtime pid itself is bounds-protected, but its children are not.
+            if isinstance(runtime_pid, int) and runtime_pid > 1:
+                try:
+                    from kiro_crew.acp.client import (
+                        _capture_child_records,
+                        _get_child_pids,
+                        _kill_escaped_children,
+                    )
+
+                    loop = asyncio.get_running_loop()
+                    # Snapshot child tree before provider shutdown; children in different PGIDs survive.
+                    raw_children = None
+                    # Try to reuse any tracked child_pids from the shared runtime client if available.
+                    try:
+                        _cli = getattr(getattr(info._shared_provider, "_handle", None), "_runtime", None)
+                        _cli = getattr(_cli, "_client", None) if _cli else None
+                        raw_children = getattr(_cli, "_child_pids", None) if _cli else None
+                    except Exception:
+                        raw_children = None
+                    child_pids: dict = dict(raw_children) if isinstance(raw_children, dict) else {}
+                    fresh = await loop.run_in_executor(subprocess_executor(), _get_child_pids, runtime_pid)
+                    new_pids = [p for p in fresh if p not in child_pids]
+                    if new_pids:
+                        child_pids.update(
+                            await loop.run_in_executor(
+                                subprocess_executor(), _capture_child_records, new_pids
+                            )
+                        )
+                    if child_pids:
+                        await loop.run_in_executor(
+                            subprocess_executor(), _kill_escaped_children, child_pids
+                        )
+                except Exception:
+                    logger.debug("Reaper: shared child sweep failed for %s", agent_id, exc_info=True)
             # Shutdown the shared provider handle only
             try:
                 if info._shared_provider:
@@ -3219,6 +3253,34 @@ class SubagentManager:
 
         # --- Redact task once for all SubagentInfo storage (raw task kept for kiro-cli prompt) ---
         _redacted_task = redact_credentials(redact_exfiltration_urls(task)[0])[0]
+
+        # --- Recursion guard: subagents cannot spawn other subagents (fork-bomb ceiling) ---
+        # H7/bounds: subagent sessions carry the "subagent:" prefix; a parent already
+        # in that namespace must not spawn further subagents (positive prefix check).
+        if parent_session_key.startswith("subagent:"):
+            logger.warning("Subagent spawn refused: recursion denied (parent=%s)", parent_session_key)
+            try:
+                sel().log_tool_invocation(
+                    session_key=parent_session_key or "",
+                    source="subagent",
+                    tool_name="spawn_run",
+                    outcome="rejected_recursion",
+                    metadata={"agent": agent},
+                )
+            except Exception:
+                logger.debug("SEL audit failed for recursion rejection", exc_info=True)
+            return self._announce_rejection(
+                SubagentInfo(
+                    id=agent_id,
+                    task=_redacted_task,
+                    agent=agent,
+                    parent_session_key=parent_session_key,
+                    done=True,
+                    error="spawn refused: subagents cannot spawn other subagents",
+                    batch_id=batch_id,
+                    batch_total=max(0, int(batch_total)),
+                )
+            )
 
         # --- Memory guard: refuse to spawn if system memory is critically low ---
         try:

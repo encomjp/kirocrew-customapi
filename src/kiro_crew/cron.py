@@ -743,15 +743,35 @@ def compute_next_run_ts(job: CronJob, now: float | None = None) -> float | None:
             horizon = now + _MAX_SKIP_DATE_HORIZON_SECS
             for _ in range(_MAX_SKIP_DATE_LOOKAHEAD):
                 nxt = cron.get_next(float)
-                if not job.skip_dates:
-                    return nxt
                 if nxt > horizon:
                     logger.warning(
                         "No valid next run within ~2y horizon for job %s (all dates skipped)",
                         job.id,
                     )
                     return None
-                local_date = datetime.fromtimestamp(nxt, tz=tz).strftime("%Y-%m-%d")
+                # H7/bounds: validate next-fire exists as valid local wall time (DST gap/fold/leap) and matches cron in that tz.
+                local_dt = datetime.fromtimestamp(nxt, tz=tz)
+                try:
+                    wall = datetime(
+                        local_dt.year,
+                        local_dt.month,
+                        local_dt.day,
+                        local_dt.hour,
+                        local_dt.minute,
+                        local_dt.second,
+                        tzinfo=tz,
+                        fold=local_dt.fold,
+                    )
+                    if wall.timestamp() != nxt:
+                        continue
+                except (ValueError, OverflowError):
+                    continue
+                # Use naive wall time for cron match (aware vs wall mismatch in DST gap)
+                if not cron_expr_matches(sched.cron_expr, local_dt.replace(tzinfo=None)):
+                    continue
+                if not job.skip_dates:
+                    return nxt
+                local_date = local_dt.strftime("%Y-%m-%d")
                 if local_date not in job.skip_dates:
                     return nxt
             logger.warning(
@@ -3169,6 +3189,13 @@ class CronService:
             # _execute resets the marker to False before invoking the callback.
             if not job.failure_recorded and not job.run_never_started:
                 job.record_failure()
+            # Orphan guard: kill the sandboxed subprocess tree so a timed-out
+            # script/command does not linger as an orphan (bounds/H7: wait_for
+            # alone cancels the future but not the child process).
+            try:
+                cron_script.kill_running_process(job.id)
+            except Exception:
+                logger.debug("cron timeout kill failed for %s", job.id, exc_info=True)
             logger.error("Cron job '%s' timed out after %ds", job.name, deadline)
 
     async def _execute(self, job: CronJob) -> None:

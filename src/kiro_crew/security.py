@@ -870,7 +870,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="pipe-to-shell-curl-bash",
-        pattern="curl .* \\| bash",
+        pattern="curl .*\\|\\s*bash",
         category="pipe-to-shell",
         description=(
             "Blocks piping a curl download directly into bash, which executes arbitrary remote "
@@ -879,7 +879,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="pipe-to-shell-curl-sh",
-        pattern="curl .* \\| sh",
+        pattern="curl .*\\|\\s*sh",
         category="pipe-to-shell",
         description=(
             "Blocks piping a curl download directly into sh, which executes arbitrary remote "
@@ -1090,7 +1090,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="pipe-to-shell-wget-bash",
-        pattern="wget .* \\| bash",
+        pattern="wget .*\\|\\s*bash",
         category="pipe-to-shell",
         description=(
             "Blocks piping a wget download directly into bash, which executes arbitrary remote "

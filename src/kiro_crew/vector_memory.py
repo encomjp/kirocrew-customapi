@@ -107,6 +107,17 @@ _MAX_VALUE_BYTES = 4096
 _EMPTY_VALUE_JSON = frozenset({"null", '""'})
 
 
+def _escape_like(s: str) -> str:
+    """Escape LIKE wildcards for safe SQLite LIKE usage (H7/bounds).
+
+    ``%`` and ``_`` are wildcards and ``\\`` is the escape char itself;
+    without escaping a user-controlled prefix like ``pref.%`` matches every
+    key via ``LIKE 'pref.%'``. Escaping and ``ESCAPE '\\'`` forces literal
+    matching.
+    """
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 class SemanticRejectCode(str, Enum):
     KEY_FORMAT = "key_format"
     ALLOWLIST = "allowlist_reject"
@@ -1498,9 +1509,12 @@ class VectorMemoryStore:
     @timed("vector", "search")
     def search_semantic(self, prefix: str) -> list[dict]:
         """Search semantic memory by key prefix."""
+        # H7/bounds: escape LIKE wildcards so a user prefix containing %/_/\ does
+        # not broaden the match; ESCAPE '\\' forces literal semantics.
+        escaped = _escape_like(prefix.rstrip("*").rstrip("."))
         rows = self._fetch_all_locked(
-            "SELECT * FROM semantic_memory WHERE key LIKE ? AND is_deleted = 0 ORDER BY key",
-            (prefix.rstrip("*").rstrip(".") + "%",),
+            "SELECT * FROM semantic_memory WHERE key LIKE ? ESCAPE '\\' AND is_deleted = 0 ORDER BY key",
+            (escaped + "%",),
         )
         return [dict(r) for r in rows]
 
@@ -1660,28 +1674,29 @@ class VectorMemoryStore:
         """Rebuild FAISS index from all episodic embeddings in SQLite. Returns count."""
         if not _HAS_FAISS or not _HAS_NUMPY:
             return 0
-        self._faiss_index = faiss.IndexFlatIP(self._embedding_dim)
-        self._faiss_id_map = []
-        rows = self._fetch_all_locked(
-            "SELECT id, embedding FROM episodic_memories "
-            "WHERE is_deleted = 0 AND embedding IS NOT NULL"
-        )
-        skipped = 0
-        for row in rows:
-            vec = np.frombuffer(row["embedding"], dtype=np.float32).reshape(1, -1)
-            if vec.shape[1] != self._embedding_dim:
-                skipped += 1
-                continue
-            self._faiss_index.add(vec)  # type: ignore[union-attr]
-            self._faiss_id_map.append(row["id"])
-        if skipped:
-            logger.warning(
-                "Skipped %d episodic entries with mismatched embedding dim (expected %d)",
-                skipped,
-                self._embedding_dim,
+        with self._db_lock:
+            self._faiss_index = faiss.IndexFlatIP(self._embedding_dim)
+            self._faiss_id_map = []
+            rows = self._fetch_all_locked(
+                "SELECT id, embedding FROM episodic_memories "
+                "WHERE is_deleted = 0 AND embedding IS NOT NULL"
             )
-        logger.info("Built FAISS index with %d vectors", len(self._faiss_id_map))
-        return len(self._faiss_id_map)
+            skipped = 0
+            for row in rows:
+                vec = np.frombuffer(row["embedding"], dtype=np.float32).reshape(1, -1)
+                if vec.shape[1] != self._embedding_dim:
+                    skipped += 1
+                    continue
+                self._faiss_index.add(vec)  # type: ignore[union-attr]
+                self._faiss_id_map.append(row["id"])
+            if skipped:
+                logger.warning(
+                    "Skipped %d episodic entries with mismatched embedding dim (expected %d)",
+                    skipped,
+                    self._embedding_dim,
+                )
+            logger.info("Built FAISS index with %d vectors", len(self._faiss_id_map))
+            return len(self._faiss_id_map)
 
     def save_faiss_index(self) -> None:
         """Persist FAISS index to disk."""
@@ -3984,12 +3999,15 @@ class VectorMemoryStore:
         words = [w for w in query.strip().split()[:5] if len(w) > 2]
         if not words:
             return []
-        conditions = " OR ".join(["text LIKE ?" for _ in words] + ["tags LIKE ?" for _ in words])
-        params: list[str] = [f"%{w}%" for w in words] * 2
+        # H7/bounds: escape LIKE wildcards so user terms match literally;
+        # ESCAPE '\' forces %/_/\ to be literal.
+        esc_words = [_escape_like(w) for w in words]
+        conditions = " OR ".join(["text LIKE ? ESCAPE '\\'" for _ in words] + ["tags LIKE ? ESCAPE '\\'" for _ in words])
+        params: list[str] = [f"%{w}%" for w in esc_words] * 2
         if tag_filter:
-            tag_conds = " OR ".join(["tags LIKE ?" for _ in tag_filter])
+            tag_conds = " OR ".join(["tags LIKE ? ESCAPE '\\'" for _ in tag_filter])
             conditions = f"({conditions}) AND ({tag_conds})"
-            params.extend(f'%"{t.lower()}"%' for t in tag_filter)
+            params.extend(f'%"{_escape_like(t.lower())}"%' for t in tag_filter)
         # Serialized for the same reason as the vector fallback above: this runs
         # on the context-assembly path, concurrently with memory writes.
         rows = self._fetch_all_locked(

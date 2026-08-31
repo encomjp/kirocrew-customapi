@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -185,6 +186,7 @@ class DiscordDispatcher:
         self.cfg = cfg
         self._allowed = set(allowed_user_ids or ())
         self._allowed_threads = set(allowed_thread_ids or ())
+        self._allowed_threads_lock = threading.Lock()
         self.agent = agent
         self.conv_log = conv_log
         self.approval_mode = approval_mode
@@ -213,9 +215,19 @@ class DiscordDispatcher:
         # "<channel_id>:<message_id>" -> the picker posted on that message.
         self._model_pickers: dict[str, _ModelPicker] = {}
 
+    def _snapshot_threads(self) -> frozenset[str]:
+        """Thread-safe snapshot of allowed threads (H7, bounds-guaranteed)."""
+        with self._allowed_threads_lock:
+            return frozenset(self._allowed_threads)
+
+    def _is_allowed_thread(self, thread_id: str) -> bool:
+        with self._allowed_threads_lock:
+            return thread_id in self._allowed_threads
+
     def register_allowed_thread(self, thread_id: str) -> None:
         """Authorize interactions in a thread created by the inbound transport."""
-        self._allowed_threads.add(thread_id)
+        with self._allowed_threads_lock:
+            self._allowed_threads.add(thread_id)
 
     # ── Turn dispatch (transport's dispatch callback) ──────────────────────
 
@@ -954,7 +966,7 @@ class DiscordDispatcher:
         # Discord confirms is a thread. This mirrors transport.receive().
         thread_id = itx.channel_id if itx.guild_id else ""
         in_allowed_thread = bool(thread_id) and (
-            thread_id in self._allowed_threads and await self.client.is_thread_channel(thread_id)
+            self._is_allowed_thread(thread_id) and await self.client.is_thread_channel(thread_id)
         )
         if itx.guild_id and not in_allowed_thread:
             # A COMMAND gets an ephemeral explanation rather than silence. A

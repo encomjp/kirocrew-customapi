@@ -83,7 +83,7 @@ async def api_reveal_path(request: web.Request) -> web.Response:
     """POST /api/reveal — reveal a file/folder in Finder or open with default app."""
     try:
         body = await request.json()
-    except ValueError:
+    except Exception:
         return web.json_response({"error": "invalid JSON body"}, status=400)
     path = body.get("path", "")
     action = body.get("action", "reveal")  # "reveal" or "open"
@@ -124,7 +124,7 @@ async def api_outbox_notify(request: web.Request) -> web.Response:
     state: DashboardState = request.app["state"]
     try:
         body = await request.json()
-    except ValueError:
+    except Exception:
 
         _sel().log_tool_invocation(
             session_key="api",
@@ -431,7 +431,7 @@ async def api_slack_upload_file(request: web.Request) -> web.Response:
         return web.json_response({"ok": True, "skipped": "no_slack"})
     try:
         body = await request.json()
-    except ValueError:
+    except Exception:
         _sel().log_tool_invocation(
             session_key="api",
             source="api",
@@ -1150,29 +1150,148 @@ async def api_workspaces_create(request: web.Request) -> web.Response:
             {"error": "Invalid workspace name (use alphanumeric, hyphens, underscores)"},
             status=400,
         )
-    cfg = KiroCrewConfig.load()
-    if name in cfg.workspaces:
-        return web.json_response({"error": f"Workspace '{name}' already exists"}, status=409)
-    copy_from = body.get("copy_from", "").strip()
-    if copy_from:
-        if copy_from not in cfg.workspaces:
-            return web.json_response(
-                {"error": f"Source workspace '{copy_from}' not found"}, status=404
-            )
-        # New workspace gets its own directory, named after the workspace
-        ws_dir = body.get("dir", f"workspace-{name}")
-        # Check for directory collision with existing workspaces
-        existing_dirs = {ws.dir for ws in cfg.workspaces.values()}
-        if ws_dir in existing_dirs:
+    from kiro_crew.dashboard.handlers.agents import _get_config_lock  # noqa: F811
+
+    async with _get_config_lock():
+        cfg = KiroCrewConfig.load()
+        if name in cfg.workspaces:
+            return web.json_response({"error": f"Workspace '{name}' already exists"}, status=409)
+        copy_from = body.get("copy_from", "").strip()
+        if copy_from:
+            if copy_from not in cfg.workspaces:
+                return web.json_response(
+                    {"error": f"Source workspace '{copy_from}' not found"}, status=404
+                )
+            # New workspace gets its own directory, named after the workspace
+            ws_dir = body.get("dir", f"workspace-{name}")
+            # Check for directory collision with existing workspaces
+            existing_dirs = {ws.dir for ws in cfg.workspaces.values()}
+            if ws_dir in existing_dirs:
+                return web.json_response(
+                    {"error": f"Directory '{ws_dir}' is already used by another workspace"},
+                    status=409,
+                )
+            # Recursively copy source workspace data to the new directory
+            src_path = data_home() / cfg.workspaces[copy_from].dir
+            dst_path = data_home() / ws_dir
+            # Guard against path traversal
+            if not dst_path.resolve().is_relative_to(data_home().resolve()):
+                _sel().log_api_access(
+                    caller=request.get("user", "dashboard"),
+                    operation="workspace.create",
+                    outcome="denied",
+                    source="dashboard",
+                    resources=name,
+                )
+                return web.json_response({"error": "Invalid directory path"}, status=400)
+            if not src_path.resolve().is_relative_to(data_home().resolve()):
+                _sel().log_api_access(
+                    caller=request.get("user", "dashboard"),
+                    operation="workspace.create",
+                    outcome="denied",
+                    source="dashboard",
+                    resources=name,
+                )
+                return web.json_response({"error": "Invalid source directory path"}, status=400)
+            # Reject config root itself to avoid copying .env / config.json
+            cfg_root = data_home().resolve()
+            if src_path.resolve() == cfg_root or dst_path.resolve() == cfg_root:
+                _sel().log_api_access(
+                    caller=request.get("user", "dashboard"),
+                    operation="workspace.create",
+                    outcome="denied",
+                    source="dashboard",
+                    resources=name,
+                )
+                return web.json_response(
+                    {"error": "Cannot use config root as workspace directory"}, status=400
+                )
+            if src_path.is_dir():
+                # Use is_sensitive_path to filter entries instead of hardcoded names
+                from kiro_crew.security import is_sensitive_path  # noqa: F811
+
+                def _ignore_sensitive(directory: str, entries: list[str]) -> set[str]:
+                    skip: set[str] = set()
+                    for entry in entries:
+                        full = os.path.join(directory, entry)
+                        # O_NOFOLLOW via lstat: do not follow symlink, skip it entirely (H7)
+                        try:
+                            st = os.lstat(full)
+                            if _stat_mod.S_ISLNK(st.st_mode):
+                                skip.add(entry)
+                                continue
+                        except OSError:
+                            pass
+                        if is_sensitive_path(full):
+                            skip.add(entry)
+                            continue
+                        # Defense-in-depth: parent symlink could make realpath sensitive
+                        try:
+                            real = os.path.realpath(full)
+                            if real != full and is_sensitive_path(real):
+                                skip.add(entry)
+                        except OSError:
+                            pass
+                    return skip
+
+                # Copy files with O_NOFOLLOW so a symlink that slipped through ignore cannot be followed (H7)
+                def _copy_nofollow(src: str, dst: str, *, follow_symlinks: bool = True) -> None:
+                    if not follow_symlinks:
+                        return
+                    fd = _open_rb_nofollow(src)
+                    try:
+                        with os.fdopen(fd, "rb") as rf:
+                            data = rf.read()
+                        # Write file with restricted handling; dst is new
+                        fd2 = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600)
+                        try:
+                            os.write(fd2, data)
+                        finally:
+                            os.close(fd2)
+                        try:
+                            shutil.copymode(src, dst)
+                        except OSError:
+                            pass
+                    except OSError as exc:
+                        if exc.errno == errno.ELOOP:
+                            return
+                        raise
+
+                await asyncio.to_thread(
+                    shutil.copytree,
+                    src_path,
+                    dst_path,
+                    dirs_exist_ok=True,
+                    symlinks=True,
+                    ignore=_ignore_sensitive,
+                    copy_function=_copy_nofollow,
+                )
+        else:
+            ws_dir = body.get("dir", f"workspace-{name}")
+        # Guard against path traversal for relative paths; absolute paths are allowed
+        from kiro_crew.security import is_sensitive_path as _isp  # noqa: F811
+
+        _abs = Path(ws_dir).expanduser().is_absolute()
+        # Path constructed for validation only (never opened/read/written); the
+        # is_relative_to + is_sensitive_path guards below reject traversals before
+        # the value is stored in config. CodeQL's taint tracker does not model the
+        # containment guard as a barrier.
+        final_path = (  # lgtm[py/path-injection]
+            Path(ws_dir).expanduser().resolve() if _abs else data_home() / ws_dir
+        )
+
+        # Check for directory collision with existing workspaces (resolve both sides)
+        def _resolve_ws_dir(d: str) -> Path:
+            p = Path(d).expanduser()
+            return p.resolve() if p.is_absolute() else (data_home() / d).resolve()
+
+        existing_resolved = {_resolve_ws_dir(ws.dir) for ws in cfg.workspaces.values()}
+        if _resolve_ws_dir(ws_dir) in existing_resolved:
             return web.json_response(
                 {"error": f"Directory '{ws_dir}' is already used by another workspace"},
                 status=409,
             )
-        # Recursively copy source workspace data to the new directory
-        src_path = data_home() / cfg.workspaces[copy_from].dir
-        dst_path = data_home() / ws_dir
-        # Guard against path traversal
-        if not dst_path.resolve().is_relative_to(data_home().resolve()):
+        if _isp(str(final_path.resolve())):
             _sel().log_api_access(
                 caller=request.get("user", "dashboard"),
                 operation="workspace.create",
@@ -1181,7 +1300,7 @@ async def api_workspaces_create(request: web.Request) -> web.Response:
                 resources=name,
             )
             return web.json_response({"error": "Invalid directory path"}, status=400)
-        if not src_path.resolve().is_relative_to(data_home().resolve()):
+        if not _abs and not final_path.resolve().is_relative_to(data_home().resolve()):
             _sel().log_api_access(
                 caller=request.get("user", "dashboard"),
                 operation="workspace.create",
@@ -1189,10 +1308,8 @@ async def api_workspaces_create(request: web.Request) -> web.Response:
                 source="dashboard",
                 resources=name,
             )
-            return web.json_response({"error": "Invalid source directory path"}, status=400)
-        # Reject config root itself to avoid copying .env / config.json
-        cfg_root = data_home().resolve()
-        if src_path.resolve() == cfg_root or dst_path.resolve() == cfg_root:
+            return web.json_response({"error": "Invalid directory path"}, status=400)
+        if final_path.resolve() == data_home().resolve():
             _sel().log_api_access(
                 caller=request.get("user", "dashboard"),
                 operation="workspace.create",
@@ -1203,197 +1320,124 @@ async def api_workspaces_create(request: web.Request) -> web.Response:
             return web.json_response(
                 {"error": "Cannot use config root as workspace directory"}, status=400
             )
-        if src_path.is_dir():
-            # Use is_sensitive_path to filter entries instead of hardcoded names
-            from kiro_crew.security import is_sensitive_path  # noqa: F811
-
-            def _ignore_sensitive(directory: str, entries: list[str]) -> set[str]:
-                from pathlib import Path as _Path  # noqa: F811
-
-                skip: set[str] = set()
-                for entry in entries:
-                    full = str(_Path(directory, entry).resolve())
-                    if is_sensitive_path(full):
-                        skip.add(entry)
-                return skip
-
-            await asyncio.to_thread(
-                shutil.copytree,
-                src_path,
-                dst_path,
-                dirs_exist_ok=True,
-                symlinks=True,
-                ignore=_ignore_sensitive,
-            )
-    else:
-        ws_dir = body.get("dir", f"workspace-{name}")
-    # Guard against path traversal for relative paths; absolute paths are allowed
-    from kiro_crew.security import is_sensitive_path as _isp  # noqa: F811
-
-    _abs = Path(ws_dir).expanduser().is_absolute()
-    # Path constructed for validation only (never opened/read/written); the
-    # is_relative_to + is_sensitive_path guards below reject traversals before
-    # the value is stored in config. CodeQL's taint tracker does not model the
-    # containment guard as a barrier.
-    final_path = (  # lgtm[py/path-injection]
-        Path(ws_dir).expanduser().resolve() if _abs else data_home() / ws_dir
-    )
-
-    # Check for directory collision with existing workspaces (resolve both sides)
-    def _resolve_ws_dir(d: str) -> Path:
-        p = Path(d).expanduser()
-        return p.resolve() if p.is_absolute() else (data_home() / d).resolve()
-
-    existing_resolved = {_resolve_ws_dir(ws.dir) for ws in cfg.workspaces.values()}
-    if _resolve_ws_dir(ws_dir) in existing_resolved:
-        return web.json_response(
-            {"error": f"Directory '{ws_dir}' is already used by another workspace"},
-            status=409,
-        )
-    if _isp(str(final_path.resolve())):
+        cfg.workspaces[name] = WorkspaceConfig(dir=ws_dir)
+        cfg.save()
         _sel().log_api_access(
             caller=request.get("user", "dashboard"),
             operation="workspace.create",
-            outcome="denied",
+            outcome="success",
             source="dashboard",
             resources=name,
         )
-        return web.json_response({"error": "Invalid directory path"}, status=400)
-    if not _abs and not final_path.resolve().is_relative_to(data_home().resolve()):
-        _sel().log_api_access(
-            caller=request.get("user", "dashboard"),
-            operation="workspace.create",
-            outcome="denied",
-            source="dashboard",
-            resources=name,
-        )
-        return web.json_response({"error": "Invalid directory path"}, status=400)
-    if final_path.resolve() == data_home().resolve():
-        _sel().log_api_access(
-            caller=request.get("user", "dashboard"),
-            operation="workspace.create",
-            outcome="denied",
-            source="dashboard",
-            resources=name,
-        )
-        return web.json_response(
-            {"error": "Cannot use config root as workspace directory"}, status=400
-        )
-    cfg.workspaces[name] = WorkspaceConfig(dir=ws_dir)
-    cfg.save()
-    _sel().log_api_access(
-        caller=request.get("user", "dashboard"),
-        operation="workspace.create",
-        outcome="success",
-        source="dashboard",
-        resources=name,
-    )
-    return web.json_response({"ok": True, "name": name})
-
+        return web.json_response({"ok": True, "name": name})
 
 async def api_workspaces_update(request: web.Request) -> web.Response:
     """PUT /api/workspaces/{name} — update a workspace."""
 
     name = request.match_info["name"]
-    cfg = KiroCrewConfig.load()
-    if name not in cfg.workspaces:
-        return web.json_response({"error": f"Workspace '{name}' not found"}, status=404)
     try:
         body = await request.json()
     except Exception:
         return web.json_response({"error": "Invalid JSON body"}, status=400)
-    if "dir" in body:
-        new_dir = body["dir"]
-        from kiro_crew.security import is_sensitive_path as _isp  # noqa: F811
+    from kiro_crew.dashboard.handlers.agents import _get_config_lock  # noqa: F811
 
-        _abs = Path(new_dir).expanduser().is_absolute()
-        # Resolved for validation only; is_relative_to + is_sensitive_path guard
-        # below reject traversals before the value is stored in config.
-        resolved = (  # lgtm[py/path-injection]
-            Path(new_dir).expanduser().resolve() if _abs
-            else (data_home() / new_dir).resolve()
+    async with _get_config_lock():
+        cfg = KiroCrewConfig.load()
+        if name not in cfg.workspaces:
+            return web.json_response({"error": f"Workspace '{name}' not found"}, status=404)
+        if "dir" in body:
+            new_dir = body["dir"]
+            from kiro_crew.security import is_sensitive_path as _isp  # noqa: F811
+
+            _abs = Path(new_dir).expanduser().is_absolute()
+            # Resolved for validation only; is_relative_to + is_sensitive_path guard
+            # below reject traversals before the value is stored in config.
+            resolved = (  # lgtm[py/path-injection]
+                Path(new_dir).expanduser().resolve() if _abs
+                else (data_home() / new_dir).resolve()
+            )
+            if _isp(str(resolved)):
+                _sel().log_api_access(
+                    caller=request.get("user", "dashboard"),
+                    operation="workspace.update",
+                    outcome="denied",
+                    source="dashboard",
+                    resources=name,
+                )
+                return web.json_response({"error": "Invalid directory path"}, status=400)
+            if not _abs and not resolved.is_relative_to(data_home().resolve()):
+                _sel().log_api_access(
+                    caller=request.get("user", "dashboard"),
+                    operation="workspace.update",
+                    outcome="denied",
+                    source="dashboard",
+                    resources=name,
+                )
+                return web.json_response({"error": "Invalid directory path"}, status=400)
+            if resolved == data_home().resolve():
+                _sel().log_api_access(
+                    caller=request.get("user", "dashboard"),
+                    operation="workspace.update",
+                    outcome="denied",
+                    source="dashboard",
+                    resources=name,
+                )
+                return web.json_response(
+                    {"error": "Cannot use config root as workspace directory"}, status=400
+                )
+            existing_dirs = {
+                (data_home() / ws.dir).resolve()
+                if not Path(ws.dir).expanduser().is_absolute()
+                else Path(ws.dir).expanduser().resolve()
+                for n, ws in cfg.workspaces.items() if n != name
+            }
+            if resolved in existing_dirs:
+                return web.json_response(
+                    {"error": f"Directory '{new_dir}' is already used by another workspace"},
+                    status=409,
+                )
+            cfg.workspaces[name].dir = new_dir
+        cfg.save()
+        _sel().log_api_access(
+            caller=request.get("user", "dashboard"),
+            operation="workspace.update",
+            outcome="success",
+            source="dashboard",
+            resources=name,
         )
-        if _isp(str(resolved)):
-            _sel().log_api_access(
-                caller=request.get("user", "dashboard"),
-                operation="workspace.update",
-                outcome="denied",
-                source="dashboard",
-                resources=name,
-            )
-            return web.json_response({"error": "Invalid directory path"}, status=400)
-        if not _abs and not resolved.is_relative_to(data_home().resolve()):
-            _sel().log_api_access(
-                caller=request.get("user", "dashboard"),
-                operation="workspace.update",
-                outcome="denied",
-                source="dashboard",
-                resources=name,
-            )
-            return web.json_response({"error": "Invalid directory path"}, status=400)
-        if resolved == data_home().resolve():
-            _sel().log_api_access(
-                caller=request.get("user", "dashboard"),
-                operation="workspace.update",
-                outcome="denied",
-                source="dashboard",
-                resources=name,
-            )
-            return web.json_response(
-                {"error": "Cannot use config root as workspace directory"}, status=400
-            )
-        existing_dirs = {
-            (data_home() / ws.dir).resolve()
-            if not Path(ws.dir).expanduser().is_absolute()
-            else Path(ws.dir).expanduser().resolve()
-            for n, ws in cfg.workspaces.items() if n != name
-        }
-        if resolved in existing_dirs:
-            return web.json_response(
-                {"error": f"Directory '{new_dir}' is already used by another workspace"},
-                status=409,
-            )
-        cfg.workspaces[name].dir = new_dir
-    cfg.save()
-    _sel().log_api_access(
-        caller=request.get("user", "dashboard"),
-        operation="workspace.update",
-        outcome="success",
-        source="dashboard",
-        resources=name,
-    )
-    return web.json_response({"ok": True, "name": name})
-
+        return web.json_response({"ok": True, "name": name})
 
 async def api_workspaces_delete(request: web.Request) -> web.Response:
     """DELETE /api/workspaces/{name} — delete a workspace."""
 
     name = request.match_info["name"]
-    cfg = KiroCrewConfig.load()
-    if name not in cfg.workspaces:
-        return web.json_response({"error": f"Workspace '{name}' not found"}, status=404)
-    if name == cfg.default_workspace:
-        return web.json_response(
-            {"error": f"Cannot delete default workspace '{name}'. Change default_workspace first."},
-            status=409,
-        )
-    referencing = [a for a, ac in cfg.agents.items() if ac.workspace == name]
-    if referencing:
-        return web.json_response(
-            {"error": f"Workspace '{name}' is referenced by agents: {', '.join(referencing)}"},
-            status=409,
-        )
-    del cfg.workspaces[name]
-    cfg.save()
-    _sel().log_api_access(
-        caller=request.get("user", "dashboard"),
-        operation="workspace.delete",
-        outcome="success",
-        source="dashboard",
-        resources=name,
-    )
-    return web.json_response({"ok": True})
+    from kiro_crew.dashboard.handlers.agents import _get_config_lock  # noqa: F811
 
+    async with _get_config_lock():
+        cfg = KiroCrewConfig.load()
+        if name not in cfg.workspaces:
+            return web.json_response({"error": f"Workspace '{name}' not found"}, status=404)
+        if name == cfg.default_workspace:
+            return web.json_response(
+                {"error": f"Cannot delete default workspace '{name}'. Change default_workspace first."},
+                status=409,
+            )
+        referencing = [a for a, ac in cfg.agents.items() if ac.workspace == name]
+        if referencing:
+            return web.json_response(
+                {"error": f"Workspace '{name}' is referenced by agents: {', '.join(referencing)}"},
+                status=409,
+            )
+        del cfg.workspaces[name]
+        cfg.save()
+        _sel().log_api_access(
+            caller=request.get("user", "dashboard"),
+            operation="workspace.delete",
+            outcome="success",
+            source="dashboard",
+            resources=name,
+        )
+        return web.json_response({"ok": True})
 
 def _validate_dashboard_path(raw: str) -> str | None:
     """Validate a file path through hooks.py enforcement layer."""
@@ -1566,7 +1610,16 @@ async def api_file_read(request: web.Request) -> web.Response:
         return web.Response(status=200, headers={"X-Path-Kind": "file"})
     try:
         read_cap = 512_000
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
+        try:
+            fd = _open_rb_nofollow(path)
+        except OSError as exc:
+            if exc.errno == errno.ELOOP:
+                _sel().log_tool_invocation(
+                    session_key="dashboard", tool_name="file_read", outcome="denied", resources=path, error="symlink_rejected"
+                )
+                return web.json_response({"error": "symlinks not allowed"}, status=403)
+            raise
+        with os.fdopen(fd, "r", encoding="utf-8", errors="replace") as f:
             content = f.read(read_cap + 1)
         truncated = len(content) > read_cap
         content = content[:read_cap]
@@ -2286,10 +2339,10 @@ async def api_file_search(request: web.Request) -> web.Response:
     max_results = 15
 
     # kinds: "all" (default) returns both files and directories; "files" or
-    # "dirs" restricts the result set. Unknown values fall back to "all".
+    # "dirs" restricts the result set. Unknown values are rejected (H7 bounds).
     kinds = request.query.get("kinds", "all").strip().lower()
     if kinds not in ("all", "files", "dirs"):
-        kinds = "all"
+        return web.json_response({"error": "invalid kinds parameter", "code": "invalid_kinds"}, status=400)
     want_files = kinds in ("all", "files")
     want_dirs = kinds in ("all", "dirs")
 

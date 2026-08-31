@@ -232,12 +232,15 @@ def check_origin(
     if not origin and fallback_header:
         origin = request.headers.get(fallback_header, "")
     if not origin:
-        # No Origin header: trust loopback and the dashboard's own unix
-        # socket (local processes like mcp-core and doctor send no Origin;
-        # a browser cannot connect to the unix socket at all, so the CSRF
-        # threat model — cookie-attaching cross-origin pages — does not
-        # exist on that transport). Reject others.
-        if is_loopback(request.remote or "") or request_is_unix_socket(request):
+        # No Origin header: trust ONLY a direct-local request (loopback
+        # without forwarding headers; H7/bounds — a tunneled remote request
+        # also arrives on loopback but carries Forwarded / X-Forwarded-*
+        # / X-Real-IP, so is_loopback alone is insufficient) and the
+        # dashboard's own unix socket (local processes like mcp-core and
+        # doctor send no Origin; a browser cannot connect to the unix socket
+        # at all, so the CSRF threat model — cookie-attaching cross-origin
+        # pages — does not exist on that transport). Reject others.
+        if is_direct_local_request(request) or request_is_unix_socket(request):
             return True
         return not require
     origin_base = "/".join(origin.split("/")[:3]) if "://" in origin else ""

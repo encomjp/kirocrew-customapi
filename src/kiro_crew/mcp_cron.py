@@ -18,6 +18,7 @@ import fnmatch
 import logging
 import os
 import re
+import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -59,6 +60,12 @@ from kiro_crew.sel import sel
 from kiro_crew.validation import MCP_CRON_SCHEMAS, ValidationError, validate_tool_args
 
 logger = logging.getLogger(__name__)
+# Force logging to stderr: stdout is the MCP JSON-RPC transport — any log to
+# stdout pollutes it.
+if not logger.handlers:
+    _sh = logging.StreamHandler(sys.stderr)  # type: ignore[attr-defined]
+    _sh.setLevel(logging.INFO)
+    logger.addHandler(_sh)
 
 # Patterns for _parse_time_string
 _RE_IN_DURATION = re.compile(
@@ -1767,8 +1774,11 @@ def _call_tool_inner(name: str, args: dict[str, Any]) -> str:
         channel = (args.get("channel") or "").strip() or None
         if channel is None:
             channel = _caller_channel_id() or os.environ.get("KIROCREW_CHANNEL_ID") or None
-        if not every and not cron_expr and not at_ts:
+        _provided = sum(bool(x) for x in (every, cron_expr, at_ts))
+        if _provided == 0:
             return "Error: provide every, cron_expr, at, delay, or at_time"
+        if _provided > 1:
+            return "Error: provide exactly one of every, cron_expr, at, delay, at_time"
         # Validate model BEFORE add_job so an invalid value never leaves an
         # orphaned job behind (a retried cron_add would then duplicate it).
         model_arg = str(args.get("model") or "").strip()

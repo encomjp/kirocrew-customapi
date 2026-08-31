@@ -698,10 +698,16 @@ class TestPidInSpawnGrace:
             assert _pid_in_spawn_grace(12345) is True
 
     def test_windows_returns_false(self) -> None:
-        """Windows: no age source — grace not applicable, sweep proceeds."""
+        """Windows: synthesized via process_start_time FILETIME (H7/bounds: leak-not-mis-kill)."""
         from kiro_crew.session_pid import _pid_in_spawn_grace
 
-        with patch("kiro_crew.session_pid.platform_compat.IS_WINDOWS", True):
+        # Unknown age (no start_time) → safe direction: skip kill
+        with patch("kiro_crew.session_pid._pid_age_seconds", return_value=None):
+            assert _pid_in_spawn_grace(12345) is True
+        # Young / old via FILETIME synthesis
+        with patch("kiro_crew.session_pid._pid_age_seconds", return_value=30.0):
+            assert _pid_in_spawn_grace(12345) is True
+        with patch("kiro_crew.session_pid._pid_age_seconds", return_value=200.0):
             assert _pid_in_spawn_grace(12345) is False
 
     @_linux_only

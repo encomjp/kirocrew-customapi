@@ -57,12 +57,25 @@ def _pid_age_seconds(pid: int, proc_root: str = "/proc") -> float | None:
     startup sweep SIGKILL'd a live kiro-cli off a stale dead-gateway entry on
     macOS because the grace window silently did not apply there.
 
-    On Windows: returns None (no grace — sweep behavior unchanged there).
+    On Windows: synthesized via ``platform_compat.process_start_time``'s
+    creation FILETIME (H7/bounds: leak-not-mis-kill — a young pid is spared,
+    an old one is reaped).
 
     The *proc_root* parameter allows injection of a fake /proc tree for testing.
     """
     if platform_compat.IS_WINDOWS:
-        return None
+        # Windows process_start_time returns the creation FILETIME as a decimal
+        # string (100ns since 1601-01-01). Convert to age seconds.
+        token = platform_compat.process_start_time(pid)
+        if token is None:
+            return None
+        try:
+            filetime = int(token)
+            # FILETIME epoch (1601) -> Unix epoch (1970) offset in 100ns units.
+            unix_secs = (filetime - 116444736000000000) / 10000000.0
+            return max(0.0, time.time() - unix_secs)
+        except (ValueError, OverflowError):
+            return None
     if sys.platform != "linux":
         start_id = platform_compat.get_process_start_id(pid)
         if start_id is None:
@@ -97,15 +110,13 @@ def _pid_age_seconds(pid: int, proc_root: str = "/proc") -> float | None:
 def _pid_in_spawn_grace(pid: int) -> bool:
     """Return True if the PID is within the spawn grace period and should be skipped.
 
-    - Windows: returns False (no age source — fall through to existing kill
-      behavior so the sweep remains functional there).
+    - Windows: synthesized via ``process_start_time`` FILETIME (H7/bounds:
+      leak-not-mis-kill); unknown age is treated as young (safe direction).
     - POSIX (Linux via /proc, macOS via ``ps -o etime=``) + successful age
       read: True if age < SWEEP_SPAWN_GRACE_SECONDS.
-    - POSIX + read failure (age is None): True (treat as young — safe
-      direction; dead processes are already pruned by the earlier liveness check).
+    - Read failure (age is None): True (treat as young — safe direction; dead
+      processes are already pruned by the earlier liveness check).
     """
-    if platform_compat.IS_WINDOWS:
-        return False
     age = _pid_age_seconds(pid)
     if age is None:
         return True  # cannot determine age → treat as young (safe direction)

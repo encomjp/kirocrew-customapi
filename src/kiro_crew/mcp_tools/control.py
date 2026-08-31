@@ -603,7 +603,16 @@ def wait(name: str, args: dict[str, Any]) -> str:
                 ended_early = True
                 break
             _next_ping = now + _ping_secs
-        mcp_core.time.sleep(min(_ping_secs, remaining))
+        # Interruptible wait: chunk sleep into 1s so cancel is observed
+        # within ~1s even when _ping_secs is 60 (cancel leak, H7 bounds).
+        _to_sleep = min(_ping_secs, remaining)
+        _slept = 0.0
+        while _slept < _to_sleep:
+            _chunk = min(1.0, _to_sleep - _slept)
+            mcp_core.time.sleep(_chunk)
+            _slept += _chunk
+            if is_tool_cancelled():
+                raise ToolCancelled(f"wait cancelled after {seconds - remaining:.0f}s")
     waited = max(0, int(seconds - max(0.0, deadline - mcp_core.time.monotonic())))
     mcp_core.sel().log_tool_invocation(
         session_key=mcp_core._resolve_session_key(),

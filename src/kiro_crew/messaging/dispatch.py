@@ -396,11 +396,11 @@ def delivery_is_muted(sessions: Any, session_key: str, channel_type: str) -> boo
     Slack never reaches these pipelines (it drives its own gateway and is gated by
     ``slack_mirror_is_paused``), so no Slack special-case is needed here.
 
-    Fails OPEN, matching the dashboard-side predicates: ``sessions`` is a bare
-    ``MagicMock`` across much of the suite and would return a truthy child for an
-    unstubbed accessor, which would silence every channel in the test suite. A
-    muted conversation that stays noisy is a visible bug; a live conversation
-    silently dead is a much worse one.
+    Fail-closed (H7, bounds-guaranteed): any lookup error mutes (True) so a
+    transient session-store glitch cannot leak output to a disconnected
+    conversation. The ``is True`` check keeps bare ``MagicMock`` sessions
+    unmuted in tests (a truthy child is not ``True``), so only a real error
+    mutes; a noisy muted conversation is visible, a leaked one is not.
     """
     origin = is_channel_session_key(session_key) and (
         channel_namespace_of(session_key) == channel_type
@@ -414,7 +414,7 @@ def delivery_is_muted(sessions: Any, session_key: str, channel_type: str) -> boo
             session_key,
             exc_info=True,
         )
-        return False
+        return True
 
 
 def conversation_is_muted(sessions: Any, turn: ChannelTurn) -> bool:

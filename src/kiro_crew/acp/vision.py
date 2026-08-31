@@ -25,6 +25,7 @@ re-entering the ``config.loader -> providers.acp -> acp.client`` cycle.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -32,6 +33,10 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+#: Cap on vision HTTP response body (bounds): generous for a short
+#: description, small enough to bound memory.
+MAX_VISION_HTTP_RESPONSE_BYTES = 2 * 1024 * 1024
 
 #: Valid values for ``agent.image_input_mode`` (mirrors Hermes). ``auto`` is the
 #: default and is decided per turn by :func:`decide_image_input_mode`.
@@ -237,18 +242,68 @@ async def redirect_image_message(
                 main_env=main_env,
                 main_backend=main_backend,
             )
-            paths = [m.group(1).strip() for m in _PATH_RE.finditer(message)]
-            rewritten = message
-            for path in paths:
-                description = await describe_image_via_chain(
-                    path,
-                    providers,
-                    work_dir=work_dir,
-                    sandbox_mode=sandbox_mode,
-                )
-                name = Path(path).name
-                marker = f"[image: {name}: {description.strip() or 'unavailable'}]"
-                rewritten = rewritten.replace(path, marker, 1)
+            matches = list(_PATH_RE.finditer(message))
+            # Deduplicate for concurrent describe while preserving order
+            unique_paths: list[str] = []
+            seen_u: set[str] = set()
+            for m in matches:
+                p = m.group(1).strip()
+                if p not in seen_u:
+                    seen_u.add(p)
+                    unique_paths.append(p)
+            # Concurrent describe with timeout+cancel (bounds): 5 images
+            # ~120s not 600s sequential (H7/bounds).
+            desc_map: dict[str, str] = {}
+            if unique_paths:
+
+                async def _one(p: str) -> tuple[str, str]:
+                    try:
+                        d = await asyncio.wait_for(
+                            describe_image_via_chain(
+                                p,
+                                providers,
+                                work_dir=work_dir,
+                                sandbox_mode=sandbox_mode,
+                                timeout=VISION_DESCRIBE_TIMEOUT,
+                            ),
+                            timeout=VISION_DESCRIBE_TIMEOUT,
+                        )
+                    except (asyncio.TimeoutError, asyncio.CancelledError):
+                        return p, "unavailable"
+                    except Exception:
+                        return p, "unavailable"
+                    return p, d
+
+                tasks = [asyncio.create_task(_one(p)) for p in unique_paths]
+                try:
+                    results = await asyncio.gather(*tasks)
+                    for p, d in results:
+                        desc_map[p] = d
+                except asyncio.CancelledError:
+                    for t in tasks:
+                        t.cancel()
+                    raise
+                finally:
+                    for t in tasks:
+                        if not t.done():
+                            t.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
+            # Span-based rewrite (H7/bounds): avoid global replace corruption
+            # when one path is substring of another.
+            replacements: list[tuple[int, int, str]] = []
+            for m in matches:
+                raw = m.group(1).strip()
+                desc = desc_map.get(raw, "unavailable")
+                marker = f"[image: {Path(raw).name}: {desc.strip() or 'unavailable'}]"
+                replacements.append((m.start(1), m.end(1), marker))
+            parts: list[str] = []
+            last = 0
+            for s, e, marker in sorted(replacements):
+                parts.append(message[last:s])
+                parts.append(marker)
+                last = e
+            parts.append(message[last:])
+            rewritten = "".join(parts)
             return rewritten, image_mode
     return message, image_mode
 
@@ -473,7 +528,18 @@ async def _http_describe_image(
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
+            # Bounded read (bounds): cap to avoid unbounded memory on
+            # attacker-controlled response.
+            try:
+                data = resp.read(MAX_VISION_HTTP_RESPONSE_BYTES + 1)  # type: ignore[call-arg]
+            except TypeError:
+                # Test mocks that define read() without size arg
+                data = resp.read()  # type: ignore[call-arg]
+            if len(data) > MAX_VISION_HTTP_RESPONSE_BYTES:
+                raise RuntimeError(
+                    f"vision http describe: response too large ({len(data)} bytes)"
+                )
+            return data
 
     try:
         body = await asyncio.to_thread(_post)

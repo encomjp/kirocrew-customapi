@@ -516,6 +516,7 @@ class AcpSessionHandle:
         self._cancel_grace_secs = _CANCEL_GRACE_SECS
         self._turn_done = asyncio.Event()
         self._turn_done.set()
+        self._prompt_lock = asyncio.Lock()
         self._stale_eligible = False
         # Set when a genuine stale turn is probed via session/cancel; read by the
         # unresponsive-cancel branch to distinguish a confirmed wedge (signal
@@ -685,7 +686,7 @@ class AcpSessionHandle:
             # circular import: config.loader -> dashboard -> session -> acp
             from kiro_crew.config.loader import KiroCrewConfig
 
-            cfg = KiroCrewConfig.load()
+            cfg = await asyncio.to_thread(KiroCrewConfig.load)  # B4: offload blocking load off event loop
             a = cfg.agent
             main_env: dict[str, str] = {}
             base_url = (a.provider_base_url or "").strip()
@@ -702,20 +703,37 @@ class AcpSessionHandle:
                 if a.provider == "claude_code"
                 else ("opencode" if a.provider == "opencode" else "")
             )
-            from kiro_crew.acp.vision import redirect_image_message
+            from kiro_crew.acp.vision import decide_image_input_mode, redirect_image_message
 
-            message, image_mode = await redirect_image_message(
-                message,
-                model_id=self._model,
-                image_redirect=a.image_redirect,
+            # Mirror AcpClient._send_prompt switch branch (H7): image_redirect
+            # switch must switch the session to the vision fallback model
+            # instead of being ignored via the subagent redirect path.
+            _decided = decide_image_input_mode(
+                self._model,
                 image_input_mode=a.image_input_mode,
                 text_only_models=a.text_only_models,
-                vision_providers=list(a.vision_providers or []),
-                vision_fallback_model=a.vision_fallback_model,
-                main_env=main_env,
-                main_backend=main_backend,
-                sandbox_mode=a.sandbox,
             )
+            if a.image_redirect == "switch" and _decided == "text" and _message_has_image_path(message):
+                logger.info(
+                    "Image prompt on text-only model %s — switching to %s",
+                    self._model,
+                    a.vision_fallback_model,
+                )
+                await self.set_model(a.vision_fallback_model)
+                image_mode = "native"
+            else:
+                message, image_mode = await redirect_image_message(
+                    message,
+                    model_id=self._model,
+                    image_redirect=a.image_redirect,
+                    image_input_mode=a.image_input_mode,
+                    text_only_models=a.text_only_models,
+                    vision_providers=list(a.vision_providers or []),
+                    vision_fallback_model=a.vision_fallback_model,
+                    main_env=main_env,
+                    main_backend=main_backend,
+                    sandbox_mode=a.sandbox,
+                )
 
         async def _build() -> tuple[str, dict[str, Any]]:
             # Offloaded: the builder stats and reads image files (up to
@@ -725,7 +743,7 @@ class AcpSessionHandle:
             prompt_blocks = await asyncio.to_thread(
                 build_prompt_blocks,
                 message,
-                allow_image=self._runtime.supports_image_prompt,
+                allow_image=(image_mode == "native" and self._runtime.supports_image_prompt),
             )
             return METHOD_PROMPT, {
                 "sessionId": self._session_id,
@@ -834,46 +852,50 @@ class AcpSessionHandle:
         # Guard against concurrent prompts on the same handle: a second call
         # would clear _turn_done and race on the shared _queue, corrupting
         # turn state and losing events. Each caller should use its own handle.
-        if not self._turn_done.is_set():
-            raise AcpRuntimeError("A turn is already active on this session handle")
+        # TOCTOU: check and clear must be atomic — two concurrent prompts
+        # awaiting the timeout resolution would otherwise both pass the check
+        # before either clears (B3).
+        async with self._prompt_lock:
+            if not self._turn_done.is_set():
+                raise AcpRuntimeError("A turn is already active on this session handle")
 
-        self._cancelled = False
-        self._cancel_ts = 0.0
-        self._turn_done.clear()
-        # Reset the stored stop_reason: only a real `complete` response sets it,
-        # and the synthetic-terminal paths (cancel-unacked / stale / tool-stall /
-        # timeout) call _turn_done.set() WITHOUT updating it. Without this reset,
-        # wait_turn_done() would return the PREVIOUS turn's reason (e.g. a stale
-        # "end_turn" making a timed-out cancel look acked, or "" → a spurious
-        # hard kill of the shared runtime). Mirrors AcpClient.
-        self._last_stop_reason = ""
-        self._stale_eligible = False
-        # Set when a genuine stale turn is probed via session/cancel; read by the
-        # unresponsive-cancel branch to distinguish a confirmed wedge (signal
-        # auto-recovery) from an ordinary unacked cancel (unblock caller).
-        self._stale_probe = False
-        self._tool_dispatched = False
-        self._inflight_tool = None
-        # Park state is per-turn: carrying it across would charge the previous
-        # turn's consumer time to this one, and a permission left unanswered when
-        # the last turn died would mask this turn's stalls forever.
-        self._parked_total = 0.0
-        self._parked_since = None
-        self._awaiting_permission = False
-        self._retire_liveness_state()
-        self._working_logged_ts = _WORKING_NEVER_LOGGED
-        self._tool_call_inputs.clear()
-        self._tool_call_is_shell.clear()
-        self._tool_call_raw_params.clear()
-        self._tool_call_mcp_server.clear()
-        self._tool_call_tool_name.clear()
-        self._permission_options.clear()
-        # Per-turn reset (parity with kiro-cli's authoritative full subagent_list
-        # each turn): otherwise a completed sub-agent from a prior turn stays in
-        # the roster and is re-emitted in the next turn's EVENT_SUBAGENT_LIST,
-        # which the fresh per-turn _native_tracker resurrects as a duplicate
-        # spawn/done card — and the roster would grow unbounded for the session.
-        self._kas_subagent_roster.clear()
+            self._cancelled = False
+            self._cancel_ts = 0.0
+            self._turn_done.clear()
+            # Reset the stored stop_reason: only a real `complete` response sets it,
+            # and the synthetic-terminal paths (cancel-unacked / stale / tool-stall /
+            # timeout) call _turn_done.set() WITHOUT updating it. Without this reset,
+            # wait_turn_done() would return the PREVIOUS turn's reason (e.g. a stale
+            # "end_turn" making a timed-out cancel look acked, or "" → a spurious
+            # hard kill of the shared runtime). Mirrors AcpClient.
+            self._last_stop_reason = ""
+            self._stale_eligible = False
+            # Set when a genuine stale turn is probed via session/cancel; read by the
+            # unresponsive-cancel branch to distinguish a confirmed wedge (signal
+            # auto-recovery) from an ordinary unacked cancel (unblock caller).
+            self._stale_probe = False
+            self._tool_dispatched = False
+            self._inflight_tool = None
+            # Park state is per-turn: carrying it across would charge the previous
+            # turn's consumer time to this one, and a permission left unanswered when
+            # the last turn died would mask this turn's stalls forever.
+            self._parked_total = 0.0
+            self._parked_since = None
+            self._awaiting_permission = False
+            self._retire_liveness_state()
+            self._working_logged_ts = _WORKING_NEVER_LOGGED
+            self._tool_call_inputs.clear()
+            self._tool_call_is_shell.clear()
+            self._tool_call_raw_params.clear()
+            self._tool_call_mcp_server.clear()
+            self._tool_call_tool_name.clear()
+            self._permission_options.clear()
+            # Per-turn reset (parity with kiro-cli's authoritative full subagent_list
+            # each turn): otherwise a completed sub-agent from a prior turn stays in
+            # the roster and is re-emitted in the next turn's EVENT_SUBAGENT_LIST,
+            # which the fresh per-turn _native_tracker resurrects as a duplicate
+            # spawn/done card — and the roster would grow unbounded for the session.
+            self._kas_subagent_roster.clear()
 
         # Drain frames left over from a prior abandoned turn. The cancel-unacked
         # / stale / tool-stall / timeout paths synthesize a terminal

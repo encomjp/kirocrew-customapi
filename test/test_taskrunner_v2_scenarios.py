@@ -1251,8 +1251,8 @@ class TestScenarioParseStepsMalformed:
 
 
 class TestScenarioParallelGroupPartialSuccess:
-    """When step B fails in a [A, B, C] parallel group, A (already PASSED)
-    must NOT be overwritten to SKIPPED. Only C (still PENDING) gets SKIPPED."""
+    """When step B fails in a [A, B, C] parallel group, sibling PASSED tasks
+    must be reverted (atomic group, half-commit guard)."""
 
     @pytest.mark.asyncio
     async def test_passed_step_not_overwritten_to_skipped(self, tmp_path: Path) -> None:
@@ -1287,10 +1287,11 @@ class TestScenarioParallelGroupPartialSuccess:
         ):
             await runner._execute_tasks(run, "hk")
 
-        assert step_a.status == StepStatus.PASSED, "A already passed — must not be overwritten"
+        # Half-commit guard: sibling PASSED tasks are reverted to PENDING so the
+        # group is atomic (bounds: no half-committed parallel group).
+        assert step_a.status == StepStatus.PENDING, "A reverted — group is atomic"
         assert step_b.status == StepStatus.FAILED
-        # With asyncio.gather, C runs concurrently and passes
-        assert step_c.status == StepStatus.PASSED, "C ran via gather — should be PASSED"
+        assert step_c.status == StepStatus.PENDING, "C reverted — group is atomic"
         assert call_count == 3, "All 3 steps run concurrently via gather"
 
 
@@ -2798,10 +2799,10 @@ class TestScenarioParallelGroupMiddleFails:
         ):
             await runner._execute_tasks(run, "taskrunner:run:test")
 
-        assert run.tasks[0].status == StepStatus.PASSED
+        # Half-commit guard: sibling PASSED reverted to PENDING (atomic group)
+        assert run.tasks[0].status == StepStatus.PENDING
         assert run.tasks[1].status == StepStatus.FAILED
-        # With asyncio.gather, C runs concurrently and passes
-        assert run.tasks[2].status == StepStatus.PASSED
+        assert run.tasks[2].status == StepStatus.PENDING
 
 
 # ── Replan: depends_on Reindexing ──

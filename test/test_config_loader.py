@@ -462,10 +462,14 @@ _workspace_config_st = st.builds(
 )
 
 # Strategy for MemoryStoreConfig instances
+# B5 fix: validation now strips invalid enum values at depth 3+ (e.g.
+# memory_stores.<name>.embedding_provider), so "none" is no longer
+# round-trippable and the hypothesis strategy must generate only valid
+# values (H7).
 _memory_store_config_st = st.builds(
     MemoryStoreConfig,
     description=st.text(min_size=0, max_size=30),
-    embedding_provider=st.sampled_from(["", "none", "llama_cpp"]),
+    embedding_provider=st.sampled_from(["", "llama_cpp"]),
 )
 
 # Hypothesis strategy for generating valid KiroCrewConfig instances
