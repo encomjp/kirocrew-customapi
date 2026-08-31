@@ -1,3 +1,14 @@
+## [0.4.1-1.5] — 2026-08-31
+
+kirocrew-customapi release `v0.4.1-1.5` — kiro base `0.4.1` + fork version `1.5`.
+
+- **Dashboard OpenAI catalog** now uses `effective_provider_api_key` (keyring/env) instead of plaintext `provider_api_key` — keyring-only setups no longer get empty `Bearer`
+- **Regression tests** for all leftover fork-review fixes: `PATCH` mask skip, bridge inner whitelist, `live ∪ static cmc`, `model_via_env` post-whitelist, and `Bearer` effective key
+
+### Contributors
+
+- @encomjp
+
 ## [0.4.1-1.4] — 2026-08-31
 
 kirocrew-customapi release `v0.4.1-1.4` — kiro base `0.4.1` + fork version `1.4`.
