@@ -2057,6 +2057,12 @@ async def api_kirocrew_config_patch(request: web.Request) -> web.Response:
 
     path_key = body.get("path", "")
     value = body.get("value")
+    # PATCH skip-if-mask: GET returns _SENSITIVE_MASK for sensitive fields;
+    # re-saving that sentinel must not overwrite the real secret.
+    if value == _SENSITIVE_MASK:
+        _log_sel("success", f"{path_key}={_SENSITIVE_MASK}")
+        cfg = KiroCrewConfig.load()
+        return web.json_response(_masked_config_dict(cfg))
     spec = _EDITABLE_CONFIG.get(path_key)
     if not spec:
         # `agent.apps_allow_third_party` was deliberately REMOVED from the editable

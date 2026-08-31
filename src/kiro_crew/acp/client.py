@@ -2539,17 +2539,20 @@ class AcpClient:
         # the claude-agent-acp adapter rejects it in set_config_option. Skip
         # the wire set and let the model ride in via ANTHROPIC_MODEL env, which
         # the adapter forwards to Claude Code as its default.
+        # H7: key off effective post-whitelist self._model, not constructor arg `model`
+        # — when router+model=auto, whitelist pins auto to an enabled id; bounds:
+        # self._model is already sanitized to ""/auto/DEFAULT_MODEL or a real id.
         self._model_via_env = bool(
             self._is_claude
             and (extra_env or {}).get("ANTHROPIC_BASE_URL")
-            and model not in ("", "auto", DEFAULT_MODEL)
+            and self._model not in ("", "auto", DEFAULT_MODEL)
             and not (extra_env or {}).get("ANTHROPIC_MODEL")
         )
         if self._model_via_env:
             self._extra_env = dict(extra_env or {})
             # The picker id is prefixed (cmc/...); the proxy serves raw ids
             # and rejects the prefix, so translate before the env carries it.
-            self._extra_env["ANTHROPIC_MODEL"] = strip_router_model_prefix(model or "")
+            self._extra_env["ANTHROPIC_MODEL"] = strip_router_model_prefix(self._model or "")
         else:
             self._extra_env = extra_env or {}
         logger.debug(
@@ -3221,17 +3224,20 @@ class AcpClient:
         strip_router_model_prefix() accepts.
         """
         base_url = (self._extra_env or {}).get("ANTHROPIC_BASE_URL", "")
-        # The key may live in _extra_env (provider_api_key) OR in the process
-        # environment (ANTHROPIC_API_KEY exported by the user, or the
-        # CLIProxyAPI-specific CLIPROXY_API_KEY) — the spawn env merges all
-        # three, so read them all here too.
+        # H7/bounds: OpenAI /v1/models fetch must use effective_provider_api_key
+        # (env > keyring > plaintext) so keyring/KIROCREW_PROVIDER_API_KEY-only
+        # setups still auth the catalog; bounds plaintext to the configured
+        # ANTHROPIC_API_KEY value, with env+keyring handled centrally.
         import os as _os
 
-        api_key = (
+        from kiro_crew.provider_secrets import effective_provider_api_key
+
+        _configured = (
             (self._extra_env or {}).get("ANTHROPIC_API_KEY", "")
             or _os.environ.get("ANTHROPIC_API_KEY", "")
             or _os.environ.get("CLIPROXY_API_KEY", "")
         )
+        api_key = effective_provider_api_key(_configured)
         if not base_url:
             return
         try:
@@ -3266,6 +3272,14 @@ class AcpClient:
                         "description": m.get("description") or "",
                     }
                 )
+            # H7/bounds: live catalog is union with static commandcode — live ∩ whitelist
+            # alone would hide cmc when live only maps oc/ol/cx/ag; union keeps static cmc
+            # visible. Bounds: whitelist is the curated set, captured_ids de-duplicates.
+            captured_ids = {c["modelId"] for c in captured}
+            whitelist = self.router_model_whitelist()
+            for mid in sorted(whitelist):
+                if mid.startswith("cmc/") and mid not in captured_ids:
+                    captured.append({"modelId": mid, "name": mid, "description": ""})
             if captured:
                 self._available_models = captured
                 self._modes_advertised = True

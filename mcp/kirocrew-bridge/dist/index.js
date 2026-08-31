@@ -16810,8 +16810,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     { name: "mcp__ssh__execute_command", description: "Execute command on SSH host via KiroCrew gateway (proxied)", inputSchema: { type: "object", properties: { cmdString: { type: "string" }, connectionName: { type: "string" } }, required: ["cmdString"] } },
     { name: "memory_tencentdb_memory_search", description: "Search KiroCrew memory (proxied)", inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } },
-    { name: "memory_tencentdb_conversation_search", description: "Search KiroCrew conversations (proxied)", inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } },
-    { name: "kirocrew_call", description: "Generic KiroCrew tool proxy (tool, args)", inputSchema: { type: "object", properties: { tool: { type: "string" }, args: { type: "object" } }, required: ["tool"] } }
+    { name: "memory_tencentdb_conversation_search", description: "Search KiroCrew conversations (proxied)", inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } }
   ]
 }));
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
@@ -16819,7 +16818,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   try {
     let result;
     if (name === "kirocrew_call") {
-      result = await callGateway(args.tool, args.args || {});
+      const inner = args?.tool;
+      if (typeof inner !== "string" || !ALLOWED_TOOLS.has(inner)) throw new Error(`Tool not allowed: ${inner}`);
+      result = await callGateway(inner, args.args || {});
     } else {
       result = await callGateway(name, args || {});
     }

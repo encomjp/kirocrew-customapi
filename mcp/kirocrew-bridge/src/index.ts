@@ -86,7 +86,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     { name: "mcp__ssh__execute_command", description: "Execute command on SSH host via KiroCrew gateway (proxied)", inputSchema: { type: "object", properties: { cmdString: { type: "string" }, connectionName: { type: "string" } }, required: ["cmdString"] } },
     { name: "memory_tencentdb_memory_search", description: "Search KiroCrew memory (proxied)", inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } },
     { name: "memory_tencentdb_conversation_search", description: "Search KiroCrew conversations (proxied)", inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } },
-    { name: "kirocrew_call", description: "Generic KiroCrew tool proxy (tool, args)", inputSchema: { type: "object", properties: { tool: { type: "string" }, args: { type: "object" } }, required: ["tool"] } },
   ]
 }));
 
@@ -95,7 +94,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   try {
     let result;
     if (name === "kirocrew_call") {
-      result = await callGateway((args as any).tool, (args as any).args || {});
+      // H7/bounds: check inner args.tool against whitelist, not outer kirocrew_call
+      const inner = (args as any)?.tool;
+      if (typeof inner !== "string" || !ALLOWED_TOOLS.has(inner)) throw new Error(`Tool not allowed: ${inner}`);
+      result = await callGateway(inner, (args as any).args || {});
     } else {
       result = await callGateway(name, args || {});
     }
