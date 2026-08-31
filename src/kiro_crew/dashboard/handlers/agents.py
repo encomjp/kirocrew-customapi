@@ -1129,7 +1129,7 @@ async def _opencode_models_response(request: web.Request) -> web.Response:
                 headers["x-api-key"] = api_key
                 headers["anthropic-version"] = "2023-06-01"
             else:
-                headers["Authorization"] = f"Bearer {cfg.agent.provider_api_key}"
+                headers["Authorization"] = f"Bearer {api_key}"
         url = f"{base}/v1/models"
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
