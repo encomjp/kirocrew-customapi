@@ -1,3 +1,14 @@
+## [0.4.1-1.7] — 2026-09-03
+
+kirocrew-customapi release `v0.4.1-1.7` — kiro base `0.4.1` + fork version `1.7`.
+
+- **README:** hero revamp — "Made in the European Union · for everyone" tagline plus `assets/made-in-europe.svg` banner, synced to the canonical `lenovo-legion-tool` asset
+- **Versions:** `src/kiro_crew/__init__.py` and Electron `package.json`/`package-lock.json` bumped `0.4.1-1.6` → `0.4.1-1.7` (`pyproject.toml` stays at `0.4.1` PEP440)
+
+### Contributors
+
+- @encomjp
+
 ## [0.4.1-1.6] — 2026-08-31
 
 kirocrew-customapi release `v0.4.1-1.6` — kiro base `0.4.1` + fork version `1.6`.
