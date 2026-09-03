@@ -4,8 +4,11 @@
 
 <h1 align="center">Kiro Crew</h1>
 
+<p align="center"><img src="assets/made-in-europe.svg" alt="Made in Europe · for everyone" width="310"></p>
+
 <p align="center">
-  <strong>A persistent workspace for development work that self-improves and continues beyond one session.</strong>
+  <strong>A persistent workspace for development work that self-improves and continues beyond one session.</strong><br>
+  <sub>Made in the European Union · for everyone</sub>
 </p>
 
 <p align="center">

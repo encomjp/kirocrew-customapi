@@ -9,6 +9,7 @@
     </filter>
   </defs>
 
+  <!-- Container badge with EU blue border and rich flag background -->
   <rect x="0.5" y="0.5" width="309" height="39" rx="8" fill="url(#eu-blue)" stroke="#3875d7" stroke-width="1.2" filter="url(#glow)"/>
 
   <!-- European Union 12 gold stars in a circle -->
@@ -27,7 +28,9 @@
     <polygon fill="#FFCC00" points="19.75,6.97 20.24,8.49 21.84,8.49 20.55,9.43 21.04,10.95 19.75,10.02 18.46,10.95 18.95,9.43 17.66,8.49 19.26,8.49"/>
   </g>
 
+  <!-- Divider line -->
   <line x1="48" y1="9" x2="48" y2="31" stroke="#3875d7" stroke-width="1" opacity="0.6"/>
 
+  <!-- Text -->
   <text x="56" y="24.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="0.2">Made in Europe <tspan font-weight="400" fill="#a0c4ff">· for everyone</tspan></text>
 </svg>
