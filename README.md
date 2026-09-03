@@ -2,13 +2,13 @@
   <img src="assets/banner.svg" alt="Kiro Crew. Keep work moving. Runs on your hardware, remembers across sessions, keeps working unattended.">
 </p>
 
-<h1 align="center">Kiro Crew</h1>
-
-<p align="center"><img src="assets/made-in-europe.svg" alt="Made in Europe · for everyone" width="310"></p>
-
+<h1 align="center">Kiro Crew (Custom API Edition)</h1>
 <p align="center">
-  <strong>A persistent workspace for development work that self-improves and continues beyond one session.</strong><br>
-  <sub>Made in the European Union · for everyone</sub>
+  <img src="assets/made-in-europe.svg" alt="Made in Europe · for everyone" width="310">
+</p>
+<p align="center">
+  <strong>A hardened, private AI workspace with Custom OpenAI &amp; Router API backends.</strong><br>
+  <sub>Made in the European Union · for everyone · Unofficial community fork of KiroCrew</sub>
 </p>
 
 <p align="center">
@@ -37,6 +37,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
+  <a href="#why-this-fork-custom-api-edition">Why this fork?</a> ·
   <a href="#build-from-source">Build from source</a> ·
   <a href="#why-kiro-crew">Why Kiro Crew</a> ·
   <a href="#what-kiro-crew-does">Capabilities</a> ·
@@ -49,7 +50,19 @@
 
 ## Versioning
 
-This fork tracks upstream [`kirodotdev/KiroCrew`](https://github.com/kirodotdev/KiroCrew) verbatim and layers its own changes on top. Every release is tagged **`{upstream}-fork.{n}`** — for example `0.4.1-1.1` means *upstream `0.4.1` + fork revision `1.1`*. The upstream part tells you how up-to-date the rebase is, the fork part counts fixes since that rebase. Compare `0.4.1-1.1` vs `0.5.0-1.0` at a glance: the left side is the upstream you care about. See [`CHANGELOG.md`](CHANGELOG.md) for what each fork revision adds.
+This fork tracks upstream [`kirodotdev/KiroCrew`](https://github.com/kirodotdev/KiroCrew) (currently base **`v0.4.1`**) and layers its own changes on top. Every release is tagged **`{upstream}-1.{n}`** — for example `0.4.1-1.1` means *upstream `0.4.1` + fork revision `1.1`*. The upstream part tells you how up-to-date the rebase is, the fork part counts fixes since that rebase. Compare `0.4.1-1.1` vs `0.5.0-1.0` at a glance: the left side is the upstream you care about. The current release is **`v0.4.1-1.7`**. See [`CHANGELOG.md`](CHANGELOG.md) for what each fork revision adds.
+
+## Why this fork? (Custom API Edition)
+
+> **Unofficial community fork of [KiroCrew](https://github.com/kirodotdev/KiroCrew).** Made in the European Union · for everyone. Everything below is what this fork adds on top of upstream.
+
+| # | What you get | Why it matters |
+|---|---|---|
+| 1 | **Custom & multi-provider API support** — connect any OpenAI-compatible API, local models (Ollama, vLLM, LM Studio), router backends (9router, LiteLLM, open-sse), or custom endpoints without proprietary lock-in | Use DeepSeek, Claude via third-party providers, or your own gateway — your keys, your models, your choice |
+| 2 | **Keyring & secret protection** — system-keyring-managed API keys with automatic keyring/env fallback, plus secret masking for provider keys (`provider_api_key`, `telegram.accounts`) in logs and configuration | Keys never leak into logs, and keyring-only setups still get a valid `Bearer` token |
+| 3 | **Bundled MCP bridge adapter** — `kirocrew-bridge` ships in-tree with tool allowlisting out of the box | Model Context Protocol (MCP) tool integration with zero extra installs |
+| 4 | **Hardened local runtime** — 30+ edge-case fixes across ACP streaming, sandboxing, path-traversal guards (`O_NOFOLLOW`), SQLite race resilience, and atomic persistence | Fail-closed security with rate and payload-size guards, built for unattended operation |
+| 5 | **EU privacy & data sovereignty** — runs 100% on your hardware with no telemetry lock-in | A GDPR-friendly workspace: your code and conversations stay with you |
 
 ## Quick start
 
